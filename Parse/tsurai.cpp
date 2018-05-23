@@ -41,37 +41,23 @@ class Parser {
       const std::string &s, size_t &i,
       const std::map<std::string, intmax_t> &tmp_vars) const {
 
-    bool neg=false;
-    while (i < s.length() && (s[i] == '+' || s[i] == '-')) {
-      ++i;
-      neg = !neg;
-    }
     if (!isdigit(s[i])) {
       std::string param(1, s[i]);
       while (i++ < s.length() && isalnum(s[i]))
         param += s[i];
-      intmax_t res;
+
       if (vars.find(param) != vars.end()) {
-        res = vars.find(param)->second;
+        return vars.at(param);
       } else {
-        res = tmp_vars.at(param);
+        return tmp_vars.at(param);
       }
-      return neg? -res:res;
     }
-    /* Uncomment here if you have to take care of INTMAX_MIN */
-    // if (neg) {
-    //   intmax_t res=-s[i]+'0';
-    //   while (++i < s.length() && isdigit(s[i])) {
-    //     res = res*10 - (s[i]-'0');
-    //   }
-    //   return res;
-    // }
 
     intmax_t res=s[i]-'0';
     while (++i < s.length() && isdigit(s[i])) {
       res = res*10 + s[i]-'0';
     }
-    return neg? -res:res;
+    return res;
   }
 
   intmax_t parse(
@@ -79,15 +65,22 @@ class Parser {
       const std::map<std::string, intmax_t> &tmp_vars) const {
 
     /* tsurai parser */
-    if (s[i] == open) {
-      intmax_t tmp=parse(s, ++i, 0, tmp_vars);
-      assert(s[i] == close);
-      ++i;
-      return tmp;
-    }
-
     if (level == max_preced) {
-      return literal(s, i, tmp_vars);
+      if (s[i] == open) {
+        intmax_t tmp=parse(s, ++i, 0, tmp_vars);
+        assert(s[i] == close);
+        ++i;
+        return tmp;
+      }
+
+      if (s[i] == '+') {
+        return parse(s, ++i, level, tmp_vars);
+      } else if (s[i] == '-') {
+        // UB but maybe works with INT*_MIN...
+        return -parse(s, ++i, level, tmp_vars);
+      } else {
+        return literal(s, i, tmp_vars);
+      }
     }
 
     intmax_t lhs=parse(s, i, level+1, tmp_vars);
@@ -128,7 +121,7 @@ public:
     return res;
   }
 
-  void set_var(const std::string &param, intmax_t value) {
+  void add_var(const std::string &param, intmax_t value) {
     vars[param] = value;
   }
 
@@ -149,23 +142,23 @@ public:
   }
 };
 
-// int main() {
-//   Parser p({">+-", ">*/"});
-//   std::map<char, std::function<intmax_t (intmax_t, intmax_t)>> callback;
-//   p.add_operator('^', '<', 2, [](intmax_t x, intmax_t y)->intmax_t {
-//     return ppow(x, y);
-//   });
-// 
-//   size_t n;
-//   scanf("%zu", &n);
-//   for (size_t i=0; i<n; ++i) {
-//     char op;
-//     char buf[96];
-//     scanf(" %c %s", &op, buf);
-//     p.add_operator(op, '>', 3, buf);
-//   }
-// 
-//   char buf[128];
-//   scanf("%s", buf);
-//   printf("%jd\n", p.parse(buf));
-// }
+int main() {
+  Parser p({">+-", ">*/"});
+  std::map<char, std::function<intmax_t (intmax_t, intmax_t)>> callback;
+  p.add_operator('^', '<', 2, [](intmax_t x, intmax_t y)->intmax_t {
+    return ppow(x, y);
+  });
+
+  size_t n;
+  scanf("%zu", &n);
+  for (size_t i=0; i<n; ++i) {
+    char op;
+    char buf[96];
+    scanf(" %c %s", &op, buf);
+    p.add_operator(op, '>', 3, buf);
+  }
+
+  char buf[128];
+  scanf("%s", buf);
+  printf("%jd\n", p.parse(buf));
+}
