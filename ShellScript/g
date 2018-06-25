@@ -1,0 +1,5 @@
+# -*- mode: sh; sh-shell: bash -*-
+# ~/bin/g
+
+src=$(latest '' r..) && \
+    make CXX=g++-8 CXXFLAGS="-Wall -Wextra -D_GLIBCXX_DEBUG $@" "${src%.*}"

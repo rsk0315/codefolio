@@ -1,0 +1,19 @@
+set expandtab
+set shiftwidth=4
+set softtabstop=4
+set autoindent
+set cindent
+set smartindent
+set number
+set backspace=indent,eol,start
+set ruler
+set showcmd
+colorscheme koehler
+syntax enable
+nnoremap ZX :w<Enter><C-z>
+
+augroup fileTypeIndent
+    autocmd!
+    autocmd BufNewFile,BufRead *.c,*.cpp setlocal softtabstop=2 shiftwidth=2
+augroup END
+

@@ -1,0 +1,12 @@
+# -*- mode: sh; sh-shell: bash -*-
+# ~/bin/latest
+
+# We shall fail with names that contain whitespaces
+# If you need it, use GNU ls, sed, xargs, etc.
+
+ext="${1:+\.(}$1${1:+)$}"
+perm="-${2:-.}"
+perm="^${perm//[^rwx.-]/}"  # do not forget '^'
+
+res=$(ls -ltA | grep -E "$ext" | grep -E -- "$perm" | sed q | awk '$0=$9')
+[[ -f "$res" ]] && echo "$res"

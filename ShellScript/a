@@ -1,0 +1,4 @@
+# -*- mode: sh; sh-shell: bash -*-
+# ~/bin/a
+
+cmd=$(latest '' ..x) && echo "./$cmd" >&2 && "./$cmd" "$@"
