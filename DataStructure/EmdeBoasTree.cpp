@@ -168,8 +168,8 @@ class EmdeBoasTreeNode<3> {
   }
 
   IndexType successor(IndexType u) const {
-    IndexType tmp=vec[u/64]&-(1uLL<<((u+1)%64));
-    if (tmp > 0) return (u/64*64) | __builtin_ctzll(tmp);
+    IndexType tmp=vec[u/64]&~((1uLL<<((u+1)%64))-1);
+    if (u % 64 < 63 && tmp > 0) return (u/64*64) | __builtin_ctzll(tmp);
     for (size_t i=u/64+1; i<4; ++i)
       if (vec[i]) return i<<6 | __builtin_ctzll(vec[i]);
 
