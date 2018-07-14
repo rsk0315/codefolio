@@ -1,12 +1,3 @@
-#include <cstdio>
-#include <cstdint>
-#include <cassert>
-#include <vector>
-#include <algorithm>
-#include <functional>
-
-#define fprintf(...) void(0)
-
 template <class T>
 class RedBlackTree {
   struct Node {
@@ -316,26 +307,3 @@ public:
     return !violated;
   }
 };
-
-int main() {
-  RedBlackTree<int> rbt;
-
-  int q;
-  scanf("%d", &q);
-  for (int i=0; i<q; ++i) {
-    int t, x;
-    scanf("%d", &t);
-    if (t == 0) {
-      scanf("%d", &x);
-      rbt.insert(x);
-      printf("%zu\n", rbt.size());
-    } else if (t == 1) {
-      scanf("%d", &x);
-      printf("%d\n", rbt.contains(x));
-    } else if (t == 2) {
-      scanf("%d", &x);
-      rbt.erase(x);
-    }
-  }
-  assert(rbt.verify());
-}
