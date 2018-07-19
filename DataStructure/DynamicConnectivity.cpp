@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cassert>
+// #define assert(c) (void)({ if (c) void(0); else for (;;) {} })
 #include <algorithm>
 #include <vector>
 #include <map>
@@ -9,6 +10,7 @@
 // for debug
 #include <random>
 #include <unistd.h>
+#include <stdexcept>
 
 // for release
 // #define fprintf(...) void(0)
@@ -19,9 +21,11 @@ template <class T>
 class RedBlackTree {
   friend EulerTourForest;
 
+  size_t size_=0;
   struct Node {
     Node *children[2]={nullptr, nullptr}, *parent=nullptr;
     T value;
+    size_t lnum=0;
     enum Color { RED, BLACK } color=RED;
     Node(T x): value(x) {}
 
@@ -82,6 +86,7 @@ class RedBlackTree {
     if (root) {
       root->parent = nullptr;
       root->color = Node::BLACK;
+      reset_size();
     }
   }
 
@@ -119,6 +124,7 @@ class RedBlackTree {
   }
 
   void swap(RedBlackTree &oth) {
+    std::swap(size_, oth.size_);
     std::swap(root, oth.root);
   }
 
@@ -142,6 +148,12 @@ class RedBlackTree {
     }
     child->children[dir] = cur;
     cur->parent = child;
+
+    if (dir == 0) {
+      cur->parent->lnum += cur->lnum+1;
+    } else if (dir == 1) {
+      cur->lnum -= cur->parent->lnum+1;
+    }
   }
 
   Node *successor(Node *cur) const {
@@ -227,16 +239,50 @@ class RedBlackTree {
     if (cur) cur->color = Node::BLACK;
   }
 
+  void propagate_lnum(Node *cur, size_t diff) {
+    assert(cur);
+    while (cur->parent != nullptr) {
+      if (cur == cur->parent->children[0]) {
+        cur->parent->lnum += diff;
+      }
+      cur = cur->parent;
+    }
+  }
+
+  void reset_size() {
+    size_ = calc_size(root);
+  }
+
+  size_t calc_size(Node *cur) const {
+    size_t res=0;
+    while (cur != nullptr) {
+      res += cur->lnum+1;
+      cur = cur->children[1];
+    }
+    return res;
+  }
+
 public:
   RedBlackTree() = default;
 
+  size_t size() const {
+    return size_;
+  }
+
   Node *insert_front(Node *node) {
+    ++size_;
+    node->lnum = 0;
     if (root == nullptr) {
       node->color = Node::BLACK;
       root = node;
       return root;
     }
-    Node *cur=first();
+    Node *cur=root;
+    ++root->lnum;
+    while (cur->children[0] != nullptr) {
+      cur = cur->children[0];
+      ++cur->lnum;
+    }
     cur->children[0] = node;
     node->parent = cur;
     node->color = Node::RED;
@@ -245,6 +291,8 @@ public:
   }
 
   Node *insert_back(Node *node) {
+    ++size_;
+    node->lnum = 0;
     if (root == nullptr) {
       node->color = Node::BLACK;
       root = node;
@@ -261,6 +309,7 @@ public:
   Node *erase(Node *cur) {
     if (cur == nullptr) return nullptr;
 
+    --size_;
     Node *y=cur;
     if (cur->children[0] && cur->children[1]) y = successor(y);
     assert(y != nullptr);
@@ -272,9 +321,15 @@ public:
     if (y->parent == nullptr) {
       root = x;
     } else {
-      y->parent->children[y == y->parent->children[1]] = x;
+      if (y == y->parent->children[1]) {
+        y->parent->children[1] = x;
+      } else {
+        propagate_lnum(y, -1);
+        y->parent->children[0] = x;
+      }
+      // y->parent->children[y == y->parent->children[1]] = x;
     }
-    Node *xparent=y->parent;  // not x->parent; in case x is null
+    Node *xparent=y->parent;  // instead of x->parent; in case x is null
     bool fix_needed=(y->color == Node::BLACK);
     if (y != cur) {
       // keep detached node intact; not use cur->value = y->value.
@@ -282,6 +337,7 @@ public:
       y->children[0] = cur->children[0];
       y->children[1] = cur->children[1];
       y->color = cur->color;
+      y->lnum = cur->lnum;
 
       if (y->children[0]) y->children[0]->parent = y;
       if (y->children[1]) y->children[1]->parent = y;
@@ -290,17 +346,18 @@ public:
       } else {
         root = y;
       }
-
       if (xparent == cur) {
         xparent = y;
         if (x) x->parent = xparent;
       }
+      propagate_lnum(y, 1);
     }
 
     if (fix_needed)
       erase_fixup(x, xparent);
 
     cur->children[0] = cur->children[1] = cur->parent = nullptr;
+    cur->lnum = 0;
     return root;
   }
 
@@ -331,17 +388,21 @@ public:
     }
 
     if (root == nullptr && oth.root == nullptr) {
+      size_ = 1;
       root = med;
       med->color = Node::BLACK;
+      med->lnum = 0;
       return root;
     }
     med->color = Node::RED;
     if (root == nullptr) {
+      med->lnum = 0;
       oth.insert_front(med);
       swap(oth);
       return root;
     }
     if (oth.root == nullptr) {
+      med->lnum = 0;
       insert_back(med);
       return root;
     }
@@ -379,9 +440,13 @@ public:
       cur->parent = root->parent = med;
 
       root = oth.root;
+      propagate_lnum(med, size_+1);
     }
 
+    med->lnum = calc_size(med->children[0]);
     oth.root = nullptr;
+    size_ += oth.size_ + 1;
+    oth.size_ = 0;
     insert_fixup(med);
     return root;
   }
@@ -419,6 +484,9 @@ public:
         right.merge(subtree, med);
       }
     }
+
+    left.reset_size();
+    right.reset_size();
 
     swap(left);
     return {root, right.root};
@@ -470,15 +538,16 @@ public:
 
       if (right) dfs(right, depth+1, bh);
 
-      fprintf(stderr, "%s%*s(%zu, %zu)%s (%zu)%s\n",
+      fprintf(stderr, "%s%*s(%zu, %zu)%s (%zu) [%zu]%s\n",
               is_red(subroot)? "\x1b[31;1m":"\x1b[37;1m",
               depth*2+2, "  ", subroot->value.first, subroot->value.second,
-              "\x1b[0m", bh, (left && right)? "":" *");
+              "\x1b[0m", bh, subroot->lnum, (left && right)? "":" *");
 
       if (left) dfs(left, depth+1, bh);
     };
 
     fprintf(stderr, "================================================\n");
+    fprintf(stderr, "size: %zu\n", size_);
     dfs(root, 0, 0);
     fprintf(stderr, "================================================\n");
     return !violated;
@@ -550,8 +619,14 @@ public:
     nodes.emplace(uv, uv_edge);
     nodes.emplace(vu, vu_edge);
 
+    // fprintf(stderr, "link(%zu, %zu) {\n", u, v);
+    // u_tree->verify();
+    // v_tree->verify();
     u_tree->merge(*v_tree, uv_edge);
+    // u_tree->verify();
     RbNode *new_root=u_tree->insert_back(vu_edge);
+    // u_tree->verify();
+    // fprintf(stderr, "}\n");
     delete u_tree;
     delete v_tree;
     
@@ -562,11 +637,12 @@ public:
   }
 
   bool cut(size_t u, size_t v) {
-    if (!connected(u, v)) return false;
-
     reroot(u);
     Edge uv(u, v), vu(v, u);
-    RbNode *uv_edge=nodes.at(uv), *vu_edge=nodes.at(vu);
+    auto it=nodes.find(uv);
+    if (it == nodes.end()) return false;
+
+    RbNode *uv_edge=it->second, *vu_edge=nodes.at(vu);
     RbNode *old_root=uv_edge->root();
     RbTree *old_tree=trees.at(old_root);
     nodes.erase(uv);
@@ -600,6 +676,16 @@ public:
     return res;
   }
 
+  std::vector<Edge> edges(size_t u, size_t v) const {
+    RbNode *u_root=nodes.at(Edge(u, u))->root();
+    RbNode *v_root=nodes.at(Edge(v, v))->root();
+    RbTree *u_tree=trees.at(u_root);
+    RbTree *v_tree=trees.at(v_root);
+
+    if (u_tree->size() > v_tree->size()) return edges(v);
+    return edges(u);
+  }
+
   void debug() const {
     for (const auto &p: trees) {
       const RbTree *tree=p.second;
@@ -609,6 +695,7 @@ public:
         node = node->successor();
       }
       fprintf(stderr, "\n");
+      tree->verify();
     }
   }
 };
@@ -632,32 +719,30 @@ public:
     return fs[0].size();
   }
 
-  /*
-    XXX: failed when cut(u, v) after link(u, v) if u and v are already
-         connected at the time of the linking
-    MWE:
-        3 4
-        + 1 2
-        + 2 3
-        + 3 1
-        - 3 1
-  */
-
   void link(size_t u, size_t v) {
     if (connected(u, v)) {
-      aux[0].emplace(u, v);
+      aux[0].emplace(std::minmax(u, v));
       return;
     }
     fs[0].link(u, v);
   }
 
   void cut(size_t u, size_t v) {
+    for (size_t i=0; i<k; ++i) {
+      auto it=aux[i].find(std::minmax(u, v));
+      if (it != aux[i].end()) {
+        // untouch the spanning forest
+        aux[i].erase(it);
+        return;
+      }
+    }
+
     assert(fs[0].cut(u, v));
     size_t i;
     for (i=1; i<k; ++i)
       if (!fs[i].cut(u, v)) break;
 
-    std::vector<Edge> up=fs[i-1].edges(u);
+    std::vector<Edge> up=fs[i-1].edges(u, v);
     if (i == k) {
       ++k;
       fs.emplace_back(n);
@@ -668,22 +753,31 @@ public:
 
     for (size_t j=i; j--;) {
       for (auto it=aux[j].begin(); it!=aux[j].end();) {
-        size_t u=it->first, v=it->second;
+        size_t uu=it->first, vv=it->second;
         it = aux[j].erase(it);
-        if (fs[j].connected(u, v)) {
-          aux[j+1].emplace(u, v);
-          continue;
+
+        if ((connected(u, uu) || connected(u, vv))
+            && (connected(v, uu) || connected(v, vv))) {
+
+          fs[j].link(uu, vv);
+          while (j--) fs[j].link(uu, vv);
+          return;
         }
 
-        fs[j].link(u, v);
-        while (j--) fs[j].link(u, v);
-        return;
+        aux[j+1].emplace(uu, vv);
       }
+    }
+  }
+
+  void debug() const {
+    for (size_t i=0; i<fs.size(); ++i) {
+      fprintf(stderr, "F%zu:\n", i);
+      fs[i].debug();
     }
   }
 };
 
-int main() {
+int solve() {
 #ifdef ONLINE_JUDGE
   freopen("connect.in", "r", stdin);
   freopen("connect.out", "w", stdout);
@@ -714,5 +808,20 @@ int main() {
     } else if (op == '?') {
       printf("%zu\n", dc.size());
     }
+
+    // fprintf(stderr, "################################################\n");
+    // dc.debug();
+    // fprintf(stderr, "################################################\n");
+  }
+  return 0;
+}
+
+int main() {
+  try {
+    solve();
+  // } catch (std::bad_alloc &e) {
+  //   for (;;);
+  } catch (std::out_of_range &e) {
+    for (;;);
   }
 }
