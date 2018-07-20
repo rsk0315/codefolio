@@ -20,7 +20,7 @@ struct Graph: public std::vector<std::vector<Edge<Weight>>> {
 
   void connect_with(size_t src, size_t dst, Weight cost=1) {
     (*this)[src].emplace_back(src, dst, cost);
-    (*this)[dst].emplace_bacl(dst, src, cost);
+    (*this)[dst].emplace_back(dst, src, cost);
   }
 
   void connect_to(size_t src, size_t dst, Weight cost=1) {
