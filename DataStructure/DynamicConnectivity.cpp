@@ -13,7 +13,7 @@
 #include <stdexcept>
 
 // for release
-// #define fprintf(...) void(0)
+#define fprintf(...) void(0)
 
 class EulerTourForest;
 
@@ -26,7 +26,7 @@ class RedBlackTree {
     Node *children[2]={nullptr, nullptr}, *parent=nullptr;
     T value;
     size_t lnum=0;
-    enum Color { RED, BLACK } color=RED;
+    enum Color: bool { RED, BLACK } color=RED;
     Node(T x): value(x) {}
 
     Node *successor() {
@@ -562,34 +562,50 @@ class EulerTourForest {
   std::map<Edge, RbNode *> nodes;
   std::map<RbNode *, RbTree *> trees;
 
+  RbNode *insert_if_needed(size_t u) {
+    Edge uu(u, u);
+    auto it=nodes.lower_bound(uu);
+    if (it != nodes.end() && it->first == uu)
+      return it->second->root();
+
+    RbNode *root=new RbNode(uu);
+    nodes.emplace_hint(it, uu, root);
+    trees.emplace(root, new RbTree(root));
+    return root;
+  }
+
 public:
+  EulerTourForest() = default;
+
   EulerTourForest(size_t n) {
     for (size_t i=0; i<n; ++i) {
       Edge e(i, i);
-      RedBlackTree<Edge> *tree=new RedBlackTree<Edge>;
-      RbNode *node=new RbNode(e);
-      nodes.emplace(e, node);
-      RbNode *root=tree->insert_front(node);
-      trees.emplace(root, tree);
+      RbNode *root=new RbNode(e);
+      nodes.emplace(e, root);
+      trees.emplace(root, new RbTree(root));
     }
   }
 
   bool connected(size_t u, size_t v) const {
-    return nodes.at({u, u})->root() == nodes.at({v, v})->root();
+    auto it_u=nodes.find({u, u});
+    if (it_u == nodes.end()) return false;
+    auto it_v=nodes.find({v, v});
+    if (it_v == nodes.end()) return false;
+    return it_u->second->root() == it_v->second->root();
   }
 
   size_t size() const {
     return trees.size();
   }
 
-  void reroot(size_t u) {
+  RbNode *reroot(size_t u) {
     // {X, *}, ..., {*, u}, {u, u}, {u, *}, ..., {*, X}
     // -> {u, u}, {u, *}, ... {*, X}, {X, *}, ..., {*, u}
     Edge e(u, u);
     RbNode *edge=nodes.at(e);
     RbNode *old_root=edge->root();
     RbTree *old_tree=trees.at(old_root);
-    if (old_tree->first()->value.first == u) return;
+    if (old_tree->first()->value.first == u) return old_root;
 
     trees.erase(old_root);
     std::pair<RbNode *, RbNode *> tmp=old_tree->split(edge);
@@ -600,17 +616,19 @@ public:
     RbNode *new_root=latter.insert_back(edge);
     RbTree *new_tree=new RbTree(new_root);
     trees.emplace(new_root, new_tree);
+    return new_root;
   }
 
   bool link(size_t u, size_t v) {
-    if (connected(u, v)) return false;
-
-    reroot(u);
-    reroot(v);
     Edge uu(u, u), vv(v, v);
-    RbNode *u_root=nodes.at(uu)->root();
-    RbNode *v_root=nodes.at(vv)->root();
+    RbNode *u_root=insert_if_needed(u);
+    RbNode *v_root=insert_if_needed(v);
+    if (u_root == v_root) return false;
+
+    u_root = reroot(u);
+    v_root = reroot(v);
     RbTree *u_tree=trees.at(u_root), *v_tree=trees.at(v_root);
+    // FIXME redundant mutations
     trees.erase(u_root);
     trees.erase(v_root);
 
@@ -619,14 +637,8 @@ public:
     nodes.emplace(uv, uv_edge);
     nodes.emplace(vu, vu_edge);
 
-    // fprintf(stderr, "link(%zu, %zu) {\n", u, v);
-    // u_tree->verify();
-    // v_tree->verify();
     u_tree->merge(*v_tree, uv_edge);
-    // u_tree->verify();
     RbNode *new_root=u_tree->insert_back(vu_edge);
-    // u_tree->verify();
-    // fprintf(stderr, "}\n");
     delete u_tree;
     delete v_tree;
     
@@ -637,6 +649,9 @@ public:
   }
 
   bool cut(size_t u, size_t v) {
+    if (nodes.find({u, u}) == nodes.end() || nodes.find({v, v}) == nodes.end())
+      return false;
+
     reroot(u);
     Edge uv(u, v), vu(v, u);
     auto it=nodes.find(uv);
@@ -667,8 +682,11 @@ public:
   }
 
   std::vector<Edge> edges(size_t u) const {
+    auto it=nodes.find({u, u});
+    if (it == nodes.end()) return {};
+
     std::vector<Edge> res;
-    const RbNode *u_first=nodes.at(Edge(u, u))->first();
+    const RbNode *u_first=it->second->first();
     for (const RbNode *p=u_first; p; p=p->successor())
       if (p->value.first < p->value.second)
         res.push_back(p->value);
@@ -677,8 +695,13 @@ public:
   }
 
   std::vector<Edge> edges(size_t u, size_t v) const {
-    RbNode *u_root=nodes.at(Edge(u, u))->root();
-    RbNode *v_root=nodes.at(Edge(v, v))->root();
+    auto u_it=nodes.find({u, u});
+    if (u_it == nodes.end()) return {};
+    auto v_it=nodes.find({v, v});
+    if (v_it == nodes.end()) return {};
+
+    RbNode *u_root=u_it->second->root();
+    RbNode *v_root=v_it->second->root();
     RbTree *u_tree=trees.at(u_root);
     RbTree *v_tree=trees.at(v_root);
 
@@ -708,7 +731,7 @@ class DynamicConnectivity {
 
 public:
   DynamicConnectivity(size_t n):
-    n(n), k(1), fs(k, EulerTourForest(n)), aux(k)
+    n(n), k(1), fs(1, EulerTourForest(n)), aux(1)
   {}
 
   bool connected(size_t u, size_t v) const {
@@ -720,6 +743,7 @@ public:
   }
 
   void link(size_t u, size_t v) {
+    fprintf(stderr, "link(%zu, %zu)\n", u, v);
     if (connected(u, v)) {
       aux[0].emplace(std::minmax(u, v));
       return;
@@ -728,6 +752,7 @@ public:
   }
 
   void cut(size_t u, size_t v) {
+    fprintf(stderr, "cut(%zu, %zu)\n", u, v);
     for (size_t i=0; i<k; ++i) {
       auto it=aux[i].find(std::minmax(u, v));
       if (it != aux[i].end()) {
@@ -745,26 +770,32 @@ public:
     std::vector<Edge> up=fs[i-1].edges(u, v);
     if (i == k) {
       ++k;
-      fs.emplace_back(n);
+      fs.emplace_back();
       aux.emplace_back();
     }
     for (const auto &p: up)
       fs[i].link(p.first, p.second);
 
-    for (size_t j=i; j--;) {
+    for (size_t j=k; j--;) {
       for (auto it=aux[j].begin(); it!=aux[j].end();) {
         size_t uu=it->first, vv=it->second;
-        it = aux[j].erase(it);
 
         if ((connected(u, uu) || connected(u, vv))
             && (connected(v, uu) || connected(v, vv))) {
 
+          aux[j].erase(it);
           fs[j].link(uu, vv);
           while (j--) fs[j].link(uu, vv);
           return;
         }
 
-        aux[j+1].emplace(uu, vv);
+        if (j+1 <= k-1) {
+          // XXX should be ++it if {uu, vv} are not incident to T_u or T_v
+          aux[j+1].insert(*it);
+          it = aux[j].erase(it);
+        } else {
+          ++it;
+        }
       }
     }
   }
@@ -773,6 +804,13 @@ public:
     for (size_t i=0; i<fs.size(); ++i) {
       fprintf(stderr, "F%zu:\n", i);
       fs[i].debug();
+    }
+    for (size_t i=0; i<k; ++i) {
+      fprintf(stderr, "aux (of spec %zu):\n", i);
+      for (auto it=aux[i].cbegin(); it!=aux[i].cend(); ++it) {
+        fprintf(stderr, " {%zu, %zu}", it->first, it->second);
+      }
+      fprintf(stderr, "\n");
     }
   }
 };
@@ -791,6 +829,8 @@ int solve() {
 
   DynamicConnectivity dc(N);
   for (int i=0; i<Q; ++i) {
+    fprintf(stderr, "Query #%d\n", i);
+
     char op;
     scanf(" %c", &op);
     if (op == '+') {
@@ -811,7 +851,7 @@ int solve() {
 
     // fprintf(stderr, "################################################\n");
     // dc.debug();
-    // fprintf(stderr, "################################################\n");
+    // fprintf(stderr, "################################################\n\n");
   }
   return 0;
 }
