@@ -17,6 +17,24 @@
 \titleformat*{\subsection}{\large\bfseries\rmfamily}
 \titleformat*{\subsubsection}{\normalsize\bfseries\rmfamily}
 
+% toc-formatting
+\usepackage{tocloft}
+\renewcommand\cftsecafterpnum{\vskip0pt}
+\renewcommand\cftsubsecafterpnum{\vskip0pt}
+\renewcommand\cftsubsubsecafterpnum{\vskip0pt}
+
+\renewcommand{\cftsecnumwidth}{4.0em}
+\renewcommand{\cftsubsecnumwidth}{4.0em}
+\renewcommand{\cftsubsubsecnumwidth}{4.0em}
+
+\renewcommand{\cftsecfont}{\bfseries\rmfamily}
+\renewcommand{\cftsubsecfont}{\mcfamily}
+\renewcommand{\cftsubsubsecfont}{\mcfamily}
+
+\renewcommand{\cftsecpagefont}{\bfseries\rmfamily}
+\renewcommand{\cftsubsecpagefont}{\rmfamily}
+\renewcommand{\cftsubsubsecpagefont}{\rmfamily}
+
 % spacing
 \setlength{\parskip}{.5\baselineskip}
 \makeatletter
@@ -67,6 +85,7 @@
 
 % framing
 \usepackage{framed}
+
 \title{
   {\Huge 一日一テーマやるやつ}\\
   {\Large 一日で終わらなければ次の日も}
@@ -77,206 +96,26 @@
 \begin{document}
 \maketitle
 
+\pagenumbering{roman}
+\newpage
+\tableofcontents
 
-\section{2018年7月9日}
-\subsection{謎木（van Emde Boas tree）}
+\newpage
+\pagenumbering{arabic}
+\setcounter{section}{0}
+\renewcommand{\thesection}{\arabic{section}}
 
-整数の集合の演算を高速に行うデータ構造．通常の演算（insertion/erasure/membership）に加え，ある値$x$を超える最小の値を求めるsuccessor，その逆のpredecessorを得る演算と，最小値・最大値を求める演算も行える．
-$[0, U-1]$の区間の整数を全体集合とする．boundされた整数の集合を扱うデータ構造であり，multisetやmapとして使おうとするのは険しい．
+\section{データ構造}
+\input{veb-tree}
 
-全体を陽に持つとメモリがやばいので動的に確保するが，概念としては木構造になっている．
-根ノードは$\sqrt{U}$個の子を持ち，その子は$\sqrt{\sqrt{U}}$個の子を持つ（以下同様）．
-端数が出ると厄介なので，$U=2^{(2^n)}$としておく．
-各ノードは区間の一部分を管理していて，$[0, u-1]$を管理しているノードの$i$番目（0-indexed）の子ノードは$[i\sqrt{u}, (i+1)\sqrt{u}-1]$を管理している．
-実装の際には，各子ノードは$[0, \sqrt{u}-1]$を管理する集合とし，$i$番目の子ノードが値$j$を持っていれば元のノードは$i\sqrt{u}+j$を持っていると判断するようにする．
+\newpage
+\section{グラフ理論}
+\input{dc-online}
 
-各ノードが持っているデータは次の三つである．
-\begin{itemize}
-\item そのノードが持つ集合の最小値$m$・最大値$M$
-\item 子ノードたちへのポインタ
-\item summaryと呼ばれる集合（後述）
-\end{itemize}
-$[0, u-1]$を管理するノード$v$の持つsummary $s$は$[0, \sqrt{u}-1]$の区間を管理するノード（すなわち$v$の各子ノード）と同じ構造を持っていて，$i\in s$であることと，$v$の$i$番目の子ノードの持つ集合が空でないことが同値となるように保たせる．
+\newpage
+\section{文字列処理}
+\input{cyk}
 
-ノード$v$が管理する区間に含まれる要素数によって，データの持ち方は異なる．
-要素数が$2$以下のときは$m$と$M$のみを用いて表現し，$s$や子ノードたちは空とする．
+\include{todo}
 
-$v$が持つ集合の要素を昇順に$\{a_1, a_2, \ldots, a_n\}$とする．
-$n=0$のときは$m>M$など，それ以外の状態では取り得ない状態にしておく．
-$n=1$のときは$m=M=a_1$とし，$n=2$のときは$m=a_1$，$M=a_2$とする．
-$n\ge 3$のときは$m=a_1$，$M=a_n$として，各子ノードを用いて$\{a_2, \ldots, a_{n-1}\}$を表現する（子ノードには$a_1$および$a_n$は含めない）．
-
-これのお気持ちになるとあとは簡単で，これを保つように変更したり，これを元にして探索すればよい．successorについては少々頭が必要で，以下のような処理をする．クエリを$x$とする．
-\begin{itemize}
-\item $x\ge M$や$M<m$であれば該当する要素は存在しない．
-  \begin{itemize}
-  \item $x$を返してエラーを示すとか，例外を投げるとかをする．
-  \end{itemize}
-\item $x<m$なら$m$を返す．
-\item 子ノードが空なら$M$を返す．
-\item $x$が入るべき子ノードの持つ最大値が$x$を超えていれば，その子ノードに該当する要素が含まれるので，そのノードを探索する．
-  \begin{itemize}
-  \item 該当する子ノードの添字$i$は$\lfloor x/\sqrt{U}\rfloor$となる．
-  \end{itemize}
-\item $s$の最大値が$i$以下であれば，$M$を返す．
-\item $s$における$i$のsuccessor $j$を求め，$j$番目の子ノードの最小値を返す．
-\end{itemize}
-
-$U=256$程度であれば，$64$-bit整数$4$つをbitsetとして扱うことで集合を表現できるため，それを利用した．$64$-bit整数$1$つで持って各階層のノード数を$\{64, 4096, 16777216, \ldots\}$とした場合，$2^{64}$と噛み合わなくなるのが嫌だったのでこのようにしてある．$U=16$のときに特殊化する実装と$U=256$のときに特殊化する実装を比較したところ，後者の方が高速であった．
-
-AOJのLessonの\texttt{ITP2\_7\_C}でverify．大きい値側から求めて逆向きに出力することでpredecessorについてもverify済み．minやmaxは陽にはverifyしていないが，まぁ合っている気がする（えー）．
-
-ちなみに実測で\texttt{std::set}に勝てていません（最悪ケース時）．ケースによっては勝っているものもありますが，競プロにおいては最も時間がかかるものが指標になってしまうため．$i$番目の子ノードを管理するのに\texttt{std::map}を使っているんだけど，そこを工夫できると嬉しい？
-
-\section{2018年7月10日 -- 2018年7月31日}
-\subsection{Dynamic Connectivity (online)}
-
-Union-findにdeleteを追加したもの．{``}\textbf{This is a \textit{much} harder problem!}{''}\footnote{だいなみく・こねくちびちー・ぷろぶれむ}
-
-まず森に関するD.C.を解く方法を考え，それを用いて一般のグラフに関するD.C.を解く．
-
-\subsubsection{2018年7月18日}
-以下では，上記の森に対するD.C.を解く方法を示す．
-
-まず，赤黒木を用意する．これは辺$(u, v)$を要素として持ち，要素をin-orderで読んだ辺の列がEuler tourを表す．
-処理の都合上，自己辺$(u, u)$を各頂点に張っておく．
-赤黒木自体の理解が大変なため，すでに一週間ほど使っていてつらいが，2-3-4木に助けてもらいながらがんばった．
-
-ここでの赤黒木は\texttt{split}と\texttt{merge}をできる必要がある．
-また，値の大小関係で順を管理するのではないことに注意が必要である．
-\texttt{split}の際には，基準となる点から根に向かって辿り，その方向に従って左右の木にくっつけていく方法を採用した．
-
-はじめに\texttt{reroot}$(u)$と呼ばれるサブルーチンを定義しておく．
-これはEuler tourの始点を変更する処理で，以下のようにする．
-\begin{itemize}
-\item $(u, u)$で\texttt{split}し，木$L$と木$R$に分ける
-\item 木$R$が木$L$の左に来るように\texttt{merge}する
-  \begin{itemize}
-  \item 木$R$と木$L$の間には$(u, u)$が入るようにする
-  \end{itemize}
-\end{itemize}
-
-\texttt{link}$(u, v)$をする際，事前条件として$u$と$v$が既につながっていないことが求められる\footnote{これは結構つらくて，この条件下でverifyできるD.C.の問題を探すのに苦労する．そもそも存在するの？}．
-頂点$u$，$v$を表す赤黒木のノード（すなわち$(u, u)$と$(v, v)$）が属する赤黒木をそれぞれ$T_u$，$T_v$とおく．
-\begin{itemize}
-\item $T_u$と$T_v$をそれぞれ$u$と$v$で\texttt{reroot}
-\item $T_u$と$T_v$を$(u, v)$をはさんで\texttt{merge}
-\item $T_v$の末尾に$(v, u)$を\texttt{insert}
-  \begin{itemize}
-  \item 実装によっては$T_v$と木$\{(v, u)\}$を\texttt{merge}と考えてもよい
-  \end{itemize}
-\end{itemize}
-
-\texttt{are-connected}$(u, v)$に答える際は，$T_u$と$T_v$の根が同じかどうかを見ればよい．
-
-\texttt{cut}$(u, v)$の事前条件は$u$と$v$が連結していることだが，これは当たり前といえば当たり前（切れているのに切ってほしいならno-opでよい）．
-\begin{itemize}
-\item \texttt{reroot}$(u)$をして$(u, v)$の方が$(v, u)$より先に来るようにする
-  \begin{itemize}
-  \item 逆でもよいが，どちらが先に来るかをはっきりさせておくと楽になる
-    \begin{itemize}
-    \item これは嘘で，\texttt{reroot}$(u)$では$(u, v)$が$(v, u)$より先に来ることが保証できないよね
-    \item これも嘘で，全体が木であることを考えるとそれを保証できる
-    \end{itemize}
-  \end{itemize}
-\item $(u, v)$，$(v, u)$でそれぞれ\texttt{split}し，得られる木を$T_J$，$T_K$，$T_L$とする．
-\item $T_J$と$T_L$を\texttt{merge}した木が新たな$T_u$，$T_K$が新たな$T_v$となる．
-\end{itemize}
-
-以上で，森に関するD.C.は解決．
-
-\subsubsection{2018年7月31日}
-一般のグラフ$G$でのD.C.では，辺集合を二つに分けて考える．
-$G$上で全域森（当然一意でないこともあるが，適当に決める）をなす辺集合を\textit{tree edge}，その補集合を\textit{regular edge}（または\textit{non-tree edge}）とする．
-また，各辺には\textit{specificity}（または\textit{level}）と呼ばれる非負整数値が定められていて，specificityが$k$以上のtree edgeで作られる森を$\mathscr{F}_k$とする．
-この森を表現するために，上で紹介したデータ構造を用いる\footnote{森に関するD.C.を処理できるデータ構造ならなんでもいいはず．}．
-
-\texttt{are-connected}$(u, v)$は簡単で，$\mathscr{F}_0$を見ればよい．$G$上での連結性は$\mathscr{F}_0$上での連結性と等価なため．
-
-\texttt{link}$(u, v)$の手順は以下の通り．新たに辺を追加する際のspecificityの初期値は$0$である．
-\begin{itemize}
-\item $u$と$v$がすでに連結なら，regular edgeに$(u, v)$を追加して終了
-\item そうでない場合
-  \begin{itemize}
-  \item $u$の属する木$T_u$と$v$の属する木$T_v$を連結する
-  \item tree edgeに$(u, v)$を追加する
-  \end{itemize}
-\end{itemize}
-\texttt{cut}$(u, v)$の手順は以下の通り．
-$(u, v)$がregular edgeなら，それを取り除いて終了．
-そうでなければ，ループ変数$k$の初期値を$(u, v)$のspecifityとし，$k\ge 0$の間，以下を繰り返す．
-\begin{itemize}
-\item $(u, v)$を取り除き，$u$，$v$の属するspecificityが$k$の木をそれぞれ$T_u$，$T_v$とする
-  \begin{itemize}
-  \item $T_u$の頂点数の方が小さくなるように適宜入れ替える（cf.~マージテク）
-  \end{itemize}
-\item $T_u$の各辺のspecificityを$1$増やす
-\item $T_u$から出ているregular edgeを順に見る
-  \begin{itemize}
-  \item それが$T_u$と$T_v$を結んでいれば，それらの木を連結させて終了
-  \item そうでなければ，その辺のspecificityを$1$増やす
-  \end{itemize}
-\item 連結させられなければ，$k$を$1$減らす
-\end{itemize}
-最後まで連結させられなければ，実際に$u$と$v$の間のパスが消えたことになる．
-各ステップを高速に処理するため，以下の対応づけを管理しておくとよい．
-\begin{itemize}
-\item $(u, v) \mapsto \text{specificity of }(u, v)$
-\item $u \mapsto \{\text{tree edges incident from }u\}$
-\item $u \mapsto \{\text{regular edges incident from }u\}$
-\end{itemize}
-
-これはHolm, de LichtenbergおよびThroupによるonlineなアルゴリズムで，$\log$がたくさんついていて重い．
-CodeforcesのGym/100551-Aの制約（頂点数，クエリ数ともに最大$3\times 10^5$）には敵わなかった\footnote{Time limit exceeded on test 15，実質ACでは？}．
-
-これとは別で，offlineのアルゴリズムで$O(\log n)$のものがあるので，今後それを勉強しよう．
-
-\section{2018年7月17日}
-\subsection{CYK\protect\footnote{Cocke--Younger--Kasami．}法}
-
-与えられた文$S$が文脈自由文法$\mathscr{G}=[T, N, \sigma, P]$でに含まれるかを$O(|P|\cdot|S|^3)$で判定するアルゴリズム．
-生成規則の適用の仕方の復元も可能で，複数存在する場合はその旨を報告できる．
-
-区間DPみたいなことをする．
-DPテーブルの添字は「長さ」「開始位置」「非終端記号（のID）」で，要素は適用の方法の表す整数（true/falseでもよい）．
-すなわち，$\mathrm{dp}[i][j][k]$は，$S$の位置$j$から長さ$i$の部分文字列を$k$番目の非終端記号から導出することが可能かどうか（あるいはその種類数）を表す．ここでは1-indexedで記すが，もちろん0-indexedでもできる．予め生成規則をChomsky標準形に直しておく必要がある．
-
-まず，$S$に含まれる各文字について，その位置とそれを直接導出する生成規則を求め，それに対応する要素（長さは$1$）の値を$1$にする．
-長さ$i$を$2$から順に増やしていき，その区間$[j, j+i]$を二分した区間$[j, j+k-1]$および$[j+k, j+i]$に対応する部分文字列を見る（順に$S_A$，$S_B$，$S_C$とする）．
-$S_B$と$S_C$がそれぞれ非終端記号$b$と$c$から導出可能で，かつ$a\to b\,c$とするような生成規則が存在した場合，$S_A$は非終端記号$a$から導出可能であることが分かる．
-すなわち$\mathrm{dp}[i][j][a]$を$\mathrm{dp}[k][j][b]$と$\mathrm{dp}[i-k][j+k][c]$から更新する．
-復元したい場合は$(i, j, a)$から$(k, b, c)$に対応させる情報を持っておくとよい．
-
-$\mathrm{dp}[|S|][1][\sigma]$が最終的な答えである．
-
-\section{その他}
-それ以前に学んだもので，まとめておきたいものたち．そのうち書く．
-\begin{itemize}
-\item 部分永続配列
-  \begin{itemize}
-  \item 部分永続Union-find
-  \end{itemize}
-\item Weighted Union-find
-\item Weighted Quick-find
-\item tsuraiパーザ
-\item I/O高速化
-  \begin{itemize}
-  \item これいる？
-  \end{itemize}
-\end{itemize}
-学びたいものたちも挙げておく．
-\begin{itemize}
-\item Starry-sky tree
-  \begin{itemize}
-  \item 区間更新できるセグ木と併せて押さえたい
-  \end{itemize}
-\item Wavelet行列
-\item Eer-tree
-\item Suffix array
-\item Suffix automaton
-\item Aho-Corasick法
-\item \textbf{K}MP法
-\item Z algorithm
-\item 桁DPを一般化したやつ
-\end{itemize}
 \end{document}
