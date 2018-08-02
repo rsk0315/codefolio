@@ -13,7 +13,7 @@ $(PDF):	report.tex $(TeXDocs)
 	$(LaTeX) report.tex  # rerun
 	$(DVI2PDF) $(DVIFLAGS) report.dvi
 
-minibook.tex:	$(TeXDocs)
+report.tex:	$(TeXDocs)
 	touch report.tex
 
 %.tex:	%.md
