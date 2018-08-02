@@ -608,6 +608,9 @@ public:
 //     - erase() および merge() した際に適切に lmin と rmin を更新する
 //     - min() を定義する
 
+// あれ？ これ lmin だけ管理すればよくないですか？
+// どっちのが楽かはわかんないですが
+
 int main() {
   size_t n;
   int q;
