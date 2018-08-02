@@ -25,7 +25,8 @@ class RedBlackTree {
   struct Node {
     Node *children[2]={nullptr, nullptr}, *parent=nullptr;
     T value;
-    T lmin=std::numeric_limits<T>::max(), rmin=std::numeric_limits<T>::max();
+    static constexpr T MAX=std::numeric_limits<T>::max();
+    T mins={MAX, MAX};
     size_t lnum=0;
     enum Color: bool { RED, BLACK } color=RED;
     Node(T x): value(x) {}
@@ -242,7 +243,7 @@ class RedBlackTree {
 
   void propagate_lnum(Node *cur, size_t diff) {
     assert(cur);
-    while (cur->parent != nullptr) {
+    while (cur->parent) {
       if (cur == cur->parent->children[0]) {
         cur->parent->lnum += diff;
       }
@@ -256,11 +257,20 @@ class RedBlackTree {
 
   size_t calc_size(Node *cur) const {
     size_t res=0;
-    while (cur != nullptr) {
+    while (cur) {
       res += cur->lnum+1;
       cur = cur->children[1];
     }
     return res;
+  }
+
+  void reset_min(Node *cur) {
+    T min=MAX;
+    while (cur->parent) {
+      min = std::min({mins[0], cur->value, mins[1]});
+      cur->parent->mins[cur == cur->parent->children[1]] = min;
+      cur = cur->parent;
+    }
   }
 
   void release() {
@@ -374,6 +384,7 @@ public:
 
     cur->children[0] = cur->children[1] = cur->parent = nullptr;
     cur->lnum = 0;
+    cur->mins = {MAX, MAX};
     return root;
   }
 
@@ -605,11 +616,31 @@ public:
 };
 
 // XXX 1508 に accept されるにあたって RedBlackTree には以下の手直しが必要
-//     - erase() および merge() した際に適切に lmin と rmin を更新する
+//     - erase() および merge()/split() した際に適切に mins[] を更新する
 //     - min() を定義する
 
-// あれ？ これ lmin だけ管理すればよくないですか？
-// どっちのが楽かはわかんないですが
+// たぶん erase_fixup() を呼び出す前の時点で reset_min() をする必要がありそう．
+// ただし呼ぶ前に消したところの親の mins の適切な方を MAX にしたりする．
+// cur == y ならどうしよう？ それから当然 rotate() の中でも気をつけなきゃ．
+
+// min(cur, il, ir) 自体はたぶん簡単で，
+// ir <= lmin なら min(cur->children[0], il, ir) をする
+//   ir == lmin なら，std::min(それ, cur->value)
+// lmin <= il なら min(cur->children[1], il-lmin-1, ir-lmin-1) をする
+//   il == lmin なら，std::min(それ, cur->value)
+// それ以外なら il < lmin && lmin < ir であるはずで，
+// std::min({
+//   min(cur->children[0], il, lnum-1),
+//   cur->value,
+//   min(cur->children[1], 0, ir-lmin-1),
+// }) を返すとよさそう
+
+// merge() では med をくっつけた時点で（左が自分のときは）
+// med->mins[0] = {std::min({root->mins[0], root->value, root->mins[1]})}
+// mins[1] も root を oth.root に読み替えて同じ．
+
+// split() ではどうしよう？ merge() ベースで処理してるから何も考えなくても
+// 勝手にうまくいってくれるのかしら？
 
 int main() {
   size_t n;
