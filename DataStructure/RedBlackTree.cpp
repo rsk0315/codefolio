@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cassert>
-// #define assert(c) (void)({ if (c) void(0); else for (;;) {} })
 #include <algorithm>
 #include <vector>
 #include <map>
@@ -13,23 +12,26 @@
 #include <stdexcept>
 
 // for release
-// #define fprintf(...) void(0)
+#define RELEASE
+#ifdef RELEASE
+#  define fprintf(...) void(0)
+#endif  /* RELEASE */
 
 class EulerTourForest;
 
 template <class T>
 class RedBlackTree {
   friend EulerTourForest;
+  static constexpr T MAX=std::numeric_limits<T>::max();
 
   size_t size_=0;
   struct Node {
     Node *children[2]={nullptr, nullptr}, *parent=nullptr;
     T value;
-    static constexpr T MAX=std::numeric_limits<T>::max();
-    T mins={MAX, MAX};
+    T mins[2]={MAX, MAX};
     size_t lnum=0;
     enum Color: bool { RED, BLACK } color=RED;
-    Node(T x): value(x) {}
+    Node(const T &x): value(x) {}
 
     Node *successor() {
       Node *cur=this;
@@ -130,6 +132,11 @@ class RedBlackTree {
     std::swap(root, oth.root);
   }
 
+  T submin(Node *subroot) const {
+    if (!subroot) return MAX;
+    return std::min({subroot->mins[0], subroot->value, subroot->mins[1]});
+  }
+
   void rotate(Node *cur, int dir) {
     // dir == 0: left-rotate
     // dir == 1: right-rotate
@@ -156,6 +163,11 @@ class RedBlackTree {
     } else if (dir == 1) {
       cur->lnum -= cur->parent->lnum+1;
     }
+
+    for (int i=0; i<=1; ++i)
+      cur->mins[i] = submin(cur->children[i]);
+    for (int i=0; i<=1; ++i)
+      child->mins[i] = submin(child->children[i]);
   }
 
   Node *successor(Node *cur) const {
@@ -264,13 +276,65 @@ class RedBlackTree {
     return res;
   }
 
+  size_t size(Node *cur) const {
+    if (cur == root) return size_;
+    if (cur == cur->parent->children[0]) return cur->parent->lnum;
+    return calc_size(cur);
+  }
+
   void reset_min(Node *cur) {
-    T min=MAX;
+    T min;
     while (cur->parent) {
-      min = std::min({mins[0], cur->value, mins[1]});
+      min = std::min({cur->mins[0], cur->value, cur->mins[1]});
       cur->parent->mins[cur == cur->parent->children[1]] = min;
       cur = cur->parent;
     }
+  }
+
+  void reset_min() {
+    std::function<T (Node *)> dfs=[&](Node *cur) {
+      if (!cur) return MAX;
+
+      cur->mins[0] = dfs(cur->children[0]);
+      cur->mins[1] = dfs(cur->children[1]);
+      return std::min({cur->mins[0], cur->value, cur->mins[1]});
+    };
+    dfs(root);
+  }
+
+  T min(Node *cur, size_t il, size_t ir) const {
+    assert(cur);
+
+    if (!cur->children[0] && ir == 0)
+      return cur->value;
+
+    T res=MAX;
+    size_t lnum=cur->lnum;
+    if (il == 0 && ir >= lnum) {
+      res = std::min(res, cur->mins[0]);
+      il = lnum;
+    }
+    if (il <= lnum && ir+1 == size(cur)) {
+      res = std::min(res, cur->mins[1]);
+      ir = lnum;
+    }
+    if (il == lnum && ir == lnum)
+      return std::min(res, cur->value);
+    if (ir == lnum)
+      return std::min({res, cur->value, min(cur->children[0], il, ir-1)});
+    if (ir < lnum)
+      return min(cur->children[0], il, ir);
+    if (il == lnum)
+      return std::min({res, cur->value, min(cur->children[1], 0, ir-lnum-1)});
+    if (il > lnum)
+      return min(cur->children[1], il-lnum-1, ir-lnum-1);
+
+    assert(il < lnum && lnum < ir);
+    res = std::min(res, cur->value);
+    return std::min({
+        min(cur->children[0], il, lnum-1),
+        res,
+        min(cur->children[1], 0, ir-lnum-1)});
   }
 
   void release() {
@@ -280,6 +344,28 @@ class RedBlackTree {
 
 public:
   RedBlackTree() = default;
+
+  template <class ForwardIt>
+  RedBlackTree(ForwardIt first, ForwardIt last) {
+    fprintf(stderr, "+ %d\n", *first);
+    root = new Node(*first);
+    root->color = Node::BLACK;
+    Node *back=root;
+    for (ForwardIt it=std::next(first); it!=last; ++it) {
+      fprintf(stderr, "+ %d\n", *it);
+      Node *node=new Node(*it);
+      node->color = Node::RED;
+      back->children[1] = node;
+      node->parent = back;
+      insert_fixup(node);
+      fprintf(stderr, "*back: %d\n", back->value);
+      back = node;
+      fprintf(stderr, "*back: %d\n", back->value);
+    }
+    size_ = last-first;
+    reset_min();
+    verify();
+  }
 
   size_t size() const {
     return size_;
@@ -295,13 +381,15 @@ public:
     }
     Node *cur=root;
     ++root->lnum;
-    while (cur->children[0] != nullptr) {
+    while (cur->children[0]) {
       cur = cur->children[0];
       ++cur->lnum;
     }
     cur->children[0] = node;
     node->parent = cur;
     node->color = Node::RED;
+    cur->mins[0] = node->value;
+    reset_min(cur);
     insert_fixup(node);
     return root;
   }
@@ -314,7 +402,7 @@ public:
   Node *insert_back(Node *node) {
     ++size_;
     node->lnum = 0;
-    if (root == nullptr) {
+    if (!root) {
       node->color = Node::BLACK;
       root = node;
       return root;
@@ -323,6 +411,8 @@ public:
     cur->children[1] = node;
     node->parent = cur;
     node->color = Node::RED;
+    cur->mins[1] = node->value;
+    reset_min(cur);
     insert_fixup(node);
     return root;
   }
@@ -347,13 +437,10 @@ public:
     if (y->parent == nullptr) {
       root = x;
     } else {
-      if (y == y->parent->children[1]) {
-        y->parent->children[1] = x;
-      } else {
-        propagate_lnum(y, -1);
-        y->parent->children[0] = x;
-      }
-      // y->parent->children[y == y->parent->children[1]] = x;
+      propagate_lnum(y, -1);
+      int pardir=(y == y->parent->children[1]);
+      y->parent->children[pardir] = x;
+      y->parent->mins[pardir] = submin(x);
     }
     Node *xparent=y->parent;  // instead of x->parent; in case x is null
     bool fix_needed=(y->color == Node::BLACK);
@@ -376,15 +463,25 @@ public:
         xparent = y;
         if (x) x->parent = xparent;
       }
-      propagate_lnum(y, 1);
+      y->mins[0] = submin(y->children[0]);
+      y->mins[1] = submin(y->children[1]);
+      reset_min(y);
+    } else if (xparent) {
+      for (int i=0; i<=1; ++i)
+        xparent->mins[i] = submin(xparent->children[i]);
+      reset_min(xparent);
     }
 
-    if (fix_needed)
+    if (fix_needed) {
+      verify();
       erase_fixup(x, xparent);
+      verify();
+    }
 
+    cur->color = Node::RED;
     cur->children[0] = cur->children[1] = cur->parent = nullptr;
     cur->lnum = 0;
-    cur->mins = {MAX, MAX};
+    cur->mins[0] = cur->mins[1] = MAX;
     return root;
   }
 
@@ -419,17 +516,20 @@ public:
       root = med;
       med->color = Node::BLACK;
       med->lnum = 0;
+      med->mins[0] = med->mins[1] = MAX;
       return root;
     }
     med->color = Node::RED;
     if (root == nullptr) {
       med->lnum = 0;
+      med->mins[0] = med->mins[1] = MAX;
       oth.insert_front(med);
       swap(oth);
       return root;
     }
     if (oth.root == nullptr) {
       med->lnum = 0;
+      med->mins[0] = med->mins[1] = MAX;
       insert_back(med);
       return root;
     }
@@ -471,6 +571,9 @@ public:
     }
 
     med->lnum = calc_size(med->children[0]);
+    for (int i=0; i<=1; ++i)
+      med->mins[i] = submin(med->children[i]);
+    reset_min(med);
     oth.root = nullptr;
     size_ += oth.size_ + 1;
     oth.size_ = 0;
@@ -485,6 +588,7 @@ public:
       return {left, nullptr};
     }
 
+    Node *crit_orig=crit;
     RedBlackTree left(crit->children[0]), right(crit->children[1]);
     crit->children[0] = crit->children[1] = nullptr;
 
@@ -496,7 +600,7 @@ public:
     int crit_dir=(crit == crit->parent->children[1]);
     crit = crit->parent;
 
-    while (crit != nullptr) {
+    while (crit) {
       RedBlackTree subtree(crit->children[!crit_dir]);
       crit->children[!crit_dir] = nullptr;
       Node *med=crit;
@@ -506,6 +610,7 @@ public:
 
       med->parent = nullptr;
       med->children[0] = med->children[1] = nullptr;
+      med->mins[0] = med->mins[1] = MAX;
       if (merge_left) {
         subtree.merge(left, med);
         left.swap(subtree);
@@ -517,6 +622,9 @@ public:
     release();
     left.reset_size();
     right.reset_size();
+    crit_orig->lnum = 0;
+    crit_orig->parent = nullptr;
+    crit_orig->mins[0] = crit_orig->mins[1] = MAX;
     return {left, right};
   }
 
@@ -535,6 +643,43 @@ public:
     return res;
   }
 
+  void node_at(size_t pos, const T &val) {
+    Node *node=node_at(pos);
+    node->value = val;
+    reset_min(node);
+  }
+
+  Node *insert(Node *node, Node *dst) {
+    node->mins[0] = node->mins[1] = MAX;
+    node->color = Node::RED;
+    if (dst->children[1]) {
+      dst = dst->successor();
+      dst->children[0] = node;
+    } else {
+      dst->children[1] = node;
+    }
+
+    ++size_;
+    node->parent = dst;
+    reset_min(node);
+    propagate_lnum(node, 1);
+    insert_fixup(node);
+    return root;
+  }
+#if 0
+  Node *cshift(size_t il, size_t ir) {
+    Node *mr=node_at(ir);
+    erase(mr);
+    if (il == 0) {
+      insert_front(mr);
+      return root;
+    }
+
+    Node *lm=node_at(il-1);
+    insert(mr, lm);
+    return root;
+  }
+#else
   Node *cshift(size_t il, size_t ir) {
     Node *lm=node_at(il);
     Node *mr=node_at(ir);
@@ -551,10 +696,23 @@ public:
 
     return root;
   }
+#endif
+  T min(size_t il, size_t ir) const {
+    return min(root, il, ir);
+  }
 
   ////////////////////////////////////////////////////////////////////////
   bool verify() const {
-    if (root == nullptr) return true;
+#ifdef RELEASE
+    return true;
+#endif
+    if (root == nullptr) {
+      fprintf(stderr, "================================================\n");
+      fprintf(stderr, "size: 0\n");
+      fprintf(stderr, "================================================\n");
+
+      return true;
+    }
 
     auto report=[](const char *s) {
       fprintf(stderr, "%sviolated:%s %s%s%s\n",
@@ -570,6 +728,7 @@ public:
 
     bool reached=false;
     size_t bheight=-1;
+    size_t i=0;
     std::function<void (Node *, int, size_t)> dfs=[&](
         Node *subroot, int depth, size_t bh) {
 
@@ -598,10 +757,13 @@ public:
 
       if (right) dfs(right, depth+1, bh);
 
-      fprintf(stderr, "%s%*s%d%s (%zu) [%zu]%s\n",
+      fprintf(stderr, "%zu\t%s%*s%d%s (%zu) [%zu] {%d, %d}%s\n",
+              size_-1-i++,
               is_red(subroot)? "\x1b[31;1m":"\x1b[37;1m",
               depth*2+2, "  ", subroot->value,
-              "\x1b[0m", bh, subroot->lnum, (left && right)? "":" *");
+              "\x1b[0m", bh, subroot->lnum, 
+              subroot->mins[0], subroot->mins[1],
+              (left && right)? "":" *");
 
       if (left) dfs(left, depth+1, bh);
     };
@@ -615,38 +777,17 @@ public:
   ////////////////////////////////////////////////////////////////////////
 };
 
-// XXX 1508 に accept されるにあたって RedBlackTree には以下の手直しが必要
-//     - erase() および merge()/split() した際に適切に mins[] を更新する
-//     - min() を定義する
-
-// たぶん erase_fixup() を呼び出す前の時点で reset_min() をする必要がありそう．
-// ただし呼ぶ前に消したところの親の mins の適切な方を MAX にしたりする．
-// cur == y ならどうしよう？ それから当然 rotate() の中でも気をつけなきゃ．
-
-// min(cur, il, ir) 自体はたぶん簡単で，
-// ir <= lmin なら min(cur->children[0], il, ir) をする
-//   ir == lmin なら，std::min(それ, cur->value)
-// lmin <= il なら min(cur->children[1], il-lmin-1, ir-lmin-1) をする
-//   il == lmin なら，std::min(それ, cur->value)
-// それ以外なら il < lmin && lmin < ir であるはずで，
-// std::min({
-//   min(cur->children[0], il, lnum-1),
-//   cur->value,
-//   min(cur->children[1], 0, ir-lmin-1),
-// }) を返すとよさそう
-
-// merge() では med をくっつけた時点で（左が自分のときは）
-// med->mins[0] = {std::min({root->mins[0], root->value, root->mins[1]})}
-// mins[1] も root を oth.root に読み替えて同じ．
-
-// split() ではどうしよう？ merge() ベースで処理してるから何も考えなくても
-// 勝手にうまくいってくれるのかしら？
-
 int main() {
   size_t n;
   int q;
   scanf("%zu %d", &n, &q);
 
+#if 1
+  std::vector<int> a(n);
+  for (size_t i=0; i<n; ++i)
+    scanf("%d", &a[i]);
+  RedBlackTree<int> rb(a.begin(), a.end());
+#else 
   RedBlackTree<int> rb;
   for (size_t i=0; i<n; ++i) {
     int a;
@@ -654,6 +795,7 @@ int main() {
     rb.insert_back(a);
   }
   rb.verify();
+#endif
 
   for (int i=0; i<q; ++i) {
     int t;
@@ -661,16 +803,19 @@ int main() {
     if (t == 0) {
       size_t l, r;
       scanf("%zu %zu", &l, &r);
+      fprintf(stderr, "Cshift [%zu, %zu]\n", l, r);
       rb.cshift(l, r);
     } else if (t == 1) {
       size_t l, r;
       scanf("%zu %zu", &l, &r);
-      //printf("%d\n", rb.min(l, r));
+      fprintf(stderr, "Minimum [%zu, %zu]\n", l, r);
+      printf("%d\n", rb.min(l, r));
     } else if (t == 2) {
       size_t pos;
       int val;
       scanf("%zu %d", &pos, &val);
-      rb.node_at(pos)->value = val;
+      fprintf(stderr, "Update [%zu] = %d\n", pos, val);
+      rb.node_at(pos, val);
     }
 
     rb.verify();
