@@ -4,7 +4,7 @@ DVI2PDF	= dvipdfmx
 DVIFLAGS	= -f ~/.local/share/fonts/map/dvipdfmx/cid-x.map
 PDF	= report.pdf
 
-TeXDocs	= veb-tree.tex dc-online.tex cyk.tex rb-tree.tex \
+TeXDocs	= veb-tree.tex dc-online.tex cyk.tex rb-tree.tex cb-tree.tex \
 	todo.tex
 
 all:	$(PDF)
