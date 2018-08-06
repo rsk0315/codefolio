@@ -1,4 +1,4 @@
-## van Emde Boas tree
+## van Emde Boas Tree
 ### 2018年7月9日
 
 整数の集合の演算を高速に行うデータ構造．通常の演算（insertion/erasure/membership）に加え，ある値$x$を超える最小の値を求めるsuccessor，その逆のpredecessorを得る演算と，最小値・最大値を求める演算も行える．
