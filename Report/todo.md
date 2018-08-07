@@ -14,4 +14,4 @@
 - Aho-Corasick法
 - *K*MP法
 - Z algorithm
-- 桁DPを一般化したやつ
+- 桁DPを一般化したやつ？
