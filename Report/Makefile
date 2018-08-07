@@ -5,7 +5,8 @@ DVIFLAGS	= -f ~/.local/share/fonts/map/dvipdfmx/cid-x.map
 PDF	= report.pdf
 
 TeXDocs	= veb-tree.tex dc-online.tex cyk.tex rb-tree.tex cb-tree.tex \
-	tsurai-parser.tex \
+	tsurai-parser.tex sp-array.tex sp-uf.tex quick-find.tex \
+	weighted-qf.tex \
 	todo.tex
 
 all:	$(PDF)
