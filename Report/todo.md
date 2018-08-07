@@ -4,7 +4,6 @@
   - 部分永続Union-find
 - Weighted Union-find
 - Weighted Quick-find
-- tsuraiパーザ
 - I/O高速化
   - これいる？
 
