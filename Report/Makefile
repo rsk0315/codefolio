@@ -1,8 +1,9 @@
-MD2TeX	= md2tex
+MD2TeX	= ./md2tex.py
 LaTeX	= platex
 DVI2PDF	= dvipdfmx
-DVIFLAGS	= -f ~/.local/share/fonts/map/dvipdfmx/cid-x.map
+DVIFLAGS	= -f ./cid-x.map
 PDF	= report.pdf
+STAMP	= touch
 
 TeXDocs	= veb-tree.tex dc-online.tex cyk.tex rb-tree.tex cb-tree.tex \
 	tsurai-parser.tex sp-array.tex sp-uf.tex quick-find.tex \
@@ -17,10 +18,10 @@ $(PDF):	report.tex $(TeXDocs)
 	$(DVI2PDF) $(DVIFLAGS) report.dvi
 
 report.tex:	$(TeXDocs)
-	touch report.tex
+	$(STAMP) report.tex
 
 %.tex:	%.md
-	md2tex --as-part $<
+	$(MD2TeX) --as-part $<
 
 clean:
 	rm -vf *.{aux,log,toc,out,dvi} $(TeXDocs) *~
