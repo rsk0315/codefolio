@@ -4,6 +4,12 @@ import os
 import re
 import sys
 
+# Future changes:
+# @...@ for typewriter fonts are to be deprecated.
+# We will define @[cmd]...@ to typeset e.g. \textsc{...},
+# instead of raw-style: &\textsc{...}&.
+# @[tt]...@, @[sc]...@, @[color{red}]...@ are to be introduced.
+
 
 # ---- Exceptions ------------
 class MarkdownDiagnostic(SyntaxError):
