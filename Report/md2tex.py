@@ -8,7 +8,7 @@ import sys
 # @...@ for typewriter fonts are to be deprecated.
 # We will define @[cmd]...@ to typeset e.g. \textsc{...},
 # instead of raw-style: &\textsc{...}&.
-# @[tt]...@, @[sc]...@, @[color{red}]...@ are to be introduced.
+# @[tt]...@, @[sc]...@, @[color:red]...@ are to be introduced.
 
 
 # ---- Exceptions ------------
@@ -277,7 +277,8 @@ class Text(MarkdownElement):
         | (?P<BOLD>\*+)
         | (?P<ITALIC>_+)
         | (?P<VERBATIM>`+)
-        | (?P<AT_CMD>@+)
+        | (?P<AT_CMD>@\[)
+        | (?P<AT_CLOSE>@)
         | (?P<LATEX>&+)
         | (?P<MATH>\$+)
         | (?P<SPECIAL>"""+SpecialText.RE+')', flags=re.VERBOSE
@@ -416,8 +417,11 @@ class Text(MarkdownElement):
         offset = self._kwargs['offset']
         quoted = [False, False]  # single, double
         emphs = []  # [(emph_type, offset), ...]
-        markers = {self.BOLD: 0, self.ITALIC: 0, self.AT_CMD: 0}
+        markers = {self.BOLD: 0, self.ITALIC: 0}
         spc_m = spc_re.search(line, pos=offset)
+        at_flags = []
+        at_offset = []
+
         while spc_m is not None:
             start, end = spc_m.span()
             len_ = end-start
@@ -470,15 +474,62 @@ class Text(MarkdownElement):
                     )
                 )
 
+            elif spc_m.start('AT_CMD') > -1:
+                # parse @[here]...@
+                m_at = self.AT_CMD_RE.match(line, pos=offset-1)
+                if m_at is None:
+                    raise MarkdownSyntaxError(
+                        '"[" function-name "]" is expected',
+                        (self._filename, lineno, offset-2, len_, line)
+                    )
+
+                offset = m_at.end()
+                name = m_at.group('NAME')
+                self._parsed.append((self.AT_CMD, name))
+                at_flags.append(name)
+                at_offset.append(start)
+
+                if name == 'align':
+                    prog = re.compile(r'\\.|[^@\\]+')
+                    m_al = prog.match(line, pos=offset)
+                    tmp = ''
+                    while m_al is not None:
+                        g = m_al.group()
+                        tmp += '@' if g == '\\@' else g
+
+                        offset = m_al.end()
+                        m_al = prog.match(line, pos=offset)
+
+                    self._parsed.append((self.LATEX, tmp))
+                    if offset < len(line) and line[offset] == '@':
+                        at_flags.pop()
+                        at_offset.pop()
+                        self._parsed.append((self.AT_CMD, self.CLOSE))
+                        offset += 1
+                    else:
+                        raise MarkdownSyntaxError(
+                            'unclosed @[align]',
+                            (self._filename, lineno, at_offset[-1], 8, line)
+                        )
+
+            elif spc_m.start('AT_CLOSE') > -1:
+                if not at_flags:
+                    raise MarkdownSyntaxError(
+                        'invalid @ command',
+                        (self._filename, lineno, offset-1, 1, line)
+                    )
+
+                at_flags.pop()
+                at_offset.pop()
+                self._parsed.append((self.AT_CMD, self.CLOSE))
+
             elif (
                     spc_m.start('BOLD') > -1
                     or spc_m.start('ITALIC') > -1
-                    or spc_m.start('AT_CMD') > -1
             ):
                 kind = (
                     self.BOLD if spc_m.start('BOLD') > -1 else
-                    self.ITALIC if spc_m.start('ITALIC') > -1 else
-                    self.AT_CMD
+                    self.ITALIC
                 )
                 if 0 < markers[kind] <= len_:
                     # already emphasized with current marker
@@ -525,21 +576,7 @@ class Text(MarkdownElement):
                 else:
                     # not emphasized with current marker
                     emphs.append((kind, start))
-                    if kind == self.AT_CMD:
-                        # parse @[here]...@
-                        m_at = self.AT_CMD_RE.match(line, pos=offset)
-                        if m_at is None:
-                            raise MarkdownSyntaxError(
-                                '"[" function-name "]" is expected',
-                                (self._filename, lineno, offset, len_, line)
-                            )
-
-                        offset = m_at.end()
-                        self._parsed.append((self.AT_CMD, m_at.group('NAME')))
-                        
-                    else:
-                        self._parsed.append((kind, self.OPEN))
-
+                    self._parsed.append((kind, self.OPEN))
                     markers[kind] = len_
 
             else:
@@ -601,6 +638,15 @@ class Text(MarkdownElement):
                 )
             )
 
+        if at_flags:
+            raise MarkdownSyntaxError(
+                'unclosed @ command',
+                (
+                    self._filename, lineno, at_flags[-1],
+                    len(at_offset[-1])+3, line
+                )
+            )
+
         self._parsed.append((self.NORMAL, line[offset:]))
 
     def to_latex(self, sep=None):
@@ -654,7 +700,10 @@ class Text(MarkdownElement):
 
             elif kind == self.AT_CMD:
                 if snippet == self.CLOSE:
-                    res += '}'
+                    if at_flags[-1] == 'align':
+                        res += '\\]'
+                    else:
+                        res += '}'
                     at_flags.pop()
                     continue
 
@@ -664,6 +713,8 @@ class Text(MarkdownElement):
                     res += '\\texttt{'
                 elif snippet == 'sc':
                     res += '\\textsc{'
+                elif snippet == 'align':
+                    res += '\\['
                 elif snippet.startswith('color:#'):
                     r, g, b = map(
                         lambda n: int(n, 16),
@@ -674,6 +725,8 @@ class Text(MarkdownElement):
                     )
                 elif snippet.startswith('color:'):
                     res += '{{\\color{{{}}}'.format(snippet[6:])
+                elif snippet in ('TeX', 'LaTeX', 'LaTeXe'):
+                    res += '\\' + snippet + '{'
                 else:
                     assert False
 
@@ -1594,17 +1647,20 @@ def main():
         argc -= 1
         options['--as-part'] = True
 
-    inname = argv[1]
+    inname = argv[1] if 1 < argc else '-'
     if inname == '-':
         inname = '/dev/stdin'
 
-    if 2 >= argc:
+    if argc <= 2:
         if inname == '/dev/stdin':
             outname = '/dev/stdout'
         else:
             outname = os.path.splitext(inname)[0] + '.tex'
     else:
         outname = argv[2]
+
+    if outname == '-':
+        outname = '/dev/stdout'
 
     with open(inname) as fin, open(outname, 'w') as fout:
         try:
