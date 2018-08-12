@@ -188,19 +188,23 @@ class Control(MarkdownElement):
 class SpecialText(MarkdownElement):
     PAGE_RE = re.compile(
         r"""
-        (?P<PAGES>[Pp]p?\.\ ?(?P<PP_BEGIN>\d+)(?P<PP_DASH>-*)(?P<PP_END>\d*))
+        (?P<PAGES>\b[Pp]p?\.\ ?(?P<PP_BEGIN>\d+)(?P<PP_DASH>-*)(?P<PP_END>\d*))
         """, flags=re.VERBOSE
     )
     FIGURE_RE = re.compile(
-        r"""(?P<FIGURE>[Ff]ig\.\ ?(?P<FIG_NO>\d+))""",
+        r"""(?P<FIGURE>\b[Ff]ig\.\ ?(?P<FIG_NO>\d+))""",
+        flags=re.VERBOSE
+    )
+    ABBREV_RE = re.compile(
+        r"""\b(?P<ABBREV>e\.g\.|cf\.|i\.e\.)\ """,
         flags=re.VERBOSE
     )
     ELLIPSIS_RE = re.compile(r'(?P<ELLIPSIS>\.\.\.)', flags=re.VERBOSE)
     COMMA_RE = re.compile('(?P<COMMA>\s*,\s*)', flags=re.VERBOSE)
 
-    RE_S = (PAGE_RE, FIGURE_RE, ELLIPSIS_RE, COMMA_RE)
+    RE_S = (PAGE_RE, FIGURE_RE, ABBREV_RE, ELLIPSIS_RE, COMMA_RE)
     RE = '|'.join(prog.pattern for prog in RE_S)
-    TYPES = (PAGE, FIGURE, ELLIPSIS, COMMA) = range(len(RE_S))  # add later
+    TYPES = (PAGE, FIGURE, ABBREV, ELLIPSIS, COMMA) = range(len(RE_S))
 
     def _parse(self):
         lineno, line = self._lines_withno[0]
@@ -226,6 +230,9 @@ class SpecialText(MarkdownElement):
 
         elif self._type == self.FIGURE:
             return '{}.~{}'.format(m.group()[:3], m.group('FIG_NO'))
+
+        elif self._type == self.ABBREV:
+            return '{}\\ '.format(m.group('ABBREV'))
 
         elif self._type == self.ELLIPSIS:
             return '{\\ldots}'
