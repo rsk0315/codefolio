@@ -1533,8 +1533,14 @@ def main():
         options['--as-part'] = True
 
     inname = argv[1]
+    if inname == '-':
+        inname = '/dev/stdin'
+
     if 2 >= argc:
-        outname = os.path.splitext(inname)[0] + '.tex'
+        if inname == '/dev/stdin':
+            outname = '/dev/stdout'
+        else:
+            outname = os.path.splitext(inname)[0] + '.tex'
     else:
         outname = argv[2]
 
