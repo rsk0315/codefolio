@@ -655,6 +655,7 @@ class Text(MarkdownElement):
             elif kind == self.AT_CMD:
                 if snippet == self.CLOSE:
                     res += '}'
+                    at_flags.pop()
                     continue
 
                 at_flags.append(snippet)
