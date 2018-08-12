@@ -12,7 +12,7 @@ TeXDocs	= veb-tree.tex dc-online.tex cyk.tex rb-tree.tex cb-tree.tex \
 
 all:	$(PDF)
 
-$(PDF):	report.tex $(TeXDocs)
+$(PDF):	report.tex $(TeXDocs) $(MD2TeX)
 	$(LaTeX) report.tex
 	$(LaTeX) report.tex  # rerun
 	$(DVI2PDF) $(DVIFLAGS) report.dvi
