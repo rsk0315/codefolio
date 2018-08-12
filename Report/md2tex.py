@@ -206,7 +206,12 @@ class SpecialText(MarkdownElement):
         flags=re.VERBOSE
     )
     ELLIPSIS_RE = re.compile(r'(?P<ELLIPSIS>\.\.\.)', flags=re.VERBOSE)
-    COMMA_RE = re.compile('(?P<COMMA>\s*,\s*)', flags=re.VERBOSE)
+    # We may fail: "*a ,*b", "a\,b"
+    COMMA_RE = re.compile(
+        r"""
+        (?P<COMMA>\s*(?P<DOT>[,;:.])\s*)
+        """, flags=re.VERBOSE
+    )
 
     RE_S = (PAGE_RE, FIGURE_RE, ABBREV_RE, ELLIPSIS_RE, COMMA_RE)
     RE = '|'.join(prog.pattern for prog in RE_S)
@@ -220,6 +225,7 @@ class SpecialText(MarkdownElement):
             if m is not None:
                 self._type = type_
                 self._m = m
+                self._nc = line[m.end():m.end()+1]
                 return
 
     def to_latex(self):
@@ -241,11 +247,15 @@ class SpecialText(MarkdownElement):
             return '{}\\ '.format(m.group('ABBREV'))
 
         elif self._type == self.ELLIPSIS:
+            # surrounding spaces needed?
             return '{\\ldots}'
 
         elif self._type == self.COMMA:
-            return ', '
-
+            res = m.group('DOT')
+            nc = self._nc
+            if nc and re.match('\w', nc):
+                res += ' '
+            return res
 
 class Text(MarkdownElement):
     (
@@ -254,7 +264,7 @@ class Text(MarkdownElement):
     ) = range(7)
     (
         NORMAL, ESCAPED, SEPARATOR, NEED_ESCAPE, QUOTES, FOOTNOTE,
-        BOLD, ITALIC, TYPEWRITER, VERBATIM, LATEX, MATH, OTHER
+        BOLD, ITALIC, AT_CMD, VERBATIM, LATEX, MATH, OTHER
         # XXX small-caps
     ) = [(1 << i) for i in range(13)]
     OPEN, CLOSE = range(2)
@@ -267,11 +277,13 @@ class Text(MarkdownElement):
         | (?P<BOLD>\*+)
         | (?P<ITALIC>_+)
         | (?P<VERBATIM>`+)
-        | (?P<TYPEWRITER>@+)
+        | (?P<AT_CMD>@+)
         | (?P<LATEX>&+)
         | (?P<MATH>\$+)
         | (?P<SPECIAL>"""+SpecialText.RE+')', flags=re.VERBOSE
     )
+    AT_CMD_RE = re.compile(r"""\[(?P<NAME>[\w:#-]+)\]""")
+
 
     def __init__(
             self, lines_withno, footnotes, filename, sep=None, offset=0,
@@ -281,6 +293,7 @@ class Text(MarkdownElement):
             self, lines_withno, footnotes, filename, sep=sep, offset=offset,
             type_=type_
         )
+        self.cmd = None
 
     @classmethod
     def re_escape(cls, ch):
@@ -313,12 +326,16 @@ class Text(MarkdownElement):
         }.get(ch, ch)
 
     @classmethod
-    def escape(cls, src, type_=0):
+    def escape(cls, src, cmd=[]):
         """Escape a given string in order to use it in LaTeX text."""
+
+        # complexity: at least linear in size of cmd :(
+        tt_in_cmd = ('tt' in cmd)
+
         ESC_RE = re.compile(
             (
                 r"(?P<NEED_ESCAPE>" + (
-                    r"[#$%^{}_~'`]" if type_ & cls.TYPEWRITER else
+                    r"[#$%^{}_~'`]" if tt_in_cmd else
                     r"[#$%^{}_~]"
                 ) + ")"
             ) + r"""
@@ -336,7 +353,7 @@ class Text(MarkdownElement):
             pos = end
 
             if m.start('ESCAPED') > -1:
-                if type_ & cls.TYPEWRITER and spc[-1] == ' ':
+                if tt_in_cmd and spc[-1] == ' ':
                     dst += r'\char32{}'
                 else:
                     dst += cls.escape_char(spc[-1])
@@ -399,7 +416,7 @@ class Text(MarkdownElement):
         offset = self._kwargs['offset']
         quoted = [False, False]  # single, double
         emphs = []  # [(emph_type, offset), ...]
-        markers = {self.BOLD: 0, self.ITALIC: 0, self.TYPEWRITER: 0}
+        markers = {self.BOLD: 0, self.ITALIC: 0, self.AT_CMD: 0}
         spc_m = spc_re.search(line, pos=offset)
         while spc_m is not None:
             start, end = spc_m.span()
@@ -456,12 +473,12 @@ class Text(MarkdownElement):
             elif (
                     spc_m.start('BOLD') > -1
                     or spc_m.start('ITALIC') > -1
-                    or spc_m.start('TYPEWRITER') > -1
+                    or spc_m.start('AT_CMD') > -1
             ):
                 kind = (
                     self.BOLD if spc_m.start('BOLD') > -1 else
                     self.ITALIC if spc_m.start('ITALIC') > -1 else
-                    self.TYPEWRITER
+                    self.AT_CMD
                 )
                 if 0 < markers[kind] <= len_:
                     # already emphasized with current marker
@@ -508,7 +525,21 @@ class Text(MarkdownElement):
                 else:
                     # not emphasized with current marker
                     emphs.append((kind, start))
-                    self._parsed.append((kind, self.OPEN))
+                    if kind == self.AT_CMD:
+                        # parse @[here]...@
+                        m_at = self.AT_CMD_RE.match(line, pos=offset)
+                        if m_at is None:
+                            raise MarkdownSyntaxError(
+                                '"[" function-name "]" is expected',
+                                (self._filename, lineno, offset, len_, line)
+                            )
+
+                        offset = m_at.end()
+                        self._parsed.append((self.AT_CMD, m_at.group('NAME')))
+                        
+                    else:
+                        self._parsed.append((kind, self.OPEN))
+
                     markers[kind] = len_
 
             else:
@@ -577,9 +608,10 @@ class Text(MarkdownElement):
         count_seps = 0
         num_seps = self.num_seps()
         emph_flags = 0  # EMPH_TYPE
+        at_flags = []
         for kind, snippet in self._parsed:
             if kind == self.NORMAL:
-                res += self.escape(snippet, emph_flags)
+                res += self.escape(snippet, at_flags)
 
             elif kind == self.ESCAPED:
                 if snippet == '&':
@@ -587,7 +619,7 @@ class Text(MarkdownElement):
                 elif snippet == '\\':
                     res += r'\char`\\{}'
                 else:
-                    res += self.escape('\\'+snippet, emph_flags)
+                    res += self.escape('\\'+snippet, at_flags)
 
             elif kind == self.SEPARATOR:
                 if sep is None:
@@ -598,7 +630,7 @@ class Text(MarkdownElement):
                     res += sep
 
             elif kind == self.NEED_ESCAPE:
-                res += self.escape(snippet, emph_flags)
+                res += self.escape(snippet, at_flags)
 
             elif kind == self.QUOTES:
                 res += '{'+snippet+'}'
@@ -608,18 +640,41 @@ class Text(MarkdownElement):
                     type_=self._kwargs['type_']
                 )
 
-            elif kind in (self.BOLD, self.ITALIC, self.TYPEWRITER):
+            elif kind in (self.BOLD, self.ITALIC):
                 if emph_flags & kind:
                     res += '}'
                 else:
                     res += (
                         '\\textbf{' if kind == self.BOLD else
                         '\\textit{' if kind == self.ITALIC else
-                        '\\texttt{' if kind == self.TYPEWRITER else
                         None
                     )
 
                 emph_flags ^= kind
+
+            elif kind == self.AT_CMD:
+                if snippet == self.CLOSE:
+                    res += '}'
+                    continue
+
+                at_flags.append(snippet)
+
+                if snippet == 'tt':
+                    res += '\\texttt{'
+                elif snippet == 'sc':
+                    res += '\\textsc{'
+                elif snippet.startswith('color:#'):
+                    r, g, b = map(
+                        lambda n: int(n, 16),
+                        [snippet[i:i+2] for i in range(7, 12, 2)]
+                    )
+                    res += '{{\\color[rgb]{{{:.2f}, {:.2f}, {:.2f}}}'.format(
+                        r/255, g/255, b/255
+                    )
+                elif snippet.startswith('color:'):
+                    res += '{{\\color{{{}}}'.format(snippet[6:])
+                else:
+                    assert False
 
             elif kind == self.VERBATIM:
                 res += '\\texttt{'+self.verbatim(snippet)+'}'
