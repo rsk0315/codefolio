@@ -72,9 +72,20 @@
       ("^#+ \\(.+\\)" 1 '(font-lock-keyword-face 'bold) append)
 
       ;; footnotes
-      ("^\\(#\\[.+\\)" 1 font-lock-comment-face append)
-      ("^#\\[\\^\\([^\]]+\\)\\]" 1 font-lock-keyword-face t)
-      (,(concat re-unescaped "\\[\\^\\([_0-9A-Za-z-]+\\)\\]") 1 'bold append)
+      ;; ("^\\(#\\[\\(\\^\\).+\\)"
+      ;;  (1 . (font-lock-comment-face append))
+      ;;  (2 . (font-lock-warning-face t)))
+      ("^\\(#\\[\\(\\^\\)\\([^\]]+\\)\\].+\\)"
+       (1 . (font-lock-comment-face append))
+       (2 . (font-lock-variable-name-face prepend))
+       (3 . (font-lock-keyword-face t)))
+      (,(concat
+         ;; not (escaped or preceded by #)
+         "\\(?:^\\|[^\\#]\\)\\(?:\\\\.\\)*"
+         "\\(\\[\\(\\^\\)\\([_0-9A-Za-z-]+\\)\\]\\)")
+       (1 . (font-lock-builtin-face append))
+       (2 . (font-lock-warning-face prepend))
+       (3 . ('bold append)))
 
       ;; XXX multi-line highlighting is removed when edited
       ;;     re-highlighted when editing a part before it
@@ -89,9 +100,16 @@
       ;; @ command
       (,(concat
          re-unescaped
-         "\\(" "@" "\\(?:\\[\\([_0-9A-Za-z:#-]+\\)\\]\\)?" "\\)")
+         "\\(@"
+         "\\(?:\\[\\([_0-9A-Za-z:#-]+\\)\\]\\)"  ;; label
+         "\\(\\(?:\\\\.\\|[^\\@$\n]\\)*\\)"
+         "@\\)")
        (1 . (font-lock-variable-name-face append))
-       (2 . (font-lock-builtin-face prepend)))
+       (2 . (font-lock-builtin-face prepend))
+       (3 . ('bold append)))
+
+      ;; math
+      (,(concat (re-paren "$" 1)) 1 'font-lock-string-face t)
       ))) t)
 
 (defvar markdown-mode-syntax-table
