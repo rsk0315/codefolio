@@ -4,12 +4,11 @@ import os
 import re
 import sys
 
-# Future changes:
-# @...@ for typewriter fonts are to be deprecated.
-# We will define @[cmd]...@ to typeset e.g. \textsc{...},
+# Added features:
+# @...@ for typewriter fonts are deprecated.
+# We defined @[cmd]...@ to typeset e.g. \textsc{...},
 # instead of raw-style: &\textsc{...}&.
-# @[tt]...@, @[sc]...@, @[color:red]...@ are to be introduced.
-
+# @[tt]...@, @[sc]...@, @[color:red]...@ are introduced.
 
 # ---- Exceptions ------------
 class MarkdownDiagnostic(SyntaxError):
@@ -581,6 +580,20 @@ class Text(MarkdownElement):
 
             else:
                 marker = spc_m.group()
+                if marker[0] == '$' and emphs:
+                    note = MarkdownSyntaxNote(
+                        'previous marker opened here',
+                        (
+                            self._filename, lineno, emphs[-1][1],
+                            markers[emphs[-1][0]], line
+                        )
+                    )
+                    raise MarkdownSyntaxError(
+                        '$ is not allowed in marked context',
+                        (self._filename, lineno, offset-1, 1, line),
+                        note=note
+                    )
+
                 next_ = line.find(marker, end)
                 if next_ == -1:
                     raise MarkdownSyntaxError(
