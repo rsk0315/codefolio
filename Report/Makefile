@@ -20,7 +20,7 @@ $(PDF):	report.tex $(TeXDocs) $(MD2TeX)
 report.tex:	$(TeXDocs)
 	$(STAMP) report.tex
 
-%.tex:	%.md
+%.tex:	%.md $(MD2TeX)
 	$(MD2TeX) --as-part $<
 
 clean:
