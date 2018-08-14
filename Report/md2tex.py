@@ -272,7 +272,7 @@ class Text(MarkdownElement):
         \\(?P<ESCAPED>.)
         | (?P<NEED_ESCAPE>[#%{}^~])
         | (?P<QUOTES>[\"\'])
-        | \[\^(?P<FOOTNOTE>\w+)\]  # NOTE: "[^ ... $" is invalid
+        | \[\^(?P<FOOTNOTE>[\w-]+)\]  # NOTE: "[^ ... $" is invalid
         | (?P<BOLD>\*+)
         | (?P<ITALIC>_+)
         | (?P<VERBATIM>`+)
@@ -772,7 +772,7 @@ class Text(MarkdownElement):
 
 
 class Footnote(MarkdownElement):
-    RE = re.compile(r'#\[\^(?P<LABEL>\w+)\]: ?(?P<TEXT>.*)')
+    RE = re.compile(r'#\[\^(?P<LABEL>[\w-]+)\]: ?(?P<TEXT>.*)')
 
     def __init__(self, lines_withno, footnotes, filename):
         MarkdownElement.__init__(self, lines_withno, footnotes, filename)
