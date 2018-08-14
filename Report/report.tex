@@ -10,6 +10,8 @@
 % font
 \usepackage{lmodern}
 \newcommand{\textlt}[1]{\texttt{\fontseries{l}\selectfont #1}}
+\newcommand{\textmt}[1]{\texttt{\fontseries{m}\selectfont #1}}
+\newcommand{\textbt}[1]{\texttt{\fontseries{b}\selectfont #1}}
 
 % title-formatting
 \usepackage{titlesec}
@@ -79,12 +81,21 @@
 % linking
 \usepackage{tablefootnote}
 \usepackage{footnotehyper}
+
 \usepackage[
-  dvipdfmx,
+  %% This option breaks S-<left> and S-<right> in evince,
+  %% but commenting it out disables hyperlinking, ugh
+  %% dvipdfmx,
   linktocpage=true,
   plainpages=false,
 ]{hyperref}
-\hypersetup{pdftex, colorlinks=true, allcolors=blue}
+\usepackage[dvipdfmx]{pxjahyper}
+\hypersetup{
+  dvipdfmx,
+  colorlinks=true,
+  allcolors=blue,
+  pdftitle={Report},
+}
 
 % framing
 \usepackage{framed}
