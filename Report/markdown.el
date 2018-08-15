@@ -11,6 +11,33 @@
 ;; backticks within markers (*like `this`*)
 ;; improper nesting (*like _this*_)
 
+(defface markdown-math
+  '((t :inherit font-lock-string-face))
+  "Face used to highlight TeX math expressions."
+  :group 'markdown)
+(defvar markdown-math-face 'markdown-math)
+
+(defface markdown-code
+  '((t :inherit font-lock-string-face))
+  "Face used to highlight codes."
+  :group 'markdown)
+(defvar markdown-code-face 'markdown-code)
+
+(defface markdown-atcmd
+  '((t :inherit font-lock-variable-face :weight bold))
+  "Face used to highlight @ commands."
+  :group 'markdown)
+(defvar markdown-atcmd-face 'markdown-atcmd)
+
+;; Sample
+;; (defface markdown-foo
+;;   '((t :inherit font-lock-keyword-face :weight bold))
+;;   "Face used to highlight foo."
+;;   :group 'markdown)
+;; (defvar markdown-foo-face 'markdown-foo)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun re-repeat (char count)
   (concat
    (if (> count 0) (regexp-quote char) "")
@@ -23,7 +50,7 @@
    (if (> count 1) (format "\\{0,%d\\}" count))))
 
 (defun re-char-inside-paren (char)
-  (concat "[^\n$`\\" char "]"))
+  (concat "[^\n\\" char "]"))
 
 (defconst re-unescaped
   ;; not escaped by a backslash
@@ -43,58 +70,66 @@
    (re-repeat char count)
    "\\)"))
 
-;;;
-;; (defcustom test-font-script-display '(-0.2 0.2)
-;;   :type '(list (float :tag "Subscript")
-;;                (float :tag "Superscript"))
-;;   :version "23.1")
-
-;; (defun test-font-lock (pos)
-;;   (unless (or (memq (get-text-property pos 'face)
-;;                     '(font-lock-constant-face font-lock-builtin-face
-;;                       font-lock-comment-face font-lock-string-face))
-;;               ;; Check for backslash quoting
-;;               (let ((odd nil)
-;;                     (pos pos))
-;;                 (while (eq (char-before pos) ?\\)
-;;                   (setq pos (1- pos) odd (not odd)))
-;;                 odd))
-;;     (if (eq (char-after pos) ?_)
-;;         `(face font-lock-keyword-face display (raise ,(car test-font-script-display)))
-;;       `(face font-lock-warning-face display (raise ,(cadr test-font-script-display))))))
-
-;; (defun test-font-lock-match (limit)
-;;   (when (re-search-forward "\\(ab\\(c.+\\)d\\(e\\)\\)" limit t)
-;;     (when (match-end 3)
-;;       (let ((beg (match-beginning 3))
-;;             (end (save-restriction
-;;                    (narrow-to-region (point-min) limit)
-;;                    (condition-case nil (scan-lists (point) 1 1) (error nil)))))
-;;         (store-match-data (if end
-;;                               (list (match-beginning 0) end beg end)
-;;                             (list beg beg beg beg)))))
-;;     t))
-;;;
+(defun markdown-font-lock-append-prop (prop)
+  ;; (princ "<")
+  ;; TODO: in processing *, if an unescaped _ is found before an
+  ;;     : unescaped *, then return font-lock-warning-face.
+  ;;     : Take care of nil-comparison, point, and order of process,
+  ;;     : # of *, ...
+  (unless (memq (car (get-text-property (match-beginning 1) 'face))
+                `(font-lock-comment-face
+                  ,markdown-code-face
+                  ,markdown-math-face
+                  ,markdown-atcmd-face))
+    ;; (princ (match-beginning 1))
+    ;; (princ " ")
+    ;; (princ (car (get-text-property (match-beginning 1) 'face)))
+    ;; (princ ">")
+    prop))
 
 (add-hook
  'markdown-mode-hook
  (lambda ()
    (font-lock-add-keywords
     nil
+    ;; math: anywhere but in verbatim
+    ;; verbatim: anywhere but in math
+    ;; emphasis: neither in math nor in verbatim
     `(
+      ;; math
+      (,(re-paren "$" 1) 1 (markdown-font-lock-append-prop markdown-math-face) append)
+
+      ;; `verbatim` styles
+      (,(re-paren "`" 1) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+      (,(re-paren "`" 2) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+      (,(re-paren "`" 3) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+      (,(re-paren "`" 4) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+      (,(re-paren "`" 5) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+
+      ;; @ command
+      (,(concat
+         re-unescaped
+         "\\(@"
+         "\\(?:\\[\\([_0-9A-Za-z:#-]+\\)\\]\\)"  ;; label
+         "\\(\\(?:\\\\.\\|[^\\@$\n]\\)*\\)"
+         "@\\)")
+       (1 . ((markdown-font-lock-append-prop 'font-lock-variable-name-face) append))
+       (2 . ((markdown-font-lock-append-prop 'font-lock-builtin-face) prepend))
+       (3 . ((markdown-font-lock-append-prop markdown-atcmd-face) prepend)))
+
       ;; *bold* styles
-      (,(concat (re-paren "*" 1)) 1 'bold append)
-      (,(concat (re-paren "*" 2)) 1 'bold append)
-      (,(concat (re-paren "*" 3)) 1 'bold append)
-      (,(concat (re-paren "*" 4)) 1 'bold append)
-      (,(concat (re-paren "*" 5)) 1 'bold append)
+      (,(re-paren "*" 1) 1 (markdown-font-lock-append-prop 'bold) append)
+      (,(re-paren "*" 2) 1 (markdown-font-lock-append-prop 'bold) append)
+      (,(re-paren "*" 3) 1 (markdown-font-lock-append-prop 'bold) append)
+      (,(re-paren "*" 4) 1 (markdown-font-lock-append-prop 'bold) append)
+      (,(re-paren "*" 5) 1 (markdown-font-lock-append-prop 'bold) append)
 
       ;; _italic_ styles
-      (,(concat (re-paren "_" 1)) 1 'italic append)
-      (,(concat (re-paren "_" 2)) 1 'italic append)
-      (,(concat (re-paren "_" 3)) 1 'italic append)
-      (,(concat (re-paren "_" 4)) 1 'italic append)
-      (,(concat (re-paren "_" 5)) 1 'italic append)
+      (,(re-paren "_" 1) 1 (markdown-font-lock-append-prop 'italic) append)
+      (,(re-paren "_" 2) 1 (markdown-font-lock-append-prop 'italic) append)
+      (,(re-paren "_" 3) 1 (markdown-font-lock-append-prop 'italic) append)
+      (,(re-paren "_" 4) 1 (markdown-font-lock-append-prop 'italic) append)
+      (,(re-paren "_" 5) 1 (markdown-font-lock-append-prop 'italic) append)
 
       ;; # directives
       ;; sections 
@@ -106,7 +141,7 @@
       ;;  (1 . (font-lock-comment-face append))
       ;;  (2 . (font-lock-warning-face t)))
       ("^\\(#\\[\\(\\^\\)\\([^\]]+\\)\\].+\\)"
-       (1 . (font-lock-comment-face append))
+       (1 . (font-lock-comment-face prepend))
        (2 . (font-lock-variable-name-face prepend))
        (3 . (font-lock-keyword-face t)))
       (,(concat
@@ -127,27 +162,6 @@
       ("^#%.*" 0 font-lock-comment-face t)
       ("^\\(#\\){\\(?:\n\\|.\\)*?\n\\1}" 0 font-lock-comment-face t)
 
-      ;; @ command
-      (,(concat
-         re-unescaped
-         "\\(@"
-         "\\(?:\\[\\([_0-9A-Za-z:#-]+\\)\\]\\)"  ;; label
-         "\\(\\(?:\\\\.\\|[^\\@$\n]\\)*\\)"
-         "@\\)")
-       (1 . (font-lock-variable-name-face append))
-       (2 . (font-lock-builtin-face prepend))
-       (3 . ('bold append)))
-
-      ;; math
-      (,(concat (re-paren "$" 1)) 1 'font-lock-string-face t)
-
-      ;; `verbatim` styles
-      (,(concat (re-paren "`" 1)) 1 font-lock-string-face t)
-      (,(concat (re-paren "`" 2)) 1 font-lock-string-face t)
-      (,(concat (re-paren "`" 3)) 1 font-lock-string-face t)
-      (,(concat (re-paren "`" 4)) 1 font-lock-string-face t)
-      (,(concat (re-paren "`" 5)) 1 font-lock-string-face t)
-
       ;; ;; test
       ;; (test-font-lock-match (1 (test-font-lock (match-beginning 0)) append))
       ))) t)
@@ -158,37 +172,6 @@
     (modify-syntax-entry ?\\ "/" table)
     (modify-syntax-entry ?` "$`" table)
     table))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ;; Use string syntax but math face for $...$.
-;; (defun md-font-lock-syntactic-face-function (state)
-;;   (let ((char (nth 3 state)))
-;;     (cond
-;;      ((not char)
-;;       (if (eq 2 (nth 7 state)) font-lock-string-face font-lock-comment-face))
-;;      ((eq char ?$) font-lock-string-face)
-;;      ;; A \verb element.
-;;      (t font-lock-string-face))))
-
-;; (defun md-font-lock-unfontify-region (beg end)
-;;   (font-lock-default-unfontify-region beg end)
-;;   (while (< beg end)
-;;     (let ((next (next-single-property-change beg 'display nil end))
-;;           (prop (get-text-property beg 'display)))
-;;       (if (and (eq (car-safe prop) 'raise)
-;;                (member (car-safe (cdr prop)) test-font-script-display)
-;;                (null (cddr prop)))
-;;           (put-text-property beg next 'display nil))
-;;       (setq beg next))))
-
-;; (setq-local font-lock-defaults
-;;             '(nil
-;;               nil nil nil nil
-;;               ;; Who ever uses that anyway ???
-;;               (font-lock-mark-block-function . mark-paragraph)
-;;               (font-lock-syntactic-face-function
-;;                . md-font-lock-syntactic-face-function)
-;;               (font-lock-unfontify-region-function
-;;                . md-font-lock-unfontify-region)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-derived-mode markdown-mode prog-mode
   "Markdown"
