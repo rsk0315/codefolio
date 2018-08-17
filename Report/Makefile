@@ -23,5 +23,6 @@ report.tex:	$(TeXDocs)
 %.tex:	%.md $(MD2TeX)
 	$(MD2TeX) --as-part $<
 
+.PHONY: clean
 clean:
 	rm -vf *.{aux,log,toc,out,dvi} $(TeXDocs) *~
