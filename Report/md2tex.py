@@ -1,5 +1,8 @@
 #! /usr/bin/env python3
 
+"""A tool for converting markdown files to other format. In particular,
+destination format is LaTeX and HTML."""
+
 import os
 import re
 import sys
@@ -156,7 +159,14 @@ class MarkdownElement(object):
         self._filename = filename
         self._kwargs = kwargs
 
+        self._parsed = []
         self._parse()
+
+    def __len__(self):
+        if len(self._parsed) == 1 and not self._parsed[0][1]:
+            return 0
+
+        return len(self._parsed)
 
     def _parse(self):
         """Parse given line(s) and store them in a form that can be easy
@@ -166,6 +176,11 @@ class MarkdownElement(object):
 
     def to_latex(self):
         """Translate the parsed data to LaTeX."""
+        # implemented in subclasses
+        raise NotImplementedError
+
+    def to_html(self):
+        """Translate the parsed date to HTML."""
         # implemented in subclasses
         raise NotImplementedError
 
@@ -188,6 +203,10 @@ class Control(MarkdownElement):
             return '\\clearpage\n'
         else:
             raise ValueError(self._parsed)
+
+    def to_html(self):
+        # In future, a separating line is added
+        return '\n'
 
 
 class SpecialText(MarkdownElement):
@@ -256,6 +275,36 @@ class SpecialText(MarkdownElement):
                 res += ' '
             return res
 
+    def to_html(self):
+        m = self._m
+        if self._type == self.PAGE:
+            if m.group('PP_END'):
+                return '{}p. {}--{}'.format(
+                    m.group()[:1], m.group('PP_BEGIN'), m.group('PP_END')
+                )
+            elif m.group('PP_DASH'):
+                return '{}p. {}---'.format(m.group()[:1], m.group('PP_BEGIN'))
+            else:
+                return '{}. {}'.format(m.group()[:1], m.group('PP_BEGIN'))
+
+        elif self._type == self.FIGURE:
+            return '{}. {}'.format(m.group()[:3], m.group('FIG_NO'))
+
+        elif self._type == self.ABBREV:
+            return '{} '.format(m.group('ABBREV'))
+
+        elif self._type == self.ELLIPSIS:
+            # surrounding spaces needed?
+            return '...'
+
+        elif self._type == self.COMMA:
+            res = m.group('DOT')
+            nc = self._nc
+            if nc and re.match('\w', nc):
+                res += ' '
+            return res
+
+
 class Text(MarkdownElement):
     (
         TEXT_TYPE, SECTION_TYPE, TABLE_TYPE, ITEMENUM_TYPE, FOOTNOTE_TYPE,
@@ -270,7 +319,7 @@ class Text(MarkdownElement):
     RE = re.compile(
         r"""
         \\(?P<ESCAPED>.)
-        | (?P<NEED_ESCAPE>[#%{}^~])
+        | (?P<NEED_ESCAPE>[#%{}^~<>])
         | (?P<QUOTES>[\"\'])
         | \[\^(?P<FOOTNOTE>[\w-]+)\]  # NOTE: "[^ ... $" is invalid
         | (?P<BOLD>\*+)
@@ -765,6 +814,127 @@ class Text(MarkdownElement):
 
         return res
 
+    def to_html(self, sep=None):
+        res = ''
+        count_seps = 0
+        num_seps = self.num_seps()
+        emph_flags = 0  # EMPH_TYPE
+        at_flags = []
+        NAMED_ENTITIES = {
+            '&': '&amp;',
+            '"': '&quot;',
+            "'": '&apos;',
+            '<': '&lt;',
+            '>': '&gt;',
+        }
+
+        for kind, snippet in self._parsed:
+            if kind == self.NORMAL:
+                snippet = snippet.replace('&', '&amp;')
+                for ch in '"\'<>':
+                    snippet = snippet.replace(ch, NAMED_ENTITIES[ch])
+                res += snippet
+
+            elif kind == self.ESCAPED:
+                res += NAMED_ENTITIES.get(snippet, '&#'+str(ord(snippet))+';')
+
+            elif kind == self.SEPARATOR:
+                if sep is None:
+                    raise ValueError(sep)
+
+                count_seps += 1
+                if 1 < count_seps:
+                    res += '</' + sep + '>'
+                if count_seps < num_seps:
+                    res += '<' + sep + '>'
+
+            elif kind == self.NEED_ESCAPE:
+                res += NAMED_ENTITIES.get(snippet, snippet)
+
+            elif kind == self.QUOTES:
+                res += NAMED_ENTITIES[snippet]
+
+            elif kind == self.FOOTNOTE:
+                res += self._footnotes[snippet].to_html(
+                    type_=self._kwargs['type_']
+                )
+
+            elif kind in (self.BOLD, self.ITALIC):
+                tag = (
+                    'strong' if kind == self.BOLD else
+                    'em' if kind == self.ITALIC else
+                    None
+                )
+                if emph_flags & kind:
+                    res += '</' + tag + '>'
+                else:
+                    res += '<' + tag + '>'
+
+                emph_flags ^= kind
+
+            elif kind == self.AT_CMD:
+                if snippet == self.CLOSE:
+                    res += '</span>'
+                    at_flags.pop()
+                    continue
+
+                at_flags.append(snippet)
+                res += '<span at_name="' + snippet+ '">'
+
+                # if snippet == self.CLOSE:
+                #     if at_flags[-1] == 'align':
+                #         res += '\\]'
+                #     else:
+                #         res += '}'
+                #     at_flags.pop()
+                #     continue
+
+                # at_flags.append(snippet)
+
+                # if snippet == 'tt':
+                #     res += '\\texttt{'
+                # elif snippet == 'sc':
+                #     res += '\\textsc{'
+                # elif snippet == 'align':
+                #     res += '\\['
+                # elif snippet.startswith('color:#'):
+                #     r, g, b = map(
+                #         lambda n: int(n, 16),
+                #         [snippet[i:i+2] for i in range(7, 12, 2)]
+                #     )
+                #     res += '{{\\color[rgb]{{{:.2f}, {:.2f}, {:.2f}}}'.format(
+                #         r/255, g/255, b/255
+                #     )
+                # elif snippet.startswith('color:'):
+                #     res += '{{\\color{{{}}}'.format(snippet[6:])
+                # elif snippet in ('TeX', 'LaTeX', 'LaTeXe'):
+                #     res += '\\' + snippet + '{'
+                # else:
+                #     assert False
+
+            elif kind == self.VERBATIM:
+                res += '<code>'
+                snippet = snippet.replace('&', '&amp;')
+                for ch in '"\'<>':
+                    snippet = snippet.replace(ch, NAMED_ENTITIES[ch])
+                res += snippet
+                res += '</code>'
+
+            elif kind == self.LATEX:
+                raise NotImplementedError
+
+            elif kind == self.MATH:
+                res += '$'+snippet+'$'
+
+            elif kind == self.OTHER:
+                res += snippet.to_html()
+
+            else:
+                raise KeyError(kind)
+
+        res += '\n'
+        return res
+
     def num_seps(self):
         return len([
             None for type_, content in self._parsed if type_ == self.SEPARATOR
@@ -805,6 +975,11 @@ class Footnote(MarkdownElement):
             return '\\footnote{'+self._footnotetext.to_latex()+'}'
         else:
             raise KeyError(type_)
+
+    def to_html(self, type_=None):
+        res = '<span class="footnote">'
+        res += self._footnotetext.to_html()
+        res += '</span>'
 
     @property
     def used(self):
@@ -850,6 +1025,14 @@ class Title(MarkdownElement):
         res += '}\n'
         return res
 
+    def to_html(self):
+        res = '<title>'
+        for i, (colon, text) in enumerate(self._parsed):
+            res += text.to_html()
+
+        res += '</title>'
+        return res
+
 
 class Author(MarkdownElement):
     RE = re.compile(r'#@ ?')
@@ -877,6 +1060,9 @@ class Author(MarkdownElement):
         res += '}\n'
         return res
 
+    def to_html(self):
+        return ''  # XXX
+
 
 class Section(MarkdownElement):
     RE = re.compile(r'(?P<HASH>#+) (?P<TEXT>.+)')
@@ -903,6 +1089,9 @@ class Section(MarkdownElement):
             )
 
         return SECTIONS[self._level]+'{'+self._text.to_latex()+'}\n'
+
+    def to_html(self):
+        return '<h{0}>{1}</h{0}>'.format(self._level+1, self._text.to_html())
 
 
 class TableDelimiter(MarkdownElement):
@@ -952,6 +1141,9 @@ class TableDelimiter(MarkdownElement):
     def to_latex(self):
         return ''.join('|lcr'[k] for k in self._parsed)
 
+    def to_html(self):
+        return ''
+
     def num_columns(self):
         """Return the number of columns that its contains."""
         return len([s for s in self._parsed if s != self.PIPE])
@@ -969,7 +1161,7 @@ class Table(MarkdownElement):
     RE = re.compile(
         r'(?P<THIN>-{3,}\s*$)|(?P<THICK>=\+{3,}\s*$)|(?P<PIPE>\|)'
     )
-    HLINE = range(1)
+    HLINE, = range(1)
 
     def _parse(self):
         self._parsed = []
@@ -1095,6 +1287,33 @@ class Table(MarkdownElement):
         res += '\\end{table}\n'
         return res
 
+    def to_html(self):
+        res = '<table class="table table-striped table-condensed">\n'
+
+        it = iter(self._parsed)
+        for tr in it:
+            res += '  <thead>\n'
+            res += '    <tr>\n'
+            res += '      ' + tr.to_html(sep='th')
+            res += '    </tr>\n'
+            res += '  </thead>\n'
+            break
+        for i, tr in enumerate(it):
+            if i == 0:
+                res += '  <tbody>\n'
+
+            if tr == self.HLINE:
+                continue
+
+            res += '    <tr>\n'
+            res += '      ' + tr.to_html(sep='td')
+            res += '    </tr>\n'
+        else:
+            res += '  </tbody>\n'
+
+        res += '</table>\n'
+        return res
+
 
 class ItemEnum(MarkdownElement):
     # FIXME: what is the best way to indent verbose REs?
@@ -1191,6 +1410,28 @@ class ItemEnum(MarkdownElement):
 
         return res
 
+    def to_html(self):
+        indent = 0
+        res = ''
+        for elem in self._parsed:
+            if elem == self.BEGIN_ITEM:
+                res += '  '*indent + '<ul>\n'
+                indent += 1
+            elif elem == self.BEGIN_ENUM:
+                res += '  '*indent + '<ol>\n'
+                indent += 1
+            elif elem == self.END_ITEM:
+                indent -= 1
+                res += '  '*indent + '</ul>\n'
+            elif elem == self.END_ENUM:
+                indent -= 1
+                res += '  '*indent + '</ol>\n'
+            else:
+                assert isinstance(elem, Text)
+                res += '  '*indent + '<li>' + elem.to_html() + '</li>\n'
+
+        return res
+
 
 class CodeBlock(MarkdownElement):
     PAT = '#`'
@@ -1205,6 +1446,9 @@ class CodeBlock(MarkdownElement):
             '\n  '.join(['\\begin{lstlisting}']+self._parsed)
             + '\n\\end{lstlisting}\n'
         )
+
+    def to_html(self):
+        return '<pre>' + '\n'.join(self._parsed) + '\n</pre>'
 
 
 class ShellBlock(MarkdownElement):
@@ -1249,6 +1493,9 @@ class ShellBlock(MarkdownElement):
         res += '\\end{framed}\n'
         return res
 
+    def to_html(self):
+        raise NotImplementedError
+
 
 class RawText(MarkdownElement):
     PAT = '#&'
@@ -1257,6 +1504,9 @@ class RawText(MarkdownElement):
         self._parsed = [line for lineno, line in self._lines_withno]
 
     def to_latex(self):
+        return '\n'.join(self._parsed) + '\n'
+
+    def to_html(self):
         return '\n'.join(self._parsed) + '\n'
 
 
@@ -1285,6 +1535,8 @@ class MarkdownParser(object):
                 'You should write "LaTeX" (not {})'.format(fmt),
                 file=sys.stderr
             )
+        elif fmt.lower() == 'html':
+            self.to_html(fout, **kwargs)
         else:
             raise NotImplementedError
 
@@ -1311,6 +1563,60 @@ class MarkdownParser(object):
 
         if not options.get('--as-part', False):
             fout.write('\\end{document}\n')
+
+        unused_footnotes = [
+            (v, k) for k, v in self._footnotes.items() if not v.used
+        ]
+        unused_footnotes.sort()
+        for footnote, label in unused_footnotes:
+            print(
+                MarkdownSyntaxWarning(
+                    'defined but unused footnote',
+                    (
+                        self._filename, footnote._lines_withno[0][0], 0,
+                        len(label)+4, footnote._lines_withno[0][1]
+                    )
+                ).diagnose(), file=sys.stderr
+            )
+
+    def to_html(self, fout, **kwargs):
+        """Translate a file (given in __init__) into HTML format and
+        write it down in the file."""
+        options = kwargs['options']
+        if not options.get('--as-part', False):
+            fout.write('<!DOCTYPE html>\n')
+            fout.write('<html>\n')
+
+            fout.write('  <head>\n')
+            fout.write(kwargs['preamble'])
+
+            if self._title is not None:
+                fout.write('    '+self._title.to_html()+'\n')
+
+            if self._author is not None:
+                fout.write('    '+self._author.to_html()+'\n')
+
+            fout.write('  </head>\n')
+
+        fout.write('  <body>\n')
+        last = None
+        for elem in self._parsed:
+            last_text = (isinstance(last, Text) and last)
+            elem_text = (isinstance(elem, Text) and elem)
+            if last_text:
+                if not elem_text:
+                    fout.write('</p>\n')
+            elif elem_text:
+                fout.write('<p>')
+
+            fout.write(elem.to_html())
+            last = elem
+
+        if isinstance(last, Text) and last:
+            fout.write('</p>\n')
+
+        fout.write('  </body>\n')
+        fout.write('</html>\n')
 
         unused_footnotes = [
             (v, k) for k, v in self._footnotes.items() if not v.used
@@ -1572,7 +1878,7 @@ class MarkdownParser(object):
             )
 
 
-PREAMBLE = r"""\documentclass[a4paper]{jsarticle}
+LATEX_PREAMBLE = r"""\documentclass[a4paper]{jsarticle}
 
 % symbols
 \usepackage[T1]{fontenc}
@@ -1643,22 +1949,46 @@ PREAMBLE = r"""\documentclass[a4paper]{jsarticle}
 \usepackage{framed}
 """
 
+HTML_HEAD = r"""    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/js/bootstrap.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css?family=Cuprum&subset=latin" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet" type="text/css">
+    <link href="/css/base.css" rel="stylesheet">
+    <link href="/css/table.css" rel="stylesheet">
+"""
+
 
 def main():
     argc, argv = len(sys.argv), sys.argv[:]
+    spec_fmt = None
     if 1 >= argc:
-        print(argv[0], '<MARKDOWN>', '[LaTeX]', file=sys.stderr)
-        return 2
+        print('warning: read from standard input.', file=sys.stderr)
+        # print(argv[0], '<MARKDOWN>', '[LaTeX]', file=sys.stderr)
+        # return 2
     elif argv[1] in ('-h', '--help'):
         print(argv[0], '<MARKDOWN>', '[LaTeX]')
         return 0
 
     options = {}
     # XXX use smart arg-parsers
-    if '--as-part' in argv[:(argv.index('--') if '--' in argv else len(argv))]:
-        argv.pop(argv.index('--as-part'))
-        argc -= 1
-        options['--as-part'] = True
+    for arg in argv[:(argv.index('--') if '--' in argv else len(argv))]:
+        if arg == '--as-part':
+            argv.pop(argv.index('--as-part'))
+            argc -= 1
+            options['--as-part'] = True
+        elif arg == '--html':
+            argv.pop(argv.index(arg))
+            argc -= 1
+            spec_fmt = 'HTML'
+        elif arg.lower() in ('--tex', '--latex'):
+            argv.pop(argv.index(arg))
+            argc -= 1
+            spec_fmt = 'LaTeX'
 
     inname = argv[1] if 1 < argc else '-'
     if inname == '-':
@@ -1668,7 +1998,10 @@ def main():
         if inname == '/dev/stdin':
             outname = '/dev/stdout'
         else:
-            outname = os.path.splitext(inname)[0] + '.tex'
+            if spec_fmt == 'HTML':
+                outname = os.path.splitext(inname)[0] + '.html'
+            else:
+                outname = os.path.splitext(inname)[0] + '.tex'
     else:
         outname = argv[2]
 
@@ -1678,7 +2011,17 @@ def main():
     with open(inname) as fin, open(outname, 'w') as fout:
         try:
             parser = MarkdownParser(fin)
-            parser.translate(fout, 'LaTeX', preamble=PREAMBLE, options=options)
+            ext = os.path.splitext(outname)[1]
+            fmt = (
+                'HTML' if ext in ('.html',) else
+                spec_fmt or 'LaTeX'  # default one
+            )
+            preamble = (
+                HTML_HEAD if fmt == 'HTML' else
+                LATEX_PREAMBLE if fmt == 'LaTeX' else
+                ''
+            )
+            parser.translate(fout, fmt, preamble=preamble, options=options)
         except MarkdownSyntaxError as e:
             print(e.diagnose(), file=sys.stderr)
             if e.note is not None:
