@@ -11,6 +11,14 @@
 ;; backticks within markers (*like `this`*)
 ;; improper nesting (*like _this*_)
 
+
+;;; define faces --------------------------------
+(defface markdown-bold-1
+  '((t))
+  "Face used to mark adding bold property later."
+  :group 'markdown)
+(defvar markdown-bold-1-face 'markdown-bold-1)
+
 (defface markdown-math
   '((t :inherit font-lock-string-face))
   "Face used to highlight TeX math expressions."
@@ -35,9 +43,9 @@
 ;;   "Face used to highlight foo."
 ;;   :group 'markdown)
 ;; (defvar markdown-foo-face 'markdown-foo)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; regular expressions --------------------------------
 (defun re-repeat (char count)
   (concat
    (if (> count 0) (regexp-quote char) "")
@@ -56,8 +64,6 @@
   ;; not escaped by a backslash
   "\\(?:^\\|[^\\]\\)\\(?:\\\\.\\)*")
 
-;; (setq font-lock-multiline t)  ;; ???
-
 (defun re-paren (char count)
   (concat
    re-unescaped
@@ -69,7 +75,9 @@
    "\\|\\\\.\\)+"
    (re-repeat char count)
    "\\)"))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; font-lock functions --------------------------------
 (defun markdown-font-lock-append-prop (prop)
   ;; (princ "<")
   ;; TODO: in processing *, if an unescaped _ is found before an
@@ -87,14 +95,59 @@
     ;; (princ ">")
     prop))
 
+(defun markdown-font-lock-emph (opening-char)
+  (let* (
+         (saved-point (point))
+         (text-property (get-text-property (match-beginning 1) 'face)))
+
+    (unless (memq (car text-property)
+                  `(font-lock-comment-face
+                    ,markdown-code-face
+                    ,markdown-math-face
+                    ,markdown-atcmd-face))
+
+      (goto-char (match-beginning 1))
+      (let* (
+             (start (point))
+             (eol (and (move-end-of-line 1) (point)))
+             (closing (and
+                       (goto-char (1+ start))
+                       (re-search-forward
+                        (concat
+                         re-unescaped "\\(" (regexp-quote opening-char) "\\)")
+                        eol t 1)
+                       (match-beginning 1)))
+             (other (and
+                     (goto-char (1+ start))
+                     (re-search-forward
+                      (concat
+                       re-unescaped "\\([_$"
+                       (if (equal opening-char "*") "_" "*") "@]\\)")
+                      eol t 1)
+                     (match-beginning 1)))
+             (other-char (char-after other)))
+        (goto-char saved-point)
+        (if (and
+             (integerp other)
+             (< other closing)
+             (memq (if (equal opening-char "*") 'italic
+                     markdown-bold-1-face)
+                   text-property))
+            'font-lock-warning-face
+          (if (equal opening-char "*") 'bold 'italic))))
+    ))
+
+(defun markdown-font-lock-warning-p (opening-char)
+  (eq (markdown-font-lock-emph opening-char) 'font-lock-warning-face)
+  )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; main hook --------------------------------
 (add-hook
  'markdown-mode-hook
  (lambda ()
    (font-lock-add-keywords
     nil
-    ;; math: anywhere but in verbatim
-    ;; verbatim: anywhere but in math
-    ;; emphasis: neither in math nor in verbatim
     `(
       ;; math
       (,(re-paren "$" 1) 1 (markdown-font-lock-append-prop markdown-math-face) append)
@@ -103,8 +156,6 @@
       (,(re-paren "`" 1) 1 (markdown-font-lock-append-prop markdown-code-face) append)
       (,(re-paren "`" 2) 1 (markdown-font-lock-append-prop markdown-code-face) append)
       (,(re-paren "`" 3) 1 (markdown-font-lock-append-prop markdown-code-face) append)
-      (,(re-paren "`" 4) 1 (markdown-font-lock-append-prop markdown-code-face) append)
-      (,(re-paren "`" 5) 1 (markdown-font-lock-append-prop markdown-code-face) append)
 
       ;; @ command
       (,(concat
@@ -117,19 +168,21 @@
        (2 . ((markdown-font-lock-append-prop 'font-lock-builtin-face) prepend))
        (3 . ((markdown-font-lock-append-prop markdown-atcmd-face) prepend)))
 
-      ;; *bold* styles
-      (,(re-paren "*" 1) 1 (markdown-font-lock-append-prop 'bold) append)
-      (,(re-paren "*" 2) 1 (markdown-font-lock-append-prop 'bold) append)
-      (,(re-paren "*" 3) 1 (markdown-font-lock-append-prop 'bold) append)
-      (,(re-paren "*" 4) 1 (markdown-font-lock-append-prop 'bold) append)
-      (,(re-paren "*" 5) 1 (markdown-font-lock-append-prop 'bold) append)
+      ;; mark potentially-bold regions
+      (,(re-paren "*" 1) 1 (markdown-font-lock-append-prop markdown-bold-1-face) append)
+      (,(re-paren "*" 2) 1 (markdown-font-lock-append-prop markdown-bold-1-face) append)
+      (,(re-paren "*" 3) 1 (markdown-font-lock-append-prop markdown-bold-1-face) append)
+      ;; (,(re-paren "*" 1) 1 (markdown-font-lock-emph "*") append)
 
       ;; _italic_ styles
-      (,(re-paren "_" 1) 1 (markdown-font-lock-append-prop 'italic) append)
-      (,(re-paren "_" 2) 1 (markdown-font-lock-append-prop 'italic) append)
-      (,(re-paren "_" 3) 1 (markdown-font-lock-append-prop 'italic) append)
-      (,(re-paren "_" 4) 1 (markdown-font-lock-append-prop 'italic) append)
-      (,(re-paren "_" 5) 1 (markdown-font-lock-append-prop 'italic) append)
+      (,(re-paren "_" 1) 1 (markdown-font-lock-emph "_") append)
+      (,(re-paren "_" 2) 1 (markdown-font-lock-emph "_") append)
+      (,(re-paren "_" 3) 1 (markdown-font-lock-emph "_") append)
+
+      ;; *bold* styles
+      (,(re-paren "*" 1) 1 (markdown-font-lock-emph "*") append)
+      (,(re-paren "*" 2) 1 (markdown-font-lock-emph "*") append)
+      (,(re-paren "*" 3) 1 (markdown-font-lock-emph "*") append)
 
       ;; # directives
       ;; sections 
@@ -165,7 +218,9 @@
       ;; ;; test
       ;; (test-font-lock-match (1 (test-font-lock (match-beginning 0)) append))
       ))) t)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; syntax table --------------------------------
 (defvar markdown-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?$ "$$" table)
@@ -173,6 +228,8 @@
     (modify-syntax-entry ?` "$`" table)
     table))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; associating --------------------------------
 (define-derived-mode markdown-mode prog-mode
   "Markdown"
   "Major mode for editing rsk0315-flavored markdown language."
