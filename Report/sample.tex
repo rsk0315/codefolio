@@ -1,0 +1,98 @@
+\documentclass[a4paper]{jsarticle}
+
+% symbols
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
+% color
+\usepackage[dvipdfmx]{color}
+
+% font
+\usepackage{lmodern}
+\newcommand{\textlt}[1]{\texttt{\fontseries{l}\selectfont #1}}
+
+% title-formatting
+\usepackage{titlesec}
+\titleformat*{\section}{\Large\bfseries\rmfamily}
+\titleformat*{\subsection}{\large\bfseries\rmfamily}
+\titleformat*{\subsubsection}{\normalsize\bfseries\rmfamily}
+
+% spacing
+\setlength{\parskip}{.5\baselineskip}
+\makeatletter
+\titlespacing{\section}{0pt}%
+             {.5\Cvs \@plus.5\Cdp \@minus.2\Cdp}{0pt \@plus.3\Cdp}
+\titlespacing{\subsection}{0pt}%
+             {.5\Cvs \@plus.5\Cdp \@minus.2\Cdp}{0pt \@plus.3\Cdp}
+\titlespacing{\subsubsection}{0pt}%
+             {.5\Cvs \@plus.5\Cdp \@minus.2\Cdp}{0pt \@plus.3\Cdp}
+\newcount\ch
+\ch=0\loop
+  \ifnum\ch<256
+  \xspcode \ch=3
+\advance\ch by1
+\repeat
+
+% source-code
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  flexiblecolumns=true,
+  upquote=true,
+  keepspaces=true,
+}
+
+\usepackage{enumerate}
+
+% math
+\usepackage{euler}
+\usepackage{amsmath}
+\thinmuskip=6mu
+\SetMathAlphabet{\mathrm}{normal}{T1}{ccr}{m}{n}
+\DeclareSymbolFont{concreteop}{T1}{ccr}{m}{n}
+\makeatletter
+\renewcommand{\operator@font}{\mathgroup\symconcreteop}
+\makeatother
+
+% linking
+\usepackage{tablefootnote}
+\usepackage{footnotehyper}
+\usepackage[
+  dvipdfmx,
+  linktocpage=true,
+  plainpages=false,
+]{hyperref}
+\hypersetup{pdftex, colorlinks=true, allcolors=blue}
+
+% framing
+\usepackage{framed}
+\title{
+  {\Huge Title}
+}
+\author{
+  Author
+}
+\begin{document}
+\maketitle
+
+\section{Section}
+Regular \textbf{Bold}
+\textit{Italic \textbf{Bold}}
+\texttt{code}
+
+\begin{itemize}
+\item Item
+  \begin{itemize}
+  \item Subitem
+    \begin{itemize}
+    \item Subsubitem
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+\begin{lstlisting}
+  int main() {
+    print("Hello, world.\n");
+  }
+\end{lstlisting}
+\end{document}
