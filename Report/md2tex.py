@@ -943,6 +943,13 @@ class Text(MarkdownElement):
 
 class Footnote(MarkdownElement):
     RE = re.compile(r'#\[\^(?P<LABEL>[\w-]+)\]: ?(?P<TEXT>.*)')
+    ATTRS = {
+        'class': 'glyphicon glyphicon-question-sign',
+        'aria-hidden': 'true',
+        'data-html': 'true',
+        'data-toggle': 'tooltip',
+        'title': '',
+    }
 
     def __init__(self, lines_withno, footnotes, filename):
         MarkdownElement.__init__(self, lines_withno, footnotes, filename)
@@ -977,9 +984,15 @@ class Footnote(MarkdownElement):
             raise KeyError(type_)
 
     def to_html(self, type_=None):
-        res = '<span class="footnote">'
-        res += self._footnotetext.to_html()
-        res += '</span>'
+        self._is_used = True
+        res = '<span'
+        for k, v in self.ATTRS.items():
+            res += ' {}="{}"'.format(k, v)
+
+        res += ' data-original-title="'
+        res += self._footnotetext.to_html().strip()
+        res += '"></span>'
+        return res
 
     @property
     def used(self):
@@ -1954,13 +1967,15 @@ HTML_HEAD = r"""    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link href="/css/bootstrap.min.css" rel="stylesheet">
-    <script src="/js/bootstrap.min.js"></script>
-
     <link href="https://fonts.googleapis.com/css?family=Cuprum&subset=latin" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet" type="text/css">
+
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+
     <link href="/css/base.css" rel="stylesheet">
-    <link href="/css/table.css" rel="stylesheet">
+    <script src="/js/base.js"></script>
 """
 
 

@@ -23,3 +23,6 @@ int main() {
 |table|table|
 |table|table|
 |table|table|
+
+Footnote.[^footnote]
+#[^footnote]: Footnote text.
