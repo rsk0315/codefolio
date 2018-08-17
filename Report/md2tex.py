@@ -1091,7 +1091,9 @@ class Section(MarkdownElement):
         return SECTIONS[self._level]+'{'+self._text.to_latex()+'}\n'
 
     def to_html(self):
-        return '<h{0}>{1}</h{0}>'.format(self._level+1, self._text.to_html())
+        return '<h{0}>{1}</h{0}>\n'.format(
+            self._level+1, self._text.to_html().strip()
+        )
 
 
 class TableDelimiter(MarkdownElement):
@@ -1428,7 +1430,7 @@ class ItemEnum(MarkdownElement):
                 res += '  '*indent + '</ol>\n'
             else:
                 assert isinstance(elem, Text)
-                res += '  '*indent + '<li>' + elem.to_html() + '</li>\n'
+                res += '  '*indent + '<li>'+elem.to_html().strip()+'</li>\n'
 
         return res
 
