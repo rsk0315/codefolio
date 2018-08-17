@@ -1026,12 +1026,11 @@ class Title(MarkdownElement):
         return res
 
     def to_html(self):
-        res = '<title>'
+        res = ''
         for i, (colon, text) in enumerate(self._parsed):
             res += text.to_html()
 
-        res += '</title>'
-        return res
+        return '<title>' + res.strip() + '</title>'
 
 
 class Author(MarkdownElement):
