@@ -7,6 +7,9 @@ import os
 import re
 import sys
 
+# Future updates:
+# for HTML, $...$ and @[align]...@ are to be supported.
+
 # Added features:
 # @...@ for typewriter fonts are deprecated.
 # We defined @[cmd]...@ to typeset e.g. \textsc{...},
@@ -1597,7 +1600,8 @@ class MarkdownParser(object):
         """Translate a file (given in __init__) into HTML format and
         write it down in the file."""
         options = kwargs['options']
-        if not options.get('--as-part', False):
+        as_part = options.get('--as-part', False)
+        if not as_part:
             fout.write('<!DOCTYPE html>\n')
             fout.write('<html>\n')
 
@@ -1613,6 +1617,10 @@ class MarkdownParser(object):
             fout.write('  </head>\n')
 
         fout.write('  <body>\n')
+        if not as_part:
+            fout.write('    <div id="main-div" class="float-container">\n')
+            fout.write('      <main class="container">\n')
+
         last = None
         for elem in self._parsed:
             last_text = (isinstance(last, Text) and last)
@@ -1628,6 +1636,10 @@ class MarkdownParser(object):
 
         if isinstance(last, Text) and last:
             fout.write('</p>\n')
+
+        if not as_part:
+            fout.write('      </main>\n')
+            fout.write('    </div>\n')
 
         fout.write('  </body>\n')
         fout.write('</html>\n')
