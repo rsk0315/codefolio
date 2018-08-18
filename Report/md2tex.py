@@ -877,43 +877,37 @@ class Text(MarkdownElement):
 
             elif kind == self.AT_CMD:
                 if snippet == self.CLOSE:
-                    res += '</span>'
+                    if at_flags[-1] == 'align':
+                        res += '\\]'
+                    else:
+                        res += '</span>'
                     at_flags.pop()
                     continue
 
                 at_flags.append(snippet)
-                res += '<span at_name="' + snippet+ '">'
+                # res += '<span at_name="' + snippet+ '">'
 
-                # if snippet == self.CLOSE:
-                #     if at_flags[-1] == 'align':
-                #         res += '\\]'
-                #     else:
-                #         res += '}'
-                #     at_flags.pop()
-                #     continue
-
-                # at_flags.append(snippet)
-
-                # if snippet == 'tt':
-                #     res += '\\texttt{'
-                # elif snippet == 'sc':
-                #     res += '\\textsc{'
-                # elif snippet == 'align':
-                #     res += '\\['
-                # elif snippet.startswith('color:#'):
-                #     r, g, b = map(
-                #         lambda n: int(n, 16),
-                #         [snippet[i:i+2] for i in range(7, 12, 2)]
-                #     )
-                #     res += '{{\\color[rgb]{{{:.2f}, {:.2f}, {:.2f}}}'.format(
-                #         r/255, g/255, b/255
-                #     )
-                # elif snippet.startswith('color:'):
-                #     res += '{{\\color{{{}}}'.format(snippet[6:])
-                # elif snippet in ('TeX', 'LaTeX', 'LaTeXe'):
-                #     res += '\\' + snippet + '{'
-                # else:
-                #     assert False
+                if snippet == 'tt':
+                    # res += '\\texttt{'
+                    raise NotImplementedError
+                elif snippet == 'sc':
+                    # res += '\\textsc{'
+                    raise NotImplementedError
+                elif snippet == 'align':
+                    res += '\\['
+                elif snippet.startswith('color:#'):
+                    assert re.fullmatch(
+                        r'color:#(?:[0-9A-Fa-f]{3}){1,2}', snippet
+                    )
+                    res += '<span style="'+snippet+';">'
+                elif snippet.startswith('color:'):
+                    assert re.fullmatch(r'color:\w+', snippet)
+                    res += '<span style="'+snippet+';">'
+                elif snippet in ('TeX', 'LaTeX', 'LaTeXe'):
+                    # res += '\\' + snippet + '{'
+                    raise NotImplementedError
+                else:
+                    assert False
 
             elif kind == self.VERBATIM:
                 res += '<code>'
@@ -924,10 +918,14 @@ class Text(MarkdownElement):
                 res += '</code>'
 
             elif kind == self.LATEX:
-                raise NotImplementedError
+                res += snippet  # used in \[...\]
 
             elif kind == self.MATH:
-                res += '$'+snippet+'$'
+                snippet = re.sub(r'<(?!\w)', r'\\lt', snippet)
+                snippet = re.sub(r'<', r'\\lt ', snippet)
+                snippet = re.sub(r'>(?!\w)', r'\\gt', snippet)
+                snippet = re.sub(r'>', r'\\gt ', snippet)
+                res += '$' + snippet + '$'
 
             elif kind == self.OTHER:
                 res += snippet.to_html()
@@ -1978,6 +1976,17 @@ LATEX_PREAMBLE = r"""\documentclass[a4paper]{jsarticle}
 HTML_HEAD = r"""    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          processEscapes: true,
+        },
+        CommonHTML: { matchFontHeight: false }
+      });
+    </script>
+    <script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 
     <link href="https://fonts.googleapis.com/css?family=Cuprum&subset=latin" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet" type="text/css">
