@@ -8,13 +8,16 @@ import re
 import sys
 
 # Future updates:
-# for HTML, $...$ and @[align]...@ are to be supported.
+# 'align' is not align; one-line math environment for now.
+# This is to be changed.
 
 # Added features:
 # @...@ for typewriter fonts are deprecated.
 # We defined @[cmd]...@ to typeset e.g. \textsc{...},
 # instead of raw-style: &\textsc{...}&.
 # @[tt]...@, @[sc]...@, @[color:red]...@ are introduced.
+#
+# for HTML, $...$ and @[align]...@ are supported.
 
 # ---- Exceptions ------------
 class MarkdownDiagnostic(SyntaxError):
