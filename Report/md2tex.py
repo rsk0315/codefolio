@@ -953,7 +953,7 @@ class Text(MarkdownElement):
                 snippet = re.sub(r'<', r'\\lt ', snippet)
                 snippet = re.sub(r'>(?!\w)', r'\\gt', snippet)
                 snippet = re.sub(r'>', r'\\gt ', snippet)
-                res += '$' + snippet + '$'
+                res += ' $' + snippet + '$ '
 
             elif kind == self.OTHER:
                 res += snippet.to_html()
