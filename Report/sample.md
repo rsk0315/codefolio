@@ -33,3 +33,6 @@ $ma^{t_h} > 1$
 @[color:#1000AC]1000 AC@
 @[tt]texttt@
 @[sc]Textsc@
+@[TeX]@
+@[LaTeX]@
+@[LaTeXe]@

@@ -573,8 +573,20 @@ class Text(MarkdownElement):
                         (self._filename, lineno, offset-1, 1, line)
                     )
 
-                at_flags.pop()
-                at_offset.pop()
+                name = at_flags.pop()
+                ao = at_offset.pop()
+                print(name, ao)
+                if name in ('TeX', 'LaTeX', 'LaTeXe'):
+                    if ao + len('@[]@') + len(name) != offset:
+                        start = ao+len('@[]')+len(name)
+                        raise MarkdownSyntaxError(
+                            "@ command '"+name+"' takes no argument",
+                            (
+                                self._filename, lineno, start, offset-start-1,
+                                line
+                            )
+                        )
+
                 self._parsed.append((self.AT_CMD, self.CLOSE))
 
             elif (
@@ -710,8 +722,8 @@ class Text(MarkdownElement):
             raise MarkdownSyntaxError(
                 'unclosed @ command',
                 (
-                    self._filename, lineno, at_flags[-1],
-                    len(at_offset[-1])+3, line
+                    self._filename, lineno, at_offset[-1],
+                    len(at_flags[-1])+3, line
                 )
             )
 
@@ -893,7 +905,7 @@ class Text(MarkdownElement):
                 if snippet == self.CLOSE:
                     if at_flags[-1] == 'align':
                         res += '\\]'
-                    else:
+                    elif at_flags[-1] not in ('TeX', 'LaTeX', 'LaTeXe'):
                         res += '</span>'
                     at_flags.pop()
                     continue
@@ -916,8 +928,12 @@ class Text(MarkdownElement):
                     assert re.fullmatch(r'color:\w+', snippet)
                     res += '<span style="'+snippet+';">'
                 elif snippet in ('TeX', 'LaTeX', 'LaTeXe'):
-                    # res += '\\' + snippet + '{'
-                    raise NotImplementedError
+                    res += '<span class="tex">'
+                    if snippet[0] == 'L':
+                        res += 'L<sup>a</sup>'
+                    res += 'T<sub>e</sub>X</span>'
+                    if snippet[-1] == 'e':
+                        res += ' 2<sub style="font-size:1em">&epsilon;</sub>'
                 else:
                     assert False
 
