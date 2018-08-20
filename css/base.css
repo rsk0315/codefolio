@@ -55,6 +55,23 @@ code:after {
     color: #666;
 }
 
+span.tt {
+    color: #d72b3f;
+    margin:0;
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 90%;
+}
+span.tt:before {
+    content: "'";
+    margin-right: 0.15em;
+    color: #666;
+}
+span.tt:after {
+    content: "'";
+    margin-left: 0.15em;
+    color: #666;
+}
+
 .div-btn-copy {
   position: relative;
   display: block;
@@ -84,4 +101,3 @@ code:after {
 .tooltip {
     font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
-

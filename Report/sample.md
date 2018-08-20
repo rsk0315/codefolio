@@ -31,3 +31,5 @@ $ma^{t_h} > 1$
 @[align]\mathrm{Tsuta}_J@
 @[color:red]Red@
 @[color:#1000AC]1000 AC@
+@[tt]texttt@
+@[sc]Textsc@

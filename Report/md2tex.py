@@ -902,11 +902,9 @@ class Text(MarkdownElement):
                 # res += '<span at_name="' + snippet+ '">'
 
                 if snippet == 'tt':
-                    # res += '\\texttt{'
-                    raise NotImplementedError
+                    res += '<span class="tt">'
                 elif snippet == 'sc':
-                    # res += '\\textsc{'
-                    raise NotImplementedError
+                    res += '<span style="font-variant:small-caps;">'
                 elif snippet == 'align':
                     res += '\\['
                 elif snippet.startswith('color:#'):
