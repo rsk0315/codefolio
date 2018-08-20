@@ -575,7 +575,6 @@ class Text(MarkdownElement):
 
                 name = at_flags.pop()
                 ao = at_offset.pop()
-                print(name, ao)
                 if name in ('TeX', 'LaTeX', 'LaTeXe'):
                     if ao + len('@[]@') + len(name) != offset:
                         start = ao+len('@[]')+len(name)
