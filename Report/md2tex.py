@@ -1643,7 +1643,8 @@ class MarkdownParser(object):
             fout.write('    </div>\n')
 
         fout.write('  </body>\n')
-        fout.write('</html>\n')
+        if not as_part:
+            fout.write('</html>\n')
 
         unused_footnotes = [
             (v, k) for k, v in self._footnotes.items() if not v.used
