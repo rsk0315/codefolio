@@ -72,6 +72,21 @@ span.tt:after {
     color: #666;
 }
 
+.tex sub, .tex sup {
+    text-transform: uppercase;
+}
+.tex sub {
+    margin-left: -.1667em;
+    margin-right: -.125em;
+    font-size: 1em;
+}
+.tex sup {
+    font-size: .85em;
+    vertical-align: -.3em;
+    margin-left: -.36em;
+    margin-right: -.15em;
+}
+
 .div-btn-copy {
   position: relative;
   display: block;
