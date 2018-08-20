@@ -18,11 +18,11 @@ int main() {
 }
 #`
 
-|Table|Table|
+|Input|Output|
 |:-:|:-:|
-|table|table|
-|table|table|
-|table|table|
+|`*Bold*`|*Bold*|
+|`_Italic_`|_Italic_|
+|`` `Code` ``|`Code`|
 
 Footnote.[^footnote]
 #[^footnote]: Footnote text.

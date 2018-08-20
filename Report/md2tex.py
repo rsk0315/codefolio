@@ -820,7 +820,7 @@ class Text(MarkdownElement):
 
         return res
 
-    def to_html(self, sep=None):
+    def to_html(self, sep=None, align=None):
         res = ''
         count_seps = 0
         num_seps = self.num_seps()
@@ -833,6 +833,14 @@ class Text(MarkdownElement):
             '<': '&lt;',
             '>': '&gt;',
         }
+        ALIGN_STYLE = {
+            'l': 'left',
+            'c': 'center',
+            'r': 'right',
+        }
+
+        if align is not None:
+            al = iter(align)
 
         for kind, snippet in self._parsed:
             if kind == self.NORMAL:
@@ -852,7 +860,10 @@ class Text(MarkdownElement):
                 if 1 < count_seps:
                     res += '</' + sep + '>'
                 if count_seps < num_seps:
-                    res += '<' + sep + '>'
+                    res += (
+                        '<' + sep + ' style="text-align:'
+                        + ALIGN_STYLE[next(al)] +'">'
+                        )
 
             elif kind == self.NEED_ESCAPE:
                 res += NAMED_ENTITIES.get(snippet, snippet)
@@ -1307,12 +1318,13 @@ class Table(MarkdownElement):
 
     def to_html(self):
         res = '<table class="table table-striped table-condensed">\n'
+        align = self._delimiter.to_latex().replace('|', '')
 
         it = iter(self._parsed)
         for tr in it:
             res += '  <thead>\n'
             res += '    <tr>\n'
-            res += '      ' + tr.to_html(sep='th')
+            res += '      ' + tr.to_html(sep='th', align=align)
             res += '    </tr>\n'
             res += '  </thead>\n'
             break
@@ -1324,7 +1336,7 @@ class Table(MarkdownElement):
                 continue
 
             res += '    <tr>\n'
-            res += '      ' + tr.to_html(sep='td')
+            res += '      ' + tr.to_html(sep='td', align=align)
             res += '    </tr>\n'
         else:
             res += '  </tbody>\n'
