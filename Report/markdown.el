@@ -67,12 +67,27 @@
 (defun re-paren (char count)
   (concat
    re-unescaped
+   "\\(?:^\\|[^" char "]\\)"
    "\\("
    (re-repeat char count)
    "\\(?:"
    (re-repeat-at-most char (1- count))
-   (re-char-inside-paren char)
+   (re-char-inside-paren (concat "`$" char))
    "\\|\\\\.\\)+"
+   (re-repeat char count)
+   "\\)")
+  )
+
+(defun re-verbatim-paren (char count)
+  (concat
+   re-unescaped
+   "\\(?:^\\|[^" char "]\\)"
+   "\\("
+   (re-repeat char count)
+   "\\(?:"
+   (re-repeat-at-most char (1- count))
+   "[^\n" char "]"  ;; backslashes are ignored
+   "\\)+"
    (re-repeat char count)
    "\\)"))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -153,9 +168,9 @@
       (,(re-paren "$" 1) 1 (markdown-font-lock-append-prop markdown-math-face) append)
 
       ;; `verbatim` styles
-      (,(re-paren "`" 1) 1 (markdown-font-lock-append-prop markdown-code-face) append)
-      (,(re-paren "`" 2) 1 (markdown-font-lock-append-prop markdown-code-face) append)
-      (,(re-paren "`" 3) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+      (,(re-verbatim-paren "`" 1) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+      (,(re-verbatim-paren "`" 2) 1 (markdown-font-lock-append-prop markdown-code-face) append)
+      (,(re-verbatim-paren "`" 3) 1 (markdown-font-lock-append-prop markdown-code-face) append)
 
       ;; @ command
       (,(concat
@@ -217,7 +232,8 @@
 
       ;; ;; test
       ;; (test-font-lock-match (1 (test-font-lock (match-beginning 0)) append))
-      ))) t)
+      )))
+ t)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; syntax table --------------------------------
