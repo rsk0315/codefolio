@@ -1491,7 +1491,18 @@ class CodeBlock(MarkdownElement):
         )
 
     def to_html(self):
-        return '<pre>' + '\n'.join(self._parsed) + '\n</pre>'
+        NAMED_ENTITIES = {
+            '&': '&amp;',
+            '"': '&quot;',
+            "'": '&apos;',
+            '<': '&lt;',
+            '>': '&gt;',
+        }
+        res = '\n'.join(self._parsed).replace('&', '&amp;')
+        for ch in '"\'<>':
+            res = res.replace(ch, NAMED_ENTITIES[ch])
+
+        return '<pre>' + res + '\n</pre>'
 
 
 class ShellBlock(MarkdownElement):
