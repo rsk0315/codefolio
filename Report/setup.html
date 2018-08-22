@@ -67,7 +67,7 @@ $ sudo ./vmware-install.pl
 </p>
 <pre>$ git clone https://github.com/git/git.git
 $ cd git
-$ make && make install
+$ make &amp;&amp; make install
 </pre><p><code>prefix</code>は<code>$(HOME)</code>になっているので，<code>$PATH</code>を見てちゃんと新しいのが実行されるかを確認する．
 </p>
 
@@ -78,8 +78,8 @@ $ make && make install
 <pre>$ git clone https://github.com/vim/vim.git
 $ cd vim
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --with-x \
->     CFLAGS=-I/usr/include/X11
-$ make && make install
+&gt;     CFLAGS=-I/usr/include/X11
+$ make &amp;&amp; make install
 </pre>
 <h2><code>emacs</code>のインストール</h2>
 <p><code>http://ftp.jaist.ac.jp/pub/GNU/emacs/</code>などから最新のものをダウンロード．
@@ -90,7 +90,7 @@ $ curl http://ftp.jaist.ac.jp/pub/GNU/emacs/emacs-26.1.tar.xz -o emacs-26.1.tar.
 $ tar xvf emacs-26.1.tar.xz
 $ cd emacs-26.1/
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --without-x
-$ make && make install
+$ make &amp;&amp; make install
 </pre>
 <h2><code>python3</code>のインストール</h2>
 <pre>$ sudo yum install https://centos7.iuscommunity.org/ius-release.rpm
@@ -101,7 +101,7 @@ $ sudo yum install python36u{,-{libs,devel,pip}}
 $ tar xvf bash-5.0-alpha.tar.gz
 $ cd bash-5.0-alpha/
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux
-$ make && make install
+$ make &amp;&amp; make install
 $ cp doc/bash.1 ~/usr/share/man/man1/
 </pre>
 <h2>その他有用なものたちのインストール</h2>
@@ -121,7 +121,7 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
-# Uncomment the following line if you don't like systemctl's auto-paging feature:
+# Uncomment the following line if you don&apos;t like systemctl&apos;s auto-paging feature:
 # export SYSTEMD_PAGER=
 
 # User specific aliases and functions
@@ -129,12 +129,14 @@ fi
 <h3>エイリアス</h3>
 <p>ファイルの移動時に上書き確認をするのは基本中の基本．
 </p>
-<pre>alias rm='rm -iv' cp='cp -iv' mv='mv -iv'
+<pre>alias rm=&apos;rm -iv&apos; cp=&apos;cp -iv&apos; mv=&apos;mv -iv&apos;
 </pre>
 <h3>シェルオプション</h3>
 <p>リダイレクトの上書きを防ぐのも基本．
 </p>
-<pre>set -o noclobber  # set -C でも同じ
+<pre>set -o noclobber       # set -C でも同じ．リダイレクトの上書きを防ぐ
+shopt -s histverify    # 履歴展開の暴発を防ぐ
+shopt -s autocd        # ~ や .. だけで移動できて楽．甘え
 </pre>
 <h3>ページャのオプション</h3>
 <pre>export LESS=Fr
@@ -143,7 +145,68 @@ fi
   <li><code>less -r</code>：エスケープシーケンスを解釈</li>
 </ul>
 
-      </main>
+<h3>キーバインドの補助設定</h3>
+<p><code>C-s</code>などが期待通りに動作するようにする．
+</p>
+<pre>stty rprnt undef stop undef werase undef kill undef
+</pre><p>デフォルトに戻す場合は以下の通り．
+</p>
+<pre>stty rprnt \^r stop \^s werase \^w kill \^u
+</pre><p>履歴展開が有効な場合に<code>^</code>が暴発しないように注意．
+</p>
+
+<h2>エディタの初期化ファイル</h2>
+<h3><code>init.el</code>の編集</h3>
+
+<p>emacsの初期化ファイル．
+</p>
+<pre>;; テーマの設定
+(load-theme &apos;tango-dark t)
+
+;; 行数を表示
+(global-linum-mode t)
+(setq linum-format &quot;%4d &quot;)
+
+;; タブ文字を展開する
+(setq-default indent-tabs-mode nil)
+
+;; 括弧の対応付けを表示
+(show-paren-mode t)
+
+;; モードラインの整形
+(setq
+ mode-line-position
+ &apos;(&quot;%p &quot;
+   (line-number-mode &quot; L%l&quot;)
+   (column-number-mode
+    (column-number-indicator-zero-based &quot; c%c&quot; &quot; C%C&quot;)))
+ column-number-mode t
+ column-number-indicator-zero-based nil)
+
+;; その他モジュールの読み込み
+(add-to-list &apos;load-path &quot;~/.emacs.d/elisp&quot;)
+(require &apos;markdown)
+</pre>
+<h3><code>vimrc</code>の編集</h3>
+<pre>&quot; 色の設定
+:colorscheme koehler
+:syntax on
+
+&quot; ステータスバーの設定
+:set showcmd
+:set ruler
+
+&quot; ショートカット
+:nnoremap ZX &lt;Esc&gt;:w&lt;CR&gt;&lt;C-z&gt;
+
+&quot; バックスペースの挙動
+:set backspace=eol,start,indent
+</pre>
+<h2><code>gitconfig</code>の編集</h2>
+<p>パラメータなどについては以下を参照．
+</p>
+<pre>$ git log --help
+</pre>      </main>
     </div>
   </body>
 </html>

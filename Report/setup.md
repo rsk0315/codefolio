@@ -118,7 +118,9 @@ alias rm='rm -iv' cp='cp -iv' mv='mv -iv'
 ### シェルオプション
 リダイレクトの上書きを防ぐのも基本．
 #`
-set -o noclobber  # set -C でも同じ
+set -o noclobber       # set -C でも同じ．リダイレクトの上書きを防ぐ
+shopt -s histverify    # 履歴展開の暴発を防ぐ
+shopt -s autocd        # ~ や .. だけで移動できて楽．甘え
 #`
 
 ### ページャのオプション
@@ -129,3 +131,69 @@ export LESS=Fr
 - `less -r`：エスケープシーケンスを解釈
 
 
+### キーバインドの補助設定
+`C-s`などが期待通りに動作するようにする．
+#`
+stty rprnt undef stop undef werase undef kill undef
+#`
+デフォルトに戻す場合は以下の通り．
+#`
+stty rprnt \^r stop \^s werase \^w kill \^u
+#`
+履歴展開が有効な場合に`^`が暴発しないように注意．
+
+## エディタの初期化ファイル
+### `init.el`の編集
+
+emacsの初期化ファイル．
+#`
+;; テーマの設定
+(load-theme 'tango-dark t)
+
+;; 行数を表示
+(global-linum-mode t)
+(setq linum-format "%4d ")
+
+;; タブ文字を展開する
+(setq-default indent-tabs-mode nil)
+
+;; 括弧の対応付けを表示
+(show-paren-mode t)
+
+;; モードラインの整形
+(setq
+ mode-line-position
+ '("%p "
+   (line-number-mode " L%l")
+   (column-number-mode
+    (column-number-indicator-zero-based " c%c" " C%C")))
+ column-number-mode t
+ column-number-indicator-zero-based nil)
+
+;; その他モジュールの読み込み
+(add-to-list 'load-path "~/.emacs.d/elisp")
+(require 'markdown)
+#`
+
+### `vimrc`の編集
+#`
+" 色の設定
+:colorscheme koehler
+:syntax on
+
+" ステータスバーの設定
+:set showcmd
+:set ruler
+
+" ショートカット
+:nnoremap ZX <Esc>:w<CR><C-z>
+
+" バックスペースの挙動
+:set backspace=eol,start,indent
+#`
+  
+## `gitconfig`の編集
+パラメータなどについては以下を参照．
+#`
+$ git log --help
+#`
