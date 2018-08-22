@@ -118,13 +118,17 @@ alias rm='rm -iv' cp='cp -iv' mv='mv -iv'
 ### シェルオプション
 リダイレクトの上書きを防ぐのも基本．
 #`
-set -o noclobber       # set -C でも同じ．リダイレクトの上書きを防ぐ
-shopt -s histverify    # 履歴展開の暴発を防ぐ
-shopt -s autocd        # ~ や .. だけで移動できて楽．甘え
+# Shell options
+set -o noclobber       # same as `set -C'
+shopt -s histverify autocd
 #`
+`noclobber`によって`>`による上書きを防ぐことができる．強制的に上書きしたいときは`>|`を使う．
+`histverify`は履歴展開が起こったときコマンドが即座に実行されないようにする．
+`autocd`はコマンドとして見つからなかった文字列を`cd`への引数と解釈させる．`~`や`..`などのみでディレクトリを移動できるようになるが，暴発には注意．
 
 ### ページャのオプション
 #`
+# Pager configurations
 export LESS=Fr
 #`
 - `less -F`：一画面で収まるならそのまま表示
@@ -134,6 +138,7 @@ export LESS=Fr
 ### キーバインドの補助設定
 `C-s`などが期待通りに動作するようにする．
 #`
+# Key bindings
 stty rprnt undef stop undef werase undef kill undef
 #`
 デフォルトに戻す場合は以下の通り．
@@ -141,6 +146,19 @@ stty rprnt undef stop undef werase undef kill undef
 stty rprnt \^r stop \^s werase \^w kill \^u
 #`
 履歴展開が有効な場合に`^`が暴発しないように注意．
+
+### `inputrc`の編集
+#`
+# emacs-like key bindings
+"\C-u": universal-argument
+"\ew": copy-region-as-kill
+"\C-w": kill-region
+"\e\C-w": kill-whole-line
+
+# variables
+set enable-bracketed-paste On
+#`
+`enable-bracketed-paste`が有効のとき，改行文字が`accept-line`として暴発するのを防ぐ（タブ文字の`complete`なども同様）．
 
 ## エディタの初期化ファイル
 ### `init.el`の編集
@@ -195,5 +213,13 @@ emacsの初期化ファイル．
 ## `gitconfig`の編集
 パラメータなどについては以下を参照．
 #`
-$ git log --help
+$ git help config
+#`
+`color.diff`の項目を見るとよい．数値を指定したときに`<Esc>38;5;##m`の形式になってくれるのはたまたまなのかも？
+#`
+[color.diff]
+        new = green bold
+        old = red bold
+        frag = 43 bold
+        commit = 106
 #`
