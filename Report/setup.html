@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          processEscapes: true,
+        },
+        CommonHTML: { matchFontHeight: false }
+      });
+    </script>
+    <script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+    <link href="https://fonts.googleapis.com/css?family=Cuprum&subset=latin" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet" type="text/css">
+
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+
+    <link href="/css/base.css" rel="stylesheet">
+    <script src="/js/base.js"></script>
+  </head>
+  <body>
+    <div id="main-div" class="float-container">
+      <main class="container">
+<h1>基本的な環境設定</h1>
+<h2>VMware Toolsのインストール</h2>
+<pre>$ cd ~/Downloads
+$ cp /run/media/rsk0315/VMware\ Tools/VMwareTools-*.tar.gz ./
+$ tar xvf VMwareTools-*.tar.gz
+$ cd vmware-tools-distrib/
+$ sudo ./vmware-install.pl
+</pre>
+<h2><code>sudo</code>の設定</h2>
+<p>以下のコマンドを用いて<code>/etc/sudoers/</code>を編集し，いちいちパスワードを求められないようにする．
+</p>
+<pre>$ sudo visudo
+</pre><p>差分は次の通り．
+</p>
+<pre>$ sudo diff -up ~/tmp/sudoers /etc/sudoers
+--- /home/rsk0315/tmp/sudoers
++++ /etc/sudoers
+@@ -99,7 +99,7 @@ root	ALL=(ALL) 	ALL
+ %wheel	ALL=(ALL)	ALL
+
+ ## Same thing without a password
+-# %wheel	ALL=(ALL)	NOPASSWD: ALL
++%wheel	ALL=(ALL)	NOPASSWD: ALL
+
+ ## Allows members of the users group to mount and unmount the
+ ## cdrom as root
+</pre>
+<h2><code>git</code>のアップグレード</h2>
+<p>ビルドするのに必要なライブラリ群をインストールする．
+</p>
+<pre>$ sudo yum install openssl-devel curl-devel expat-devel
+</pre><p><code>gettext-devel</code>，<code>perl-devel</code>，<code>zlib-devel</code>，<code>perl-ExtUtils-MakeMaker</code>も依存している？ 最初から入っているかも？
+</p>
+
+<p>古い<code>git</code>が入っていることを期待し，以下を実行．
+</p>
+<pre>$ git clone https://github.com/git/git.git
+$ cd git
+$ make && make install
+</pre><p><code>prefix</code>は<code>$(HOME)</code>になっているので，<code>$PATH</code>を見てちゃんと新しいのが実行されるかを確認する．
+</p>
+
+<h2><code>vim</code>のアップグレード</h2>
+<pre>$ sudo yum install libX11-devel libXt-devel gtk2-devel ncurses-devel
+</pre><p><code>atk-devel</code>も依存している？
+</p>
+<pre>$ git clone https://github.com/vim/vim.git
+$ cd vim
+$ ./configure --prefix=$HOME --build=x86_64-redhat-linux --with-x \
+>     CFLAGS=-I/usr/include/X11
+$ make && make install
+</pre>
+<h2><code>emacs</code>のインストール</h2>
+<p><code>http://ftp.jaist.ac.jp/pub/GNU/emacs/</code>などから最新のものをダウンロード．
+</p>
+<pre>$ sudo yum install gnutls-devel
+$ cd ~/Downloads
+$ curl http://ftp.jaist.ac.jp/pub/GNU/emacs/emacs-26.1.tar.xz -o emacs-26.1.tar.xz
+$ tar xvf emacs-26.1.tar.xz
+$ cd emacs-26.1/
+$ ./configure --prefix=$HOME --build=x86_64-redhat-linux --without-x
+$ make && make install
+</pre>
+<h2><code>python3</code>のインストール</h2>
+<pre>$ sudo yum install https://centos7.iuscommunity.org/ius-release.rpm
+$ sudo yum install python36u{,-{libs,devel,pip}}
+</pre>
+<h2><code>bash</code>のアップグレード</h2>
+<pre>$ curl http://ftp.gnu.org/gnu/bash/bash-5.0-alpha.tar.gz -o bash-5.0-alpha.tar.gz
+$ tar xvf bash-5.0-alpha.tar.gz
+$ cd bash-5.0-alpha/
+$ ./configure --prefix=$HOME --build=x86_64-redhat-linux
+$ make && make install
+$ cp doc/bash.1 ~/usr/share/man/man1/
+</pre>
+<h2>その他有用なものたちのインストール</h2>
+<pre>$ sudo yum install php
+</pre>
+<h1>発展的な環境構築</h1>
+<p>趣味の領域に含まれると思われるもの．
+</p>
+
+<h2><code>bashrc</code>の編集</h2>
+<p>最初の状態では以下の内容しかなく，そっけなさすぎる（インストールの手順にもよるとは思うが）．
+</p>
+<pre># .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+# Uncomment the following line if you don't like systemctl's auto-paging feature:
+# export SYSTEMD_PAGER=
+
+# User specific aliases and functions
+</pre>
+<h3>エイリアス</h3>
+<p>ファイルの移動時に上書き確認をするのは基本中の基本．
+</p>
+<pre>alias rm='rm -iv' cp='cp -iv' mv='mv -iv'
+</pre>
+<h3>シェルオプション</h3>
+<p>リダイレクトの上書きを防ぐのも基本．
+</p>
+<pre>set -o noclobber  # set -C でも同じ
+</pre>
+<h3>ページャのオプション</h3>
+<pre>export LESS=Fr
+</pre><ul>
+  <li><code>less -F</code>：一画面で収まるならそのまま表示</li>
+  <li><code>less -r</code>：エスケープシーケンスを解釈</li>
+</ul>
+
+      </main>
+    </div>
+  </body>
+</html>
