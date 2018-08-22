@@ -158,8 +158,10 @@ stty rprnt \^r stop \^s werase \^w kill \^u
 
 # variables
 set enable-bracketed-paste On
+set mark-symlinked-directories On
 #`
 `enable-bracketed-paste`が有効のとき，改行文字が`accept-line`として暴発するのを防ぐ（タブ文字の`complete`なども同様）．
+`mark-symlinked-directories`が有効のとき，ディレクトリを指すリンクがTab補完されたときに`/`が付加される．
 
 ## エディタの初期化ファイル
 ### `init.el`の編集
@@ -227,11 +229,232 @@ $ git help config
 
 ## フォントの設定
 MigMixはいいぞ．
+`/etc/fonts/conf.d/65-nonlatin.conf`を編集する．とりあえず一番上にしよう．
+#`
+$ diff -up ~/tmp/65-nonlatin.conf /etc/fonts/conf.d/65-nonlatin.conf
+--- /home/rsk0315/tmp/65-nonlatin.conf
++++ /etc/fonts/conf.d/65-nonlatin.conf
+@@ -4,6 +4,7 @@
+ 	<alias>
+ 		<family>serif</family>
+ 		<prefer>
++			<family>MigMix 1M</family>
+ 			<family>Artsounk</family> <!-- armenian -->
+ 			<family>BPG UTF8 M</family> <!-- georgian -->
+ 			<family>Kinnari</family> <!-- thai -->
+@@ -69,6 +70,7 @@
+ 	<alias>
+ 		<family>sans-serif</family>
+ 		<prefer>
++			<family>MigMix 1M</family>
+ 			<family>Nachlieli</family> <!-- hebrew -->
+ 			<family>Lucida Sans Unicode</family>
+ 			<family>Yudit Unicode</family>
+@@ -144,6 +146,7 @@
+ 	<alias>
+ 		<family>monospace</family>
+ 		<prefer>
++			<family>MigMix 1M</family>
+ 			<family>Miriam Mono</family> <!-- hebrew -->
+ 			<family>VL Gothic</family>
+ 			<family>IPAMonaGothic</family>
+#`
 
 # 便利コマンドの定義
-- プロンプト文字列用
-  - `bash`のバージョン
-  - 終了ステータス
-- 指定された条件に合う最新ファイルを出力
-  - 最新のソースファイルを`make`
-  - 最新の実行ファイルを実行
+
+## プロンプト文字列
+`\s-\v\$ `ではそっけないので変える．`~/.bashrc`に追記．
+#`
+# Prompt strings
+PS0=$'\x1b[0m'
+PS1="\n\$(. ~rsk0315/.bashrc.d/ps1.sh)"
+PS1+=$'\n\[\x1b[0m\]\$ \[\x1b[1m\]'
+#`
+
+`ps1.sh`は以下の通りで，
+- カレントディレクトリ
+- シェルの階層
+- バージョン情報
+
+を表示する．
+
+#`
+# -*- mode: sh; sh-shell: bash -*-
+
+. ~rsk0315/.bashrc.d/color-seq.sh
+
+print_wd () {
+    wd="$(pwd)"
+    if [[ "$wd" =~ ^"$HOME" ]]; then
+        wd="${wd/#$HOME/$'\176'}"
+        [[ "$wd" == \~ ]] || wd+=/
+    elif [[ "$wd" == / ]]; then
+        wd=/
+    else
+        wd+=/
+    fi
+    echo -n "$(color_seq 45 nr)$wd$(color_seq '' n)"
+}
+
+print_wd
+echo : bash-"$BASH_VERSION" "[$((SHLVL-1))]"
+#`
+
+`color-seq.sh`は色のエスケープシーケンスを生成する（関数を定義する）スクリプト．
+別に関数にする必要はなくて，普通にスクリプトとして置いておいてもいい気がする．
+
+#`
+# -*- mode: sh; sh-shell: bash -*-
+
+color_seq () {
+    color="$1"
+    attr="$2"
+
+    res=
+    [[ "$attr" =~ n ]] && res+=$'\01'
+    res+=$'\x1b['
+
+    if [[ -z "$color" ]]; then
+        res+=0
+        [[ "$attr" =~ b ]] && res+=\;1
+        [[ "$attr" =~ r ]] && res+=\;0
+        res+=m
+    else
+        [[ "$attr" =~ b ]] && res+=1\;
+        [[ "$attr" =~ r ]] && res+=0\;
+        res+="38;5;${color}m"
+    fi
+    [[ "$attr" =~ n ]] && res+=$'\02'
+    echo "$res"
+}
+#`
+
+## 終了ステータス
+`echo $?`を叩かないとわからないのは不便なので，勝手に出してくれるようにする．
+典型的な値についてはコメントつき．
+
+以下は`~/.bashrc.d/exit-status.sh`．
+#`
+# -*- mode: sh; sh-shell: bash -*-
+
+declare -a signals=(
+    [1]='Program received signal SIGHUP, Hangup.'
+    [2]='Program received signal SIGINT, Interrupt.'
+    [3]='Program received signal SIGQUIT, Quit.'
+    [4]='Program received signal SIGILL, Illegal instruction.'
+    [5]='Program received signal SIGTRAP, Trace/breakpoint trap.'
+    [6]='Program received signal SIGABRT, Aborted.'
+    [7]='Program received signal SIGBUS, Bus error.'
+    [8]='Program received signal SIGFPE, Arithmetic exception.'
+    [9]='Program terminated with signal SIGKILL, Killed.'
+    [10]='Program received signal SIGUSR1, User defined signal 1.'
+    [11]='Program received signal SIGSEGV, Segmentation fault.'
+    [12]='Program received signal SIGUSR2, User defined signal 2.'
+    [13]='Program received signal SIGPIPE, Broken pipe.'
+    [14]='Program terminated with signal SIGALRM, Alarm clock.'
+    [15]='Program received signal SIGTERM, Terminated.'
+    [16]='Program received signal ?, Unknown signal.'
+    [17]=''
+    [18]='Program received signal SIGCONT, Continued.'
+    [19]='Program received signal SIGSTOP, Stopped (signal).'
+    [20]='Program received signal SIGTSTP, Stopped (user).'
+    [21]='Program received signal SIGTTIN, Stopped (tty input).'
+    [22]='Program received signal SIGTTOU, Stopped (tty output).'
+    [23]=''
+    [24]='Program received signal SIGXCPU, CPU time limit exceeded.'
+    [25]='Program received signal SIGXFSZ, File size limit exceeded.'
+    [26]='Program terminated with signal SIGVTALRM, Virtual timer expired.'
+    [27]=''
+    [28]=''
+    [29]='Program terminated with signal SIGIO, I/O possible.'
+    [30]='Program received signal SIGPWR, Power fail/restart.'
+    [31]='Program received signal SIGSYS, Bad system call.'
+    #[32]='Program received signal SIG32, Real-time event 32.'
+)
+
+. ~rsk0315/.bashrc.d/color-seq.sh
+
+declare -gi status=0
+on_debug () {
+    status=$1
+    declare -gi executed+=1
+    if (( executed == 0 )); then
+        declare -gi failcount=0
+        return
+    fi
+
+    #if (( status != 0 )); then
+    #    declare -gi failcount+=1
+    #fi
+}
+
+on_err () {
+    declare -gi failcount+=1
+}
+
+on_prompt () {
+    declare -gi status=$1
+
+    if (( failcount <= 0 )); then
+        if (( executed > 1 )); then
+            echo -e "$(color_seq 10 r)(*'-')b < All commands exited successfully$(color_seq '')" >&2
+        elif (( executed == 1 )); then
+            echo -e "$(color_seq 10 r)(*'-')b < Exited successfully$(color_seq '')" >&2
+        fi
+    elif (( status == 0 )); then
+        if (( executed > 1 )); then
+            echo -ne "$(color_seq 10 r)(*'-')b < Last command exited successfully, " >&2
+            echo -ne "$(color_seq 9 r)but $failcount command" >&2
+            if (( failcount > 1 )); then echo -n s >&2; fi
+            echo -e " failed$(color_seq '')" >&2
+        else
+            :;
+        fi
+    elif (( executed > 0 )); then
+        echo -e "$(color_seq 9 r)exited with code $status" >&2
+
+        if (( status < 128 )); then
+            case $status in
+                1)
+                    echo "(*'~')? < Something went wrong?" >&2;;
+                2)
+                    echo "(*'~')? < Incorrect usage or some error occurred?" >&2;;
+                127)
+                    echo "(*'~')? < Command not found? Check \$PATH, \$PWD, permissions, and spelling" >&2;;
+                *)
+                    echo "(*'~')..." >&2;;
+            esac
+        elif (( ${#signals[status-128]} > 0 )); then
+            echo "(*'~')/ < ${signals[status-128]}" >&2
+        else
+            echo "(*'~')..." >&2
+        fi
+
+        echo -ne "$(color_seq '')" >&2
+    fi
+
+    declare -gi failcount=-1
+    declare -gi executed=-1
+
+    declare -gi status=0
+}
+
+trap 'on_debug "$?" "$_"' DEBUG
+trap 'on_err "$_"' ERR
+PROMPT_COMMAND='on_prompt "$?" "$_"'
+#`
+バックグラウンドで実行したり`!`で論理反転したりするとこわれるけど仕方ない．
+
+以下を`~/.bashrc`に追記して反映させる．
+#`
+# Display previous exit status
+. ~rsk0315/.bashrc.d/exit-status.sh
+#`
+
+## 最新ファイルの出力
+`ls`を利用して最新のファイルを選ぶスクリプト．
+GNU拡張の`ls`は` `や`'`などをエスケープできるオプションがあって素敵なんだけど，それを復元するのが厄介なので諦める．そもそもそんなファイル名にする方がどうかしている．
+
+#`
+to be filled in
+#`
