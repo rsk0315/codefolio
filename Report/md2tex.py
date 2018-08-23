@@ -1478,6 +1478,7 @@ class ItemEnum(MarkdownElement):
 
 class CodeBlock(MarkdownElement):
     PAT = '#`'
+    RE = re.compile(r'(?P<PREFIX>#`+)(?:\[(?P<NAME>.+)\])?')
 
     def _parse(self):
         self._parsed = [line for lineno, line in self._lines_withno]
@@ -1502,8 +1503,13 @@ class CodeBlock(MarkdownElement):
         for ch in '"\'<>':
             res = res.replace(ch, NAMED_ENTITIES[ch])
 
-        return '<pre>' + res + '\n</pre>'
+        if not self._kwargs['name']:
+            return '<pre>' + res + '</pre>'
 
+        return (
+            '<pre class="sourcecode" filename="' + self._kwargs['name']
+            + '"><div style="margin:1.2em 0 0 0">' + res + '</div></pre>\n'
+        )
 
 class ShellBlock(MarkdownElement):
     PAT = '#_'
@@ -1565,6 +1571,10 @@ class ShellBlock(MarkdownElement):
 
         if last in '#$':
             res += '</span>'
+        elif last == '-':
+            res, tmp = res[:-8], res[-8:]
+            assert tmp == '\n</span>'
+
         res += '</pre>\n'
         return res
 
@@ -1839,7 +1849,14 @@ class MarkdownParser(object):
 
             if line.startswith(CodeBlock.PAT):
                 pre_lineno = lineno
-                pre_line = line
+                m = CodeBlock.RE.fullmatch(line)
+                if m is None:
+                    raise MarkdownSyntaxError(
+                        'ill-formed code block',
+                        (self._filename, lineno, 0, len(line), line)
+                    )
+
+                pre_line = m.group('PREFIX')
                 self._lines.append((lineno, line))
                 for lineno, line in e_fin:
                     line = line.rstrip()
@@ -1950,7 +1967,14 @@ class MarkdownParser(object):
                 continue
 
             if line.startswith(CodeBlock.PAT):
-                pre_line = line
+                m = CodeBlock.RE.fullmatch(line)
+                if m is None:
+                    raise MarkdownSyntaxError(
+                        'ill-formed code block',
+                        (self._filename, lineno, 0, len(line), line)
+                    )
+
+                pre_line = m.group('PREFIX')
                 lines_withno = []
                 for lineno, line in lines:
                     if line == pre_line:
@@ -1958,7 +1982,10 @@ class MarkdownParser(object):
                     lines_withno.append((lineno, line))
 
                 self._parsed.append(
-                    CodeBlock(lines_withno, self._footnotes, self._filename)
+                    CodeBlock(
+                        lines_withno, self._footnotes, self._filename,
+                        name=m.group('NAME')
+                    )
                 )
                 continue
 

@@ -114,7 +114,7 @@ $ sudo ./install-tl
 
 ## `bashrc`の編集
 最初の状態では以下の内容しかなく，そっけなさすぎる（インストールの手順にもよるとは思うが）．
-#`
+#`[~/.bashrc]
 # .bashrc
 
 # Source global definitions
@@ -130,13 +130,13 @@ fi
 
 ### エイリアス
 ファイルの移動時に上書き確認をするのは基本中の基本．
-#`
+#`[~/.bashrc]
 alias rm='rm -iv' cp='cp -iv' mv='mv -iv'
 #`
 
 ### シェルオプション
 リダイレクトの上書きを防ぐのも基本．
-#`
+#`[~/.bashrc]
 # Shell options
 set -o noclobber       # same as `set -C'
 shopt -s histverify autocd
@@ -146,7 +146,7 @@ shopt -s histverify autocd
 `autocd`はコマンドとして見つからなかった文字列を`cd`への引数と解釈させる．`~`や`..`などのみでディレクトリを移動できるようになるが，暴発には注意．
 
 ### ページャのオプション
-#`
+#`[~/.bashrc]
 # Pager configurations
 export LESS=Fr
 #`
@@ -156,18 +156,18 @@ export LESS=Fr
 
 ### キーバインドの補助設定
 `C-s`などが期待通りに動作するようにする．
-#`
+#`[~/.bashrc]
 # Key bindings
 stty rprnt undef stop undef werase undef kill undef
 #`
 デフォルトに戻す場合は以下の通り．
-#`
+#`[~/.bashrc]
 stty rprnt \^r stop \^s werase \^w kill \^u
 #`
 履歴展開が有効な場合に`^`が暴発しないように注意．
 
 ### `inputrc`の編集
-#`
+#`[~/.inputrc]
 # emacs-like key bindings
 "\C-u": universal-argument
 "\ew": copy-region-as-kill
@@ -185,7 +185,7 @@ set mark-symlinked-directories On
 ### `init.el`の編集
 
 emacsの初期化ファイル．
-#`
+#`[~/.emacs.d/init.el]
 ;; テーマの設定
 (load-theme 'tango-dark t)
 
@@ -215,7 +215,7 @@ emacsの初期化ファイル．
 #`
 
 ### `vimrc`の編集
-#`
+#`[~/.vimrc]
 " 色の設定
 :colorscheme koehler
 :syntax on
@@ -237,7 +237,7 @@ emacsの初期化ファイル．
 $ git help config
 #_
 `color.diff`の項目を見るとよい．数値を指定したときに`<Esc>38;5;##m`の形式になってくれるのはたまたまなのかも？
-#`
+#`[~/.gitconfig]
 [color.diff]
         new = green bold
         old = red bold
@@ -282,7 +282,7 @@ $ diff -up ~/tmp/65-nonlatin.conf /etc/fonts/conf.d/65-nonlatin.conf
 
 ## プロンプト文字列
 `\s-\v\$ `ではそっけないので変える．`~/.bashrc`に追記．
-#`
+#`[~/.bashrc]
 # Prompt strings
 PS0=$'\x1b[0m'
 PS1="\n\$(. ~rsk0315/.bashrc.d/ps1.sh)"
@@ -296,7 +296,7 @@ PS1+=$'\n\[\x1b[0m\]\$ \[\x1b[1m\]'
 
 を表示する．
 
-#`
+#`[~/.bashrc.d/ps1.sh]
 # -*- mode: sh; sh-shell: bash -*-
 
 . ~rsk0315/.bashrc.d/color-seq.sh
@@ -321,7 +321,7 @@ echo : bash-"$BASH_VERSION" "[$((SHLVL-1))]"
 `color-seq.sh`は色のエスケープシーケンスを生成する（関数を定義する）スクリプト．
 別に関数にする必要はなくて，普通にスクリプトとして置いておいてもいい気がする．
 
-#`
+#`[~/.bashrc.d/color-seq.sh]
 # -*- mode: sh; sh-shell: bash -*-
 
 color_seq () {
@@ -351,8 +351,7 @@ color_seq () {
 `echo $?`を叩かないとわからないのは不便なので，勝手に出してくれるようにする．
 典型的な値についてはコメントつき．
 
-以下は`~/.bashrc.d/exit-status.sh`．
-#`
+#`[~/.bashrc.d/exit-status.sh]
 # -*- mode: sh; sh-shell: bash -*-
 
 declare -a signals=(
@@ -464,7 +463,7 @@ PROMPT_COMMAND='on_prompt "$?" "$_"'
 バックグラウンドで実行したり`!`で論理反転したりするとこわれるけど仕方ない．
 
 以下を`~/.bashrc`に追記して反映させる．
-#`
+#`[~/.bashrc]
 # Display previous exit status
 . ~rsk0315/.bashrc.d/exit-status.sh
 #`
@@ -473,7 +472,7 @@ PROMPT_COMMAND='on_prompt "$?" "$_"'
 `ls`を利用して最新のファイルを選ぶスクリプト．
 GNU拡張の`ls`は` `や`'`などをエスケープできるオプションがあって素敵なんだけど，それを復元するのが厄介なので諦める．そもそもそんなファイル名にする方がどうかしている．
 
-#`
+#`[~/bin/latest]
 # -*- mode: sh; sh-shell: bash -*-
 
 while getopts :p:s: foo; do
@@ -491,7 +490,7 @@ echo $latest
 パーミッションと拡張子を指定可能．見つからなければ`1`を返す．
 
 それを利用して最新のソースを`make`する．俗にいう`g`に対応するスクリプト．
-#`
+#`[~/bin/g]
 # -*- mode: sh; sh-shell: bash -*-
 
 CC="${CC:-gcc-8.2}"
@@ -507,7 +506,7 @@ make CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ${src%.*}
 #`
 
 最新の実行ファイルを実行する．俗にいう`a`に対応するスクリプト．必ずしも`./a.out`とは限らないファイルを実行できる．
-#`
+#`[~/bin/a]
 # -*- mode: sh; sh-shell: bash -*-
 
 src=$(latest -p ..x) || { echo no executables found. >&2; exit; }

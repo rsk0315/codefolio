@@ -1,8 +1,23 @@
 $(window).on('load', function() {
+    $('pre').each(function(i) {
+        var id = 'pre-'+i;
+        $(this).attr('id', id);
+        if ($(this).hasClass('sourcecode')) {
+            var $span = $('<span>').attr({
+                class: 'btn-name',
+                'data-target': id
+            }).text($(this).attr('filename'));
+            var $div = $('<div class="div-btn-name">').html($span);
+            $(this).before($div);
+            $(this).css({
+                padding: '10px'
+            });
+        }
+    });
+
     if (document.queryCommandSupported('copy')) {
         $('pre').each(function(i) {
             var id = 'pre-'+i;
-            $(this).attr('id', id);
             $(this).before('<div class="div-btn-copy"><span class="btn-copy btn-pre" tabindex="0" data-toggle="tooltip" data-trigger="manual" title="Copied!" data-target="'+id+'">Copy</span></div>');
         });
     }

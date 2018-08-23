@@ -57,8 +57,7 @@
 </span><span class="cmd-out">+%wheel	ALL=(ALL)	NOPASSWD: ALL
 </span><span class="cmd-out">
 </span><span class="cmd-out">## Allows members of the users group to mount and unmount the
-</span><span class="cmd-out">## cdrom as root
-</span></pre>
+</span><span class="cmd-out">## cdrom as root</pre>
 
 <h2><code>git</code>のアップグレード</h2>
 <p>ビルドするのに必要なライブラリ群をインストールする．
@@ -134,7 +133,7 @@
 <h2><code>bashrc</code>の編集</h2>
 <p>最初の状態では以下の内容しかなく，そっけなさすぎる（インストールの手順にもよるとは思うが）．
 </p>
-<pre># .bashrc
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0"># .bashrc
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
@@ -144,28 +143,28 @@ fi
 # Uncomment the following line if you don&apos;t like systemctl&apos;s auto-paging feature:
 # export SYSTEMD_PAGER=
 
-# User specific aliases and functions
-</pre>
+# User specific aliases and functions</div></pre>
+
 <h3>エイリアス</h3>
 <p>ファイルの移動時に上書き確認をするのは基本中の基本．
 </p>
-<pre>alias rm=&apos;rm -iv&apos; cp=&apos;cp -iv&apos; mv=&apos;mv -iv&apos;
-</pre>
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0">alias rm=&apos;rm -iv&apos; cp=&apos;cp -iv&apos; mv=&apos;mv -iv&apos;</div></pre>
+
 <h3>シェルオプション</h3>
 <p>リダイレクトの上書きを防ぐのも基本．
 </p>
-<pre># Shell options
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0"># Shell options
 set -o noclobber       # same as `set -C&apos;
-shopt -s histverify autocd
-</pre><p><code>noclobber</code>によって<code>&gt;</code>による上書きを防ぐことができる．強制的に上書きしたいときは<code>&gt;|</code>を使う．
+shopt -s histverify autocd</div></pre>
+<p><code>noclobber</code>によって<code>&gt;</code>による上書きを防ぐことができる．強制的に上書きしたいときは<code>&gt;|</code>を使う．
 <code>histverify</code>は履歴展開が起こったときコマンドが即座に実行されないようにする．
 <code>autocd</code>はコマンドとして見つからなかった文字列を<code>cd</code>への引数と解釈させる．<code>~</code>や<code>..</code>などのみでディレクトリを移動できるようになるが，暴発には注意．
 </p>
 
 <h3>ページャのオプション</h3>
-<pre># Pager configurations
-export LESS=Fr
-</pre><ul>
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0"># Pager configurations
+export LESS=Fr</div></pre>
+<ul>
   <li><code>less -F</code>：一画面で収まるならそのまま表示</li>
   <li><code>less -r</code>：エスケープシーケンスを解釈</li>
 </ul>
@@ -173,16 +172,16 @@ export LESS=Fr
 <h3>キーバインドの補助設定</h3>
 <p><code>C-s</code>などが期待通りに動作するようにする．
 </p>
-<pre># Key bindings
-stty rprnt undef stop undef werase undef kill undef
-</pre><p>デフォルトに戻す場合は以下の通り．
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0"># Key bindings
+stty rprnt undef stop undef werase undef kill undef</div></pre>
+<p>デフォルトに戻す場合は以下の通り．
 </p>
-<pre>stty rprnt \^r stop \^s werase \^w kill \^u
-</pre><p>履歴展開が有効な場合に<code>^</code>が暴発しないように注意．
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0">stty rprnt \^r stop \^s werase \^w kill \^u</div></pre>
+<p>履歴展開が有効な場合に<code>^</code>が暴発しないように注意．
 </p>
 
 <h3><code>inputrc</code>の編集</h3>
-<pre># emacs-like key bindings
+<pre class="sourcecode" filename="~/.inputrc"><div style="margin:1.2em 0 0 0"># emacs-like key bindings
 &quot;\C-u&quot;: universal-argument
 &quot;\ew&quot;: copy-region-as-kill
 &quot;\C-w&quot;: kill-region
@@ -190,8 +189,8 @@ stty rprnt undef stop undef werase undef kill undef
 
 # variables
 set enable-bracketed-paste On
-set mark-symlinked-directories On
-</pre><p><code>enable-bracketed-paste</code>が有効のとき，改行文字が<code>accept-line</code>として暴発するのを防ぐ（タブ文字の<code>complete</code>なども同様）．
+set mark-symlinked-directories On</div></pre>
+<p><code>enable-bracketed-paste</code>が有効のとき，改行文字が<code>accept-line</code>として暴発するのを防ぐ（タブ文字の<code>complete</code>なども同様）．
 <code>mark-symlinked-directories</code>が有効のとき，ディレクトリを指すリンクがTab補完されたときに<code>/</code>が付加される．
 </p>
 
@@ -200,7 +199,7 @@ set mark-symlinked-directories On
 
 <p>emacsの初期化ファイル．
 </p>
-<pre>;; テーマの設定
+<pre class="sourcecode" filename="~/.emacs.d/init.el"><div style="margin:1.2em 0 0 0">;; テーマの設定
 (load-theme &apos;tango-dark t)
 
 ;; 行数を表示
@@ -225,10 +224,10 @@ set mark-symlinked-directories On
 
 ;; その他モジュールの読み込み
 (add-to-list &apos;load-path &quot;~/.emacs.d/elisp&quot;)
-(require &apos;markdown)
-</pre>
+(require &apos;markdown)</div></pre>
+
 <h3><code>vimrc</code>の編集</h3>
-<pre>&quot; 色の設定
+<pre class="sourcecode" filename="~/.vimrc"><div style="margin:1.2em 0 0 0">&quot; 色の設定
 :colorscheme koehler
 :syntax on
 
@@ -240,20 +239,20 @@ set mark-symlinked-directories On
 :nnoremap ZX &lt;Esc&gt;:w&lt;CR&gt;&lt;C-z&gt;
 
 &quot; バックスペースの挙動
-:set backspace=eol,start,indent
-</pre>
+:set backspace=eol,start,indent</div></pre>
+
 <h2><code>gitconfig</code>の編集</h2>
 <p>パラメータなどについては以下を参照．
 </p>
 <pre><span class="cmd-in">git help config</span></pre>
 <p><code>color.diff</code>の項目を見るとよい．数値を指定したときに<code>&lt;Esc&gt;38;5;##m</code>の形式になってくれるのはたまたまなのかも？
 </p>
-<pre>[color.diff]
+<pre class="sourcecode" filename="~/.gitconfig"><div style="margin:1.2em 0 0 0">[color.diff]
         new = green bold
         old = red bold
         frag = 43 bold
-        commit = 106
-</pre>
+        commit = 106</div></pre>
+
 <h2>フォントの設定</h2>
 <p>MigMixはいいぞ．
 <code>/etc/fonts/conf.d/65-nonlatin.conf</code>を編集する．とりあえず一番上にしよう．
@@ -284,19 +283,18 @@ set mark-symlinked-directories On
 </span><span class="cmd-out">+			&lt;family&gt;MigMix 1M&lt;/family&gt;
 </span><span class="cmd-out">			&lt;family&gt;Miriam Mono&lt;/family&gt; &lt;!-- hebrew --&gt;
 </span><span class="cmd-out">			&lt;family&gt;VL Gothic&lt;/family&gt;
-</span><span class="cmd-out">			&lt;family&gt;IPAMonaGothic&lt;/family&gt;
-</span></pre>
+</span><span class="cmd-out">			&lt;family&gt;IPAMonaGothic&lt;/family&gt;</pre>
 
 <h1>便利コマンドの定義</h1>
 
 <h2>プロンプト文字列</h2>
 <p><code>\s-\v\$ </code>ではそっけないので変える．<code>~/.bashrc</code>に追記．
 </p>
-<pre># Prompt strings
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0"># Prompt strings
 PS0=$&apos;\x1b[0m&apos;
 PS1=&quot;\n\$(. ~rsk0315/.bashrc.d/ps1.sh)&quot;
-PS1+=$&apos;\n\[\x1b[0m\]\$ \[\x1b[1m\]&apos;
-</pre>
+PS1+=$&apos;\n\[\x1b[0m\]\$ \[\x1b[1m\]&apos;</div></pre>
+
 <p><code>ps1.sh</code>は以下の通りで，
 </p>
 <ul>
@@ -307,7 +305,7 @@ PS1+=$&apos;\n\[\x1b[0m\]\$ \[\x1b[1m\]&apos;
 <p>を表示する．
 </p>
 
-<pre># -*- mode: sh; sh-shell: bash -*-
+<pre class="sourcecode" filename="~/.bashrc.d/ps1.sh"><div style="margin:1.2em 0 0 0"># -*- mode: sh; sh-shell: bash -*-
 
 . ~rsk0315/.bashrc.d/color-seq.sh
 
@@ -325,13 +323,13 @@ print_wd () {
 }
 
 print_wd
-echo : bash-&quot;$BASH_VERSION&quot; &quot;[$((SHLVL-1))]&quot;
-</pre>
+echo : bash-&quot;$BASH_VERSION&quot; &quot;[$((SHLVL-1))]&quot;</div></pre>
+
 <p><code>color-seq.sh</code>は色のエスケープシーケンスを生成する（関数を定義する）スクリプト．
 別に関数にする必要はなくて，普通にスクリプトとして置いておいてもいい気がする．
 </p>
 
-<pre># -*- mode: sh; sh-shell: bash -*-
+<pre class="sourcecode" filename="~/.bashrc.d/color-seq.sh"><div style="margin:1.2em 0 0 0"># -*- mode: sh; sh-shell: bash -*-
 
 color_seq () {
     color=&quot;$1&quot;
@@ -353,16 +351,14 @@ color_seq () {
     fi
     [[ &quot;$attr&quot; =~ n ]] &amp;&amp; res+=$&apos;\02&apos;
     echo &quot;$res&quot;
-}
-</pre>
+}</div></pre>
+
 <h2>終了ステータス</h2>
 <p><code>echo $?</code>を叩かないとわからないのは不便なので，勝手に出してくれるようにする．
 典型的な値についてはコメントつき．
 </p>
 
-<p>以下は<code>~/.bashrc.d/exit-status.sh</code>．
-</p>
-<pre># -*- mode: sh; sh-shell: bash -*-
+<pre class="sourcecode" filename="~/.bashrc.d/exit-status.sh"><div style="margin:1.2em 0 0 0"># -*- mode: sh; sh-shell: bash -*-
 
 declare -a signals=(
     [1]=&apos;Program received signal SIGHUP, Hangup.&apos;
@@ -468,21 +464,21 @@ on_prompt () {
 
 trap &apos;on_debug &quot;$?&quot; &quot;$_&quot;&apos; DEBUG
 trap &apos;on_err &quot;$_&quot;&apos; ERR
-PROMPT_COMMAND=&apos;on_prompt &quot;$?&quot; &quot;$_&quot;&apos;
-</pre><p>バックグラウンドで実行したり<code>!</code>で論理反転したりするとこわれるけど仕方ない．
+PROMPT_COMMAND=&apos;on_prompt &quot;$?&quot; &quot;$_&quot;&apos;</div></pre>
+<p>バックグラウンドで実行したり<code>!</code>で論理反転したりするとこわれるけど仕方ない．
 </p>
 
 <p>以下を<code>~/.bashrc</code>に追記して反映させる．
 </p>
-<pre># Display previous exit status
-. ~rsk0315/.bashrc.d/exit-status.sh
-</pre>
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0"># Display previous exit status
+. ~rsk0315/.bashrc.d/exit-status.sh</div></pre>
+
 <h2>最新ファイルの出力</h2>
 <p><code>ls</code>を利用して最新のファイルを選ぶスクリプト．
 GNU拡張の<code>ls</code>は<code> </code>や<code>&apos;</code>などをエスケープできるオプションがあって素敵なんだけど，それを復元するのが厄介なので諦める．そもそもそんなファイル名にする方がどうかしている．
 </p>
 
-<pre># -*- mode: sh; sh-shell: bash -*-
+<pre class="sourcecode" filename="~/bin/latest"><div style="margin:1.2em 0 0 0"># -*- mode: sh; sh-shell: bash -*-
 
 while getopts :p:s: foo; do
     case $foo in
@@ -494,13 +490,13 @@ done
 latest=$(ls -ltA | grep -E &quot;${suffix:+\\.(}$suffix${suffix:+)}\$&quot; \
              | grep &quot;^-$perm&quot; | awk &apos;$0=$9&apos; | sed q)
 [[ -z &quot;$latest&quot; ]] &amp;&amp; exit 1
-echo $latest
-</pre><p>パーミッションと拡張子を指定可能．見つからなければ<code>1</code>を返す．
+echo $latest</div></pre>
+<p>パーミッションと拡張子を指定可能．見つからなければ<code>1</code>を返す．
 </p>
 
 <p>それを利用して最新のソースを<code>make</code>する．俗にいう<code>g</code>に対応するスクリプト．
 </p>
-<pre># -*- mode: sh; sh-shell: bash -*-
+<pre class="sourcecode" filename="~/bin/g"><div style="margin:1.2em 0 0 0"># -*- mode: sh; sh-shell: bash -*-
 
 CC=&quot;${CC:-gcc-8.2}&quot;
 CXX=&quot;${CXX:-g++-8.2}&quot;
@@ -511,16 +507,16 @@ CXXFLAGS=&quot;$cflags $CXXFLAGS $@&quot;
 
 src=$(latest -s&apos;c|cxx|cc|C|cpp&apos;) \
     || { echo no source files found. &gt;&amp;2; exit; }
-make CC=&quot;$CC&quot; CXX=&quot;$CXX&quot; CFLAGS=&quot;$CFLAGS&quot; CXXFLAGS=&quot;$CXXFLAGS&quot; ${src%.*}
-</pre>
+make CC=&quot;$CC&quot; CXX=&quot;$CXX&quot; CFLAGS=&quot;$CFLAGS&quot; CXXFLAGS=&quot;$CXXFLAGS&quot; ${src%.*}</div></pre>
+
 <p>最新の実行ファイルを実行する．俗にいう<code>a</code>に対応するスクリプト．必ずしも<code>./a.out</code>とは限らないファイルを実行できる．
 </p>
-<pre># -*- mode: sh; sh-shell: bash -*-
+<pre class="sourcecode" filename="~/bin/a"><div style="margin:1.2em 0 0 0"># -*- mode: sh; sh-shell: bash -*-
 
 src=$(latest -p ..x) || { echo no executables found. &gt;&amp;2; exit; }
 set -x
-&quot;./$src&quot; &quot;$@&quot;
-</pre>      </main>
+&quot;./$src&quot; &quot;$@&quot;</div></pre>
+      </main>
     </div>
   </body>
 </html>
