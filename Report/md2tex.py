@@ -1506,10 +1506,8 @@ class CodeBlock(MarkdownElement):
 
 
 class ShellBlock(MarkdownElement):
-    PAT = '#$'
-    RE = re.compile(r'(?P<TOP>[$#>EIOeio]) ?(?P<TEXT>.*)')
-    STDIN, STDOUT, STDERR, NEWLINE = range(4)
-    IND = {'i': STDIN, 'o': STDOUT, 'e': STDERR}
+    PAT = '#_'
+    RE = re.compile(r'(?P<TOP>[$#>-]) ?(?P<TEXT>.*)')
 
     def _parse(self):
         self._parsed = []
@@ -1519,36 +1517,122 @@ class ShellBlock(MarkdownElement):
                 raise MarkdownSyntaxError(
                     'ill-formed shell block',
                     (self._filename, lineno, 0, len(line), line)
-                )
+                    )
 
-            ch, text = m.group('TOP', 'TEXT')
-            if ch in '$#>':
-                self._parsed.append((self.STDERR, ch+' '))
-                self._parsed.append((self.STDIN, text))
-                self._parsed.append((self.NEWLINE, '\n'))
-            else:
-                self._parsed.append((self.IND[ch.lower()], text))
-                if ch.isupper():
-                    self._parsed.append((self.NEWLINE, '\n'))
+            self._parsed.append(m.group('TOP', 'TEXT'))
 
     def to_latex(self):
-        res = '\\begin{framed}\n'
-        res += '\\parskip=0ex\n'
-        for type_, text in self._parsed:
-            if type_ == self.STDIN:
-                res += r'\texttt{'+Text.verbatim(text)+'}'
-            if type_ == self.STDOUT:
-                res += r'\textlt{'+Text.verbatim(text)+'}'
-            if type_ == self.STDERR:
-                res += r'{\color[named]{Gray}\textlt{'+Text.verbatim(text)+'}}'
-            if type_ == self.NEWLINE:
-                res += '\n\n'
-
-        res += '\\end{framed}\n'
-        return res
+        raise NotImplementedError
 
     def to_html(self):
-        raise NotImplementedError
+        NAMED_ENTITIES = {
+            '&': '&amp;',
+            '"': '&quot;',
+            "'": '&apos;',
+            '<': '&lt;',
+            '>': '&gt;',
+        }
+
+        res = '<pre>'
+        last = '0'
+        for top, text in self._parsed:
+            text = text.replace('&', '&amp;')
+            for ch in '\'"<>':
+                text = text.replace(ch, NAMED_ENTITIES[ch])
+
+            if top == '$':
+                if last in '$#':
+                    res += '</span>\n'
+                res += '<span class="cmd-in">'
+                res += text
+            elif top == '>':
+                assert last in '$#'
+                res += '\n<span class="cmd-cont" />'
+                res += text
+            elif top == '#':
+                if last in '$#':
+                    res += '</span>'
+                res += '<span class="cmd-in cmd-root">'
+                res += text
+            elif top == '-':
+                if last in '$#>':
+                    res += '</span>\n'
+                res += '<span class="cmd-out">' + text + '\n</span>'
+            else:
+                assert False
+
+            last = top
+
+        if last in '#$':
+            res += '</span>'
+        res += '</pre>\n'
+        return res
+
+
+# class ShellBlock(MarkdownElement):
+#     PAT = '#$'
+#     RE = re.compile(r'(?P<TOP>[$#>EIOeio]) ?(?P<TEXT>.*)')
+#     STDIN, STDOUT, STDERR, NEWLINE = range(4)
+#     IND = {'i': STDIN, 'o': STDOUT, 'e': STDERR}
+
+#     def _parse(self):
+#         self._parsed = []
+#         for lineno, line in self._lines_withno:
+#             m = self.RE.match(line)
+#             if m is None:
+#                 raise MarkdownSyntaxError(
+#                     'ill-formed shell block',
+#                     (self._filename, lineno, 0, len(line), line)
+#                 )
+
+#             ch, text = m.group('TOP', 'TEXT')
+#             if ch in '$#>':
+#                 self._parsed.append((self.STDERR, ch+' '))
+#                 self._parsed.append((self.STDIN, text))
+#                 self._parsed.append((self.NEWLINE, '\n'))
+#             else:
+#                 self._parsed.append((self.IND[ch.lower()], text))
+#                 if ch.isupper():
+#                     self._parsed.append((self.NEWLINE, '\n'))
+
+#     def to_latex(self):
+#         res = '\\begin{framed}\n'
+#         res += '\\parskip=0ex\n'
+#         for type_, text in self._parsed:
+#             if type_ == self.STDIN:
+#                 res += r'\texttt{'+Text.verbatim(text)+'}'
+#             if type_ == self.STDOUT:
+#                 res += r'\textlt{'+Text.verbatim(text)+'}'
+#             if type_ == self.STDERR:
+#                 res += r'{\color[named]{Gray}\textlt{'+Text.verbatim(text)+'}}'
+#             if type_ == self.NEWLINE:
+#                 res += '\n\n'
+
+#         res += '\\end{framed}\n'
+#         return res
+
+#     def to_html(self):
+#         NAMED_ENTITIES = {
+#             '&': '&amp;',
+#             '"': '&quot;',
+#             "'": '&apos;',
+#             '<': '&lt;',
+#             '>': '&gt;',
+#         }
+
+#         res = '<pre>'
+#         for type_, text in self._parsed:
+#             text = text.replace('&', '&amp;')
+#             for ch in '"\'<>':
+#                 text = text.replace(ch, NAMED_ENTITIES[ch])
+
+#             if type_ == self.STDIN:
+#                 res += '<span>' + text + '</span>'
+#             elif type_ == self.STDOUT:
+#                 res += '<span class="cmd-out">' + text + '</span>'
+#             elif type_ == self.STDERR:
+#                 res += '<span class="cmd-out">' + text + '</span>'
+#             elif type_ == 
 
 
 class RawText(MarkdownElement):
@@ -2037,6 +2121,9 @@ HTML_HEAD = r"""    <meta charset="utf-8">
 
     <link href="/css/base.css" rel="stylesheet">
     <script src="/js/base.js"></script>
+
+    <link href="/css/codeblock.css" rel="stylesheet">
+    <script src="/js/codeblock.js"></script>
 """
 
 

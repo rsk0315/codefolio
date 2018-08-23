@@ -32,19 +32,18 @@
   <body>
     <div id="main-div" class="float-container">
       <main class="container">
-
-          <pre><span class="cmd-in">echo 1</span>
-<span class="cmd-out">1</span>
-<span class="cmd-in cmd-root">echo 42\
+<pre><span class="cmd-in">echo 1</span>
+<span class="cmd-out">1
+</span><span class="cmd-in">su</span>
+<span class="cmd-out">Password:
+</span><span class="cmd-in cmd-root">echo HELLO</span>
+<span class="cmd-out">HELLO
+</span><span class="cmd-in cmd-root">exit</span>
+<span class="cmd-in">echo 42\
 <span class="cmd-cont" />\&lt;foo\&gt;</span>
-<span class="cmd-out">42&lt;foo&gt;</span></pre>
-
-<div class="div-btn-name"><span class="btn-name" data-target="pre-3">~/.bashrc</span></div>
-<pre><div></div>
-export PATH=$HOME/bin:$PATH
-</pre>
+<span class="cmd-out">42&lt;foo&gt;
+</span></pre>
       </main>
-
     </div>
   </body>
 </html>

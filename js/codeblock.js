@@ -20,6 +20,8 @@ $(window).on('load', function() {
         window.getSelection().removeAllRanges();
         try {
             var range = document.createRange();
+            // 連続で Copy すると Copied! がコピーされる不具合（仕様）
+            // セレクタをよしなにやったらいいはずです
             var selected = $(this).next()[0];
             // console.log(selected);
             range.selectNode(selected);
