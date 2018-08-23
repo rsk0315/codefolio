@@ -1,0 +1,43 @@
+.ps1 {
+    border: 1px solid #ccc;
+    background-color:#fff;
+    border-radius: 4px;
+}
+.ps1:after {
+    content: '$';
+}
+.ps1-root:after {
+    content: '#';
+}
+
+.ps2 {
+    border: 1px solid transparent;
+    color: rgba(0, 0, 0, 0.3);
+}
+.ps2:after {
+    content: '>';
+}
+
+.ps0 {
+    border: 1px solid transparent;
+}
+
+.cmd-in:before {
+    border: 1px solid #ccc;
+    background-color: #fff;
+    border-radius: 4px;
+    content: '$';
+}
+.cmd-cont:before {
+    border: 1px solid transparent;
+    color: rgba(0, 0, 0, .3);
+    content: '>';
+}
+.cmd-out:before {
+    border: 1px solid transparent;
+    /* content: ''; */
+    content: attr(data-content) '';
+}
+.space:before {
+    content: ' ';
+}
