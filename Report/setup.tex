@@ -1,0 +1,588 @@
+\documentclass[a4paper]{jsarticle}
+
+% symbols
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
+% color
+\usepackage[dvipdfmx]{color}
+
+% font
+\usepackage{lmodern}
+\newcommand{\textlt}[1]{\texttt{\fontseries{l}\selectfont #1}}
+
+% title-formatting
+\usepackage{titlesec}
+\titleformat*{\section}{\Large\bfseries\rmfamily}
+\titleformat*{\subsection}{\large\bfseries\rmfamily}
+\titleformat*{\subsubsection}{\normalsize\bfseries\rmfamily}
+
+% spacing
+\setlength{\parskip}{.5\baselineskip}
+\makeatletter
+\titlespacing{\section}{0pt}%
+             {.5\Cvs \@plus.5\Cdp \@minus.2\Cdp}{0pt \@plus.3\Cdp}
+\titlespacing{\subsection}{0pt}%
+             {.5\Cvs \@plus.5\Cdp \@minus.2\Cdp}{0pt \@plus.3\Cdp}
+\titlespacing{\subsubsection}{0pt}%
+             {.5\Cvs \@plus.5\Cdp \@minus.2\Cdp}{0pt \@plus.3\Cdp}
+\newcount\ch
+\ch=0\loop
+  \ifnum\ch<256
+  \xspcode \ch=3
+\advance\ch by1
+\repeat
+
+% source-code
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  flexiblecolumns=true,
+  upquote=true,
+  keepspaces=true,
+}
+
+\usepackage{enumerate}
+
+% math
+\usepackage{euler}
+\usepackage{amsmath}
+\thinmuskip=6mu
+\SetMathAlphabet{\mathrm}{normal}{T1}{ccr}{m}{n}
+\DeclareSymbolFont{concreteop}{T1}{ccr}{m}{n}
+\makeatletter
+\renewcommand{\operator@font}{\mathgroup\symconcreteop}
+\makeatother
+
+% linking
+\usepackage{tablefootnote}
+\usepackage{footnotehyper}
+\usepackage[
+  dvipdfmx,
+  linktocpage=true,
+  plainpages=false,
+]{hyperref}
+\hypersetup{pdftex, colorlinks=true, allcolors=blue}
+
+% framing
+\usepackage{framed}
+\begin{document}
+\section{基本的な環境設定}
+\subsection{VMware Toolsのインストール}
+\begin{lstlisting}
+  $ cd ~/Downloads
+  $ cp /run/media/rsk0315/VMware\ Tools/VMwareTools-*.tar.gz ./
+  $ tar xvf VMwareTools-*.tar.gz
+  $ cd vmware-tools-distrib/
+  $ sudo ./vmware-install.pl
+\end{lstlisting}
+
+\subsection{\texttt{sudo}の設定}
+以下のコマンドを用いて\texttt{/etc/sudoers}を編集し，いちいちパスワードを求められないようにする．
+\begin{lstlisting}
+  $ sudo visudo
+\end{lstlisting}
+差分は次の通り．
+\begin{lstlisting}
+  $ sudo diff -up ~/tmp/sudoers /etc/sudoers
+  --- /home/rsk0315/tmp/sudoers
+  +++ /etc/sudoers
+  @@ -99,7 +99,7 @@ root	ALL=(ALL) 	ALL
+   %wheel	ALL=(ALL)	ALL
+  
+   ## Same thing without a password
+  -# %wheel	ALL=(ALL)	NOPASSWD: ALL
+  +%wheel	ALL=(ALL)	NOPASSWD: ALL
+  
+   ## Allows members of the users group to mount and unmount the
+   ## cdrom as root
+\end{lstlisting}
+
+\subsection{\texttt{git}のアップグレード}
+ビルドするのに必要なライブラリ群をインストールする．
+\begin{lstlisting}
+  $ sudo yum install openssl-devel curl-devel expat-devel
+\end{lstlisting}
+\texttt{gettext-devel}，\texttt{perl-devel}，\texttt{zlib-devel}，\texttt{perl-ExtUtils-MakeMaker}も依存している？ 最初から入っているかも？
+
+古い\texttt{git}が入っていることを期待し，以下を実行．
+\begin{lstlisting}
+  $ git clone https://github.com/git/git.git
+  $ cd git
+  $ make && make install
+\end{lstlisting}
+\texttt{prefix}は\texttt{\$(HOME)}になっているので，\texttt{\$PATH}を見てちゃんと新しいのが実行されるかを確認する．
+
+\subsection{\texttt{vim}のアップグレード}
+\begin{lstlisting}
+  $ sudo yum install libX11-devel libXt-devel gtk2-devel ncurses-devel
+\end{lstlisting}
+\texttt{atk-devel}も依存している？
+\begin{lstlisting}
+  $ git clone https://github.com/vim/vim.git
+  $ cd vim
+  $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --with-x \
+  >     CFLAGS=-I/usr/include/X11
+  $ make && make install
+\end{lstlisting}
+
+\subsection{\texttt{emacs}のインストール}
+\texttt{http://ftp.jaist.ac.jp/pub/GNU/emacs/}などから最新のものをダウンロード．
+\begin{lstlisting}
+  $ sudo yum install gnutls-devel
+  $ cd ~/Downloads
+  $ curl http://ftp.jaist.ac.jp/pub/GNU/emacs/emacs-26.1.tar.xz -o emacs-26.1.tar.xz
+  $ tar xvf emacs-26.1.tar.xz
+  $ cd emacs-26.1/
+  $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --without-x
+  $ make && make install
+\end{lstlisting}
+
+\subsection{\texttt{python3}のインストール}
+\begin{lstlisting}
+  $ sudo yum install https://centos7.iuscommunity.org/ius-release.rpm
+  $ sudo yum install python36u{,-{libs,devel,pip}}
+\end{lstlisting}
+
+\subsection{\texttt{bash}のアップグレード}
+\begin{lstlisting}
+  $ curl http://ftp.gnu.org/gnu/bash/bash-5.0-alpha.tar.gz -o bash-5.0-alpha.tar.gz
+  $ tar xvf bash-5.0-alpha.tar.gz
+  $ cd bash-5.0-alpha/
+  $ ./configure --prefix=$HOME --build=x86_64-redhat-linux
+  $ make && make install
+  $ cp doc/bash.1 ~/usr/share/man/man1/
+\end{lstlisting}
+
+\subsection{GCCのアップグレード}
+\begin{lstlisting}
+  $ curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz
+  $ tar xvf gcc-8.2.0.tar.xz
+  $ cd gcc-8.2.0/
+  $ slack-dog ./contrib/download_prerequisites
+  $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3
+  $ make -j4 BOOT_CFLAGS='-march=native -O3'
+  $ make install
+\end{lstlisting}
+
+\subsection{その他有用なものたちのインストール}
+\begin{lstlisting}
+  $ sudo yum install php
+\end{lstlisting}
+\LaTeX{}も早いうちに入れよう．
+
+\subsection{\LaTeX{}のインストール}
+\TeX{} Liveを使う．
+\begin{lstlisting}
+  $ sudo yum install perl-Digest-MD5
+\end{lstlisting}
+
+\section{発展的な環境構築}
+趣味の領域に含まれると思われるもの．
+
+\subsection{\texttt{bashrc}の編集}
+最初の状態では以下の内容しかなく，そっけなさすぎる（インストールの手順にもよるとは思うが）．
+\begin{lstlisting}
+  # .bashrc
+  
+  # Source global definitions
+  if [ -f /etc/bashrc ]; then
+  	. /etc/bashrc
+  fi
+  
+  # Uncomment the following line if you don't like systemctl's auto-paging feature:
+  # export SYSTEMD_PAGER=
+  
+  # User specific aliases and functions
+\end{lstlisting}
+
+\subsubsection{エイリアス}
+ファイルの移動時に上書き確認をするのは基本中の基本．
+\begin{lstlisting}
+  alias rm='rm -iv' cp='cp -iv' mv='mv -iv'
+\end{lstlisting}
+
+\subsubsection{シェルオプション}
+リダイレクトの上書きを防ぐのも基本．
+\begin{lstlisting}
+  # Shell options
+  set -o noclobber       # same as `set -C'
+  shopt -s histverify autocd
+\end{lstlisting}
+\texttt{noclobber}によって\texttt{>}による上書きを防ぐことができる．強制的に上書きしたいときは\texttt{>|}を使う．
+\texttt{histverify}は履歴展開が起こったときコマンドが即座に実行されないようにする．
+\texttt{autocd}はコマンドとして見つからなかった文字列を\texttt{cd}への引数と解釈させる．\texttt{\char`\~{}}や\texttt{..}などのみでディレクトリを移動できるようになるが，暴発には注意．
+
+\subsubsection{ページャのオプション}
+\begin{lstlisting}
+  # Pager configurations
+  export LESS=Fr
+\end{lstlisting}
+\begin{itemize}
+\item \texttt{less -F}：一画面で収まるならそのまま表示
+\item \texttt{less -r}：エスケープシーケンスを解釈
+\end{itemize}
+
+\subsubsection{キーバインドの補助設定}
+\texttt{C-s}などが期待通りに動作するようにする．
+\begin{lstlisting}
+  # Key bindings
+  stty rprnt undef stop undef werase undef kill undef
+\end{lstlisting}
+デフォルトに戻す場合は以下の通り．
+\begin{lstlisting}
+  stty rprnt \^r stop \^s werase \^w kill \^u
+\end{lstlisting}
+履歴展開が有効な場合に\texttt{\char`\^{}}が暴発しないように注意．
+
+\subsubsection{\texttt{inputrc}の編集}
+\begin{lstlisting}
+  # emacs-like key bindings
+  "\C-u": universal-argument
+  "\ew": copy-region-as-kill
+  "\C-w": kill-region
+  "\e\C-w": kill-whole-line
+  
+  # variables
+  set enable-bracketed-paste On
+  set mark-symlinked-directories On
+\end{lstlisting}
+\texttt{enable-bracketed-paste}が有効のとき，改行文字が\texttt{accept-line}として暴発するのを防ぐ（タブ文字の\texttt{complete}なども同様）．
+\texttt{mark-symlinked-directories}が有効のとき，ディレクトリを指すリンクがTab補完されたときに\texttt{/}が付加される．
+
+\subsection{エディタの初期化ファイル}
+\subsubsection{\texttt{init.el}の編集}
+
+emacsの初期化ファイル．
+\begin{lstlisting}
+  ;; テーマの設定
+  (load-theme 'tango-dark t)
+  
+  ;; 行数を表示
+  (global-linum-mode t)
+  (setq linum-format "%4d ")
+  
+  ;; タブ文字を展開する
+  (setq-default indent-tabs-mode nil)
+  
+  ;; 括弧の対応付けを表示
+  (show-paren-mode t)
+  
+  ;; モードラインの整形
+  (setq
+   mode-line-position
+   '("%p "
+     (line-number-mode " L%l")
+     (column-number-mode
+      (column-number-indicator-zero-based " c%c" " C%C")))
+   column-number-mode t
+   column-number-indicator-zero-based nil)
+  
+  ;; その他モジュールの読み込み
+  (add-to-list 'load-path "~/.emacs.d/elisp")
+  (require 'markdown)
+\end{lstlisting}
+
+\subsubsection{\texttt{vimrc}の編集}
+\begin{lstlisting}
+  " 色の設定
+  :colorscheme koehler
+  :syntax on
+  
+  " ステータスバーの設定
+  :set showcmd
+  :set ruler
+  
+  " ショートカット
+  :nnoremap ZX <Esc>:w<CR><C-z>
+  
+  " バックスペースの挙動
+  :set backspace=eol,start,indent
+\end{lstlisting}
+
+\subsection{\texttt{gitconfig}の編集}
+パラメータなどについては以下を参照．
+\begin{lstlisting}
+  $ git help config
+\end{lstlisting}
+\texttt{color.diff}の項目を見るとよい．数値を指定したときに\texttt{<Esc>38;5;\#\#m}の形式になってくれるのはたまたまなのかも？
+\begin{lstlisting}
+  [color.diff]
+          new = green bold
+          old = red bold
+          frag = 43 bold
+          commit = 106
+\end{lstlisting}
+
+\subsection{フォントの設定}
+MigMixはいいぞ．
+\texttt{/etc/fonts/conf.d/65-nonlatin.conf}を編集する．とりあえず一番上にしよう．
+\begin{lstlisting}
+  $ diff -up ~/tmp/65-nonlatin.conf /etc/fonts/conf.d/65-nonlatin.conf
+  --- /home/rsk0315/tmp/65-nonlatin.conf
+  +++ /etc/fonts/conf.d/65-nonlatin.conf
+  @@ -4,6 +4,7 @@
+   	<alias>
+   		<family>serif</family>
+   		<prefer>
+  +			<family>MigMix 1M</family>
+   			<family>Artsounk</family> <!-- armenian -->
+   			<family>BPG UTF8 M</family> <!-- georgian -->
+   			<family>Kinnari</family> <!-- thai -->
+  @@ -69,6 +70,7 @@
+   	<alias>
+   		<family>sans-serif</family>
+   		<prefer>
+  +			<family>MigMix 1M</family>
+   			<family>Nachlieli</family> <!-- hebrew -->
+   			<family>Lucida Sans Unicode</family>
+   			<family>Yudit Unicode</family>
+  @@ -144,6 +146,7 @@
+   	<alias>
+   		<family>monospace</family>
+   		<prefer>
+  +			<family>MigMix 1M</family>
+   			<family>Miriam Mono</family> <!-- hebrew -->
+   			<family>VL Gothic</family>
+   			<family>IPAMonaGothic</family>
+\end{lstlisting}
+
+\section{便利コマンドの定義}
+
+\subsection{プロンプト文字列}
+\texttt{\char`\\{}s-\char`\\{}v\char`\\{}\$ }ではそっけないので変える．\texttt{\char`\~{}/.bashrc}に追記．
+\begin{lstlisting}
+  # Prompt strings
+  PS0=$'\x1b[0m'
+  PS1="\n\$(. ~rsk0315/.bashrc.d/ps1.sh)"
+  PS1+=$'\n\[\x1b[0m\]\$ \[\x1b[1m\]'
+\end{lstlisting}
+
+\texttt{ps1.sh}は以下の通りで，
+\begin{itemize}
+\item カレントディレクトリ
+\item シェルの階層
+\item バージョン情報
+\end{itemize}
+を表示する．
+
+\begin{lstlisting}
+  # -*- mode: sh; sh-shell: bash -*-
+  
+  . ~rsk0315/.bashrc.d/color-seq.sh
+  
+  print_wd () {
+      wd="$(pwd)"
+      if [[ "$wd" =~ ^"$HOME" ]]; then
+          wd="${wd/#$HOME/$'\176'}"
+          [[ "$wd" == \~ ]] || wd+=/
+      elif [[ "$wd" == / ]]; then
+          wd=/
+      else
+          wd+=/
+      fi
+      echo -n "$(color_seq 45 nr)$wd$(color_seq '' n)"
+  }
+  
+  print_wd
+  echo : bash-"$BASH_VERSION" "[$((SHLVL-1))]"
+\end{lstlisting}
+
+\texttt{color-seq.sh}は色のエスケープシーケンスを生成する（関数を定義する）スクリプト．
+別に関数にする必要はなくて，普通にスクリプトとして置いておいてもいい気がする．
+
+\begin{lstlisting}
+  # -*- mode: sh; sh-shell: bash -*-
+  
+  color_seq () {
+      color="$1"
+      attr="$2"
+  
+      res=
+      [[ "$attr" =~ n ]] && res+=$'\01'
+      res+=$'\x1b['
+  
+      if [[ -z "$color" ]]; then
+          res+=0
+          [[ "$attr" =~ b ]] && res+=\;1
+          [[ "$attr" =~ r ]] && res+=\;0
+          res+=m
+      else
+          [[ "$attr" =~ b ]] && res+=1\;
+          [[ "$attr" =~ r ]] && res+=0\;
+          res+="38;5;${color}m"
+      fi
+      [[ "$attr" =~ n ]] && res+=$'\02'
+      echo "$res"
+  }
+\end{lstlisting}
+
+\subsection{終了ステータス}
+\texttt{echo \$?}を叩かないとわからないのは不便なので，勝手に出してくれるようにする．
+典型的な値についてはコメントつき．
+
+以下は\texttt{\char`\~{}/.bashrc.d/exit-status.sh}．
+\begin{lstlisting}
+  # -*- mode: sh; sh-shell: bash -*-
+  
+  declare -a signals=(
+      [1]='Program received signal SIGHUP, Hangup.'
+      [2]='Program received signal SIGINT, Interrupt.'
+      [3]='Program received signal SIGQUIT, Quit.'
+      [4]='Program received signal SIGILL, Illegal instruction.'
+      [5]='Program received signal SIGTRAP, Trace/breakpoint trap.'
+      [6]='Program received signal SIGABRT, Aborted.'
+      [7]='Program received signal SIGBUS, Bus error.'
+      [8]='Program received signal SIGFPE, Arithmetic exception.'
+      [9]='Program terminated with signal SIGKILL, Killed.'
+      [10]='Program received signal SIGUSR1, User defined signal 1.'
+      [11]='Program received signal SIGSEGV, Segmentation fault.'
+      [12]='Program received signal SIGUSR2, User defined signal 2.'
+      [13]='Program received signal SIGPIPE, Broken pipe.'
+      [14]='Program terminated with signal SIGALRM, Alarm clock.'
+      [15]='Program received signal SIGTERM, Terminated.'
+      [16]='Program received signal ?, Unknown signal.'
+      [17]=''
+      [18]='Program received signal SIGCONT, Continued.'
+      [19]='Program received signal SIGSTOP, Stopped (signal).'
+      [20]='Program received signal SIGTSTP, Stopped (user).'
+      [21]='Program received signal SIGTTIN, Stopped (tty input).'
+      [22]='Program received signal SIGTTOU, Stopped (tty output).'
+      [23]=''
+      [24]='Program received signal SIGXCPU, CPU time limit exceeded.'
+      [25]='Program received signal SIGXFSZ, File size limit exceeded.'
+      [26]='Program terminated with signal SIGVTALRM, Virtual timer expired.'
+      [27]=''
+      [28]=''
+      [29]='Program terminated with signal SIGIO, I/O possible.'
+      [30]='Program received signal SIGPWR, Power fail/restart.'
+      [31]='Program received signal SIGSYS, Bad system call.'
+      #[32]='Program received signal SIG32, Real-time event 32.'
+  )
+  
+  . ~rsk0315/.bashrc.d/color-seq.sh
+  
+  declare -gi status=0
+  on_debug () {
+      status=$1
+      declare -gi executed+=1
+      if (( executed == 0 )); then
+          declare -gi failcount=0
+          return
+      fi
+  
+      #if (( status != 0 )); then
+      #    declare -gi failcount+=1
+      #fi
+  }
+  
+  on_err () {
+      declare -gi failcount+=1
+  }
+  
+  on_prompt () {
+      declare -gi status=$1
+  
+      if (( failcount <= 0 )); then
+          if (( executed > 1 )); then
+              echo -e "$(color_seq 10 r)(*'-')b < All commands exited successfully$(color_seq '')" >&2
+          elif (( executed == 1 )); then
+              echo -e "$(color_seq 10 r)(*'-')b < Exited successfully$(color_seq '')" >&2
+          fi
+      elif (( status == 0 )); then
+          if (( executed > 1 )); then
+              echo -ne "$(color_seq 10 r)(*'-')b < Last command exited successfully, " >&2
+              echo -ne "$(color_seq 9 r)but $failcount command" >&2
+              if (( failcount > 1 )); then echo -n s >&2; fi
+              echo -e " failed$(color_seq '')" >&2
+          else
+              :;
+          fi
+      elif (( executed > 0 )); then
+          echo -e "$(color_seq 9 r)exited with code $status" >&2
+  
+          if (( status < 128 )); then
+              case $status in
+                  1)
+                      echo "(*'~')? < Something went wrong?" >&2;;
+                  2)
+                      echo "(*'~')? < Incorrect usage or some error occurred?" >&2;;
+                  127)
+                      echo "(*'~')? < Command not found? Check \$PATH, \$PWD, permissions, and spelling" >&2;;
+                  *)
+                      echo "(*'~')..." >&2;;
+              esac
+          elif (( ${#signals[status-128]} > 0 )); then
+              echo "(*'~')/ < ${signals[status-128]}" >&2
+          else
+              echo "(*'~')..." >&2
+          fi
+  
+          echo -ne "$(color_seq '')" >&2
+      fi
+  
+      declare -gi failcount=-1
+      declare -gi executed=-1
+  
+      declare -gi status=0
+  }
+  
+  trap 'on_debug "$?" "$_"' DEBUG
+  trap 'on_err "$_"' ERR
+  PROMPT_COMMAND='on_prompt "$?" "$_"'
+\end{lstlisting}
+バックグラウンドで実行したり\texttt{!}で論理反転したりするとこわれるけど仕方ない．
+
+以下を\texttt{\char`\~{}/.bashrc}に追記して反映させる．
+\begin{lstlisting}
+  # Display previous exit status
+  . ~rsk0315/.bashrc.d/exit-status.sh
+\end{lstlisting}
+
+\subsection{最新ファイルの出力}
+\texttt{ls}を利用して最新のファイルを選ぶスクリプト．
+GNU拡張の\texttt{ls}は\texttt{ }や\texttt{\textquotesingle{}}などをエスケープできるオプションがあって素敵なんだけど，それを復元するのが厄介なので諦める．そもそもそんなファイル名にする方がどうかしている．
+
+\begin{lstlisting}
+  # -*- mode: sh; sh-shell: bash -*-
+  
+  while getopts :p:s: foo; do
+      case $foo in
+          p ) perm="$OPTARG";;
+          s ) suffix="$OPTARG";;
+      esac
+  done
+  
+  latest=$(ls -ltA | grep -E "${suffix:+\\.(}$suffix${suffix:+)}\$" \
+               | grep "^-$perm" | awk '$0=$9' | sed q)
+  [[ -z "$latest" ]] && exit 1
+  echo $latest
+\end{lstlisting}
+パーミッションと拡張子を指定可能．見つからなければ\texttt{1}を返す．
+
+それを利用して最新のソースを\texttt{make}する．俗にいう\texttt{g}に対応するスクリプト．
+\begin{lstlisting}
+  # -*- mode: sh; sh-shell: bash -*-
+  
+  CC="${CC:-gcc-8.2}"
+  CXX="${CXX:-g++-8.2}"
+  
+  cflags="-Wall -O3 -fsanitize=undefined"
+  CFLAGS="$cflags $CFLAGS $@"
+  CXXFLAGS="$cflags $CXXFLAGS $@"
+  
+  src=$(latest -s'c|cxx|cc|C|cpp') \
+      || { echo no source files found. >&2; exit; }
+  make CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ${src%.*}
+\end{lstlisting}
+
+最新の実行ファイルを実行する．俗にいう\texttt{a}に対応するスクリプト．必ずしも\texttt{./a.out}とは限らないファイルを実行できる．
+\begin{lstlisting}
+  # -*- mode: sh; sh-shell: bash -*-
+  
+  src=$(latest -p ..x) || { echo no executables found. >&2; exit; }
+  set -x
+  "./$src" "$@"
+\end{lstlisting}
+\end{document}

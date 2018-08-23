@@ -1,65 +1,65 @@
 # 基本的な環境設定
 ## VMware Toolsのインストール
-#`
+#_
 $ cd ~/Downloads
 $ cp /run/media/rsk0315/VMware\ Tools/VMwareTools-*.tar.gz ./
 $ tar xvf VMwareTools-*.tar.gz
 $ cd vmware-tools-distrib/
 $ sudo ./vmware-install.pl
-#`
+#_
 
 ## `sudo`の設定
 以下のコマンドを用いて`/etc/sudoers`を編集し，いちいちパスワードを求められないようにする．
-#`
+#_
 $ sudo visudo
-#`
+#_
 差分は次の通り．
-#`
+#_
 $ sudo diff -up ~/tmp/sudoers /etc/sudoers
---- /home/rsk0315/tmp/sudoers
-+++ /etc/sudoers
-@@ -99,7 +99,7 @@ root	ALL=(ALL) 	ALL
- %wheel	ALL=(ALL)	ALL
- 
- ## Same thing without a password
--# %wheel	ALL=(ALL)	NOPASSWD: ALL
-+%wheel	ALL=(ALL)	NOPASSWD: ALL
- 
- ## Allows members of the users group to mount and unmount the 
- ## cdrom as root
-#`
+---- /home/rsk0315/tmp/sudoers
+-+++ /etc/sudoers
+-@@ -99,7 +99,7 @@ root	ALL=(ALL) 	ALL
+- %wheel	ALL=(ALL)	ALL
+- 
+- ## Same thing without a password
+--# %wheel	ALL=(ALL)	NOPASSWD: ALL
+-+%wheel	ALL=(ALL)	NOPASSWD: ALL
+- 
+- ## Allows members of the users group to mount and unmount the 
+- ## cdrom as root
+#_
 
 ## `git`のアップグレード
 ビルドするのに必要なライブラリ群をインストールする．
-#`
+#_
 $ sudo yum install openssl-devel curl-devel expat-devel
-#`
+#_
 `gettext-devel`，`perl-devel`，`zlib-devel`，`perl-ExtUtils-MakeMaker`も依存している？ 最初から入っているかも？
 
 古い`git`が入っていることを期待し，以下を実行．
-#`
+#_
 $ git clone https://github.com/git/git.git
 $ cd git
 $ make && make install
-#`
+#_
 `prefix`は`$(HOME)`になっているので，`$PATH`を見てちゃんと新しいのが実行されるかを確認する．
 
 ## `vim`のアップグレード
-#`
+#_
 $ sudo yum install libX11-devel libXt-devel gtk2-devel ncurses-devel
-#`
+#_
 `atk-devel`も依存している？
-#`
+#_
 $ git clone https://github.com/vim/vim.git
 $ cd vim
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --with-x \
 >     CFLAGS=-I/usr/include/X11
 $ make && make install
-#`
+#_
 
 ## `emacs`のインストール
 `http://ftp.jaist.ac.jp/pub/GNU/emacs/`などから最新のものをダウンロード．
-#`
+#_
 $ sudo yum install gnutls-devel
 $ cd ~/Downloads
 $ curl http://ftp.jaist.ac.jp/pub/GNU/emacs/emacs-26.1.tar.xz -o emacs-26.1.tar.xz
@@ -67,26 +67,26 @@ $ tar xvf emacs-26.1.tar.xz
 $ cd emacs-26.1/
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --without-x 
 $ make && make install
-#`
+#_
 
 ## `python3`のインストール
-#`
+#_
 $ sudo yum install https://centos7.iuscommunity.org/ius-release.rpm
 $ sudo yum install python36u{,-{libs,devel,pip}}
-#`
+#_
 
 ## `bash`のアップグレード
-#`
+#_
 $ curl http://ftp.gnu.org/gnu/bash/bash-5.0-alpha.tar.gz -o bash-5.0-alpha.tar.gz
 $ tar xvf bash-5.0-alpha.tar.gz 
 $ cd bash-5.0-alpha/
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux
 $ make && make install
 $ cp doc/bash.1 ~/usr/share/man/man1/
-#`
+#_
 
 ## GCCのアップグレード
-#`
+#_
 $ curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz
 $ tar xvf gcc-8.2.0.tar.xz
 $ cd gcc-8.2.0/
@@ -94,13 +94,20 @@ $ slack-dog ./contrib/download_prerequisites
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3
 $ make -j4 BOOT_CFLAGS='-march=native -O3'
 $ make install
-#`
+#_
 
 ## その他有用なものたちのインストール
-#`
+#_
 $ sudo yum install php
-#`
+#_
 @[LaTeX]@も早いうちに入れよう．
+
+## @[LaTeX]@のインストール
+@[TeX]@ Liveを使う．
+#_
+$ sudo yum install perl-Digest-MD5
+$ sudo ./install-tl
+#_
 
 # 発展的な環境構築
 趣味の領域に含まれると思われるもの．
@@ -226,9 +233,9 @@ emacsの初期化ファイル．
   
 ## `gitconfig`の編集
 パラメータなどについては以下を参照．
-#`
+#_
 $ git help config
-#`
+#_
 `color.diff`の項目を見るとよい．数値を指定したときに`<Esc>38;5;##m`の形式になってくれるのはたまたまなのかも？
 #`
 [color.diff]
@@ -241,35 +248,35 @@ $ git help config
 ## フォントの設定
 MigMixはいいぞ．
 `/etc/fonts/conf.d/65-nonlatin.conf`を編集する．とりあえず一番上にしよう．
-#`
+#_
 $ diff -up ~/tmp/65-nonlatin.conf /etc/fonts/conf.d/65-nonlatin.conf
---- /home/rsk0315/tmp/65-nonlatin.conf
-+++ /etc/fonts/conf.d/65-nonlatin.conf
-@@ -4,6 +4,7 @@
- 	<alias>
- 		<family>serif</family>
- 		<prefer>
-+			<family>MigMix 1M</family>
- 			<family>Artsounk</family> <!-- armenian -->
- 			<family>BPG UTF8 M</family> <!-- georgian -->
- 			<family>Kinnari</family> <!-- thai -->
-@@ -69,6 +70,7 @@
- 	<alias>
- 		<family>sans-serif</family>
- 		<prefer>
-+			<family>MigMix 1M</family>
- 			<family>Nachlieli</family> <!-- hebrew -->
- 			<family>Lucida Sans Unicode</family>
- 			<family>Yudit Unicode</family>
-@@ -144,6 +146,7 @@
- 	<alias>
- 		<family>monospace</family>
- 		<prefer>
-+			<family>MigMix 1M</family>
- 			<family>Miriam Mono</family> <!-- hebrew -->
- 			<family>VL Gothic</family>
- 			<family>IPAMonaGothic</family>
-#`
+---- /home/rsk0315/tmp/65-nonlatin.conf
+-+++ /etc/fonts/conf.d/65-nonlatin.conf
+-@@ -4,6 +4,7 @@
+- 	<alias>
+- 		<family>serif</family>
+- 		<prefer>
+-+			<family>MigMix 1M</family>
+- 			<family>Artsounk</family> <!-- armenian -->
+- 			<family>BPG UTF8 M</family> <!-- georgian -->
+- 			<family>Kinnari</family> <!-- thai -->
+-@@ -69,6 +70,7 @@
+- 	<alias>
+- 		<family>sans-serif</family>
+- 		<prefer>
+-+			<family>MigMix 1M</family>
+- 			<family>Nachlieli</family> <!-- hebrew -->
+- 			<family>Lucida Sans Unicode</family>
+- 			<family>Yudit Unicode</family>
+-@@ -144,6 +146,7 @@
+- 	<alias>
+- 		<family>monospace</family>
+- 		<prefer>
+-+			<family>MigMix 1M</family>
+- 			<family>Miriam Mono</family> <!-- hebrew -->
+- 			<family>VL Gothic</family>
+- 			<family>IPAMonaGothic</family>
+#_
 
 # 便利コマンドの定義
 

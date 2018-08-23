@@ -34,92 +34,98 @@
       <main class="container">
 <h1>基本的な環境設定</h1>
 <h2>VMware Toolsのインストール</h2>
-<pre>$ cd ~/Downloads
-$ cp /run/media/rsk0315/VMware\ Tools/VMwareTools-*.tar.gz ./
-$ tar xvf VMwareTools-*.tar.gz
-$ cd vmware-tools-distrib/
-$ sudo ./vmware-install.pl
-</pre>
+<pre><span class="cmd-in">cd ~/Downloads</span>
+<span class="cmd-in">cp /run/media/rsk0315/VMware\ Tools/VMwareTools-*.tar.gz ./</span>
+<span class="cmd-in">tar xvf VMwareTools-*.tar.gz</span>
+<span class="cmd-in">cd vmware-tools-distrib/</span>
+<span class="cmd-in">sudo ./vmware-install.pl</span></pre>
+
 <h2><code>sudo</code>の設定</h2>
 <p>以下のコマンドを用いて<code>/etc/sudoers</code>を編集し，いちいちパスワードを求められないようにする．
 </p>
-<pre>$ sudo visudo
-</pre><p>差分は次の通り．
+<pre><span class="cmd-in">sudo visudo</span></pre>
+<p>差分は次の通り．
 </p>
-<pre>$ sudo diff -up ~/tmp/sudoers /etc/sudoers
---- /home/rsk0315/tmp/sudoers
-+++ /etc/sudoers
-@@ -99,7 +99,7 @@ root	ALL=(ALL) 	ALL
- %wheel	ALL=(ALL)	ALL
+<pre><span class="cmd-in">sudo diff -up ~/tmp/sudoers /etc/sudoers</span>
+<span class="cmd-out">--- /home/rsk0315/tmp/sudoers
+</span><span class="cmd-out">+++ /etc/sudoers
+</span><span class="cmd-out">@@ -99,7 +99,7 @@ root	ALL=(ALL) 	ALL
+</span><span class="cmd-out">%wheel	ALL=(ALL)	ALL
+</span><span class="cmd-out">
+</span><span class="cmd-out">## Same thing without a password
+</span><span class="cmd-out">-# %wheel	ALL=(ALL)	NOPASSWD: ALL
+</span><span class="cmd-out">+%wheel	ALL=(ALL)	NOPASSWD: ALL
+</span><span class="cmd-out">
+</span><span class="cmd-out">## Allows members of the users group to mount and unmount the
+</span><span class="cmd-out">## cdrom as root
+</span></pre>
 
- ## Same thing without a password
--# %wheel	ALL=(ALL)	NOPASSWD: ALL
-+%wheel	ALL=(ALL)	NOPASSWD: ALL
-
- ## Allows members of the users group to mount and unmount the
- ## cdrom as root
-</pre>
 <h2><code>git</code>のアップグレード</h2>
 <p>ビルドするのに必要なライブラリ群をインストールする．
 </p>
-<pre>$ sudo yum install openssl-devel curl-devel expat-devel
-</pre><p><code>gettext-devel</code>，<code>perl-devel</code>，<code>zlib-devel</code>，<code>perl-ExtUtils-MakeMaker</code>も依存している？ 最初から入っているかも？
+<pre><span class="cmd-in">sudo yum install openssl-devel curl-devel expat-devel</span></pre>
+<p><code>gettext-devel</code>，<code>perl-devel</code>，<code>zlib-devel</code>，<code>perl-ExtUtils-MakeMaker</code>も依存している？ 最初から入っているかも？
 </p>
 
 <p>古い<code>git</code>が入っていることを期待し，以下を実行．
 </p>
-<pre>$ git clone https://github.com/git/git.git
-$ cd git
-$ make &amp;&amp; make install
-</pre><p><code>prefix</code>は<code>$(HOME)</code>になっているので，<code>$PATH</code>を見てちゃんと新しいのが実行されるかを確認する．
+<pre><span class="cmd-in">git clone https://github.com/git/git.git</span>
+<span class="cmd-in">cd git</span>
+<span class="cmd-in">make &amp;&amp; make install</span></pre>
+<p><code>prefix</code>は<code>$(HOME)</code>になっているので，<code>$PATH</code>を見てちゃんと新しいのが実行されるかを確認する．
 </p>
 
 <h2><code>vim</code>のアップグレード</h2>
-<pre>$ sudo yum install libX11-devel libXt-devel gtk2-devel ncurses-devel
-</pre><p><code>atk-devel</code>も依存している？
+<pre><span class="cmd-in">sudo yum install libX11-devel libXt-devel gtk2-devel ncurses-devel</span></pre>
+<p><code>atk-devel</code>も依存している？
 </p>
-<pre>$ git clone https://github.com/vim/vim.git
-$ cd vim
-$ ./configure --prefix=$HOME --build=x86_64-redhat-linux --with-x \
-&gt;     CFLAGS=-I/usr/include/X11
-$ make &amp;&amp; make install
-</pre>
+<pre><span class="cmd-in">git clone https://github.com/vim/vim.git</span>
+<span class="cmd-in">cd vim</span>
+<span class="cmd-in">./configure --prefix=$HOME --build=x86_64-redhat-linux --with-x \
+<span class="cmd-cont" />    CFLAGS=-I/usr/include/X11<span class="cmd-in">make &amp;&amp; make install</span></pre>
+
 <h2><code>emacs</code>のインストール</h2>
 <p><code>http://ftp.jaist.ac.jp/pub/GNU/emacs/</code>などから最新のものをダウンロード．
 </p>
-<pre>$ sudo yum install gnutls-devel
-$ cd ~/Downloads
-$ curl http://ftp.jaist.ac.jp/pub/GNU/emacs/emacs-26.1.tar.xz -o emacs-26.1.tar.xz
-$ tar xvf emacs-26.1.tar.xz
-$ cd emacs-26.1/
-$ ./configure --prefix=$HOME --build=x86_64-redhat-linux --without-x
-$ make &amp;&amp; make install
-</pre>
+<pre><span class="cmd-in">sudo yum install gnutls-devel</span>
+<span class="cmd-in">cd ~/Downloads</span>
+<span class="cmd-in">curl http://ftp.jaist.ac.jp/pub/GNU/emacs/emacs-26.1.tar.xz -o emacs-26.1.tar.xz</span>
+<span class="cmd-in">tar xvf emacs-26.1.tar.xz</span>
+<span class="cmd-in">cd emacs-26.1/</span>
+<span class="cmd-in">./configure --prefix=$HOME --build=x86_64-redhat-linux --without-x</span>
+<span class="cmd-in">make &amp;&amp; make install</span></pre>
+
 <h2><code>python3</code>のインストール</h2>
-<pre>$ sudo yum install https://centos7.iuscommunity.org/ius-release.rpm
-$ sudo yum install python36u{,-{libs,devel,pip}}
-</pre>
+<pre><span class="cmd-in">sudo yum install https://centos7.iuscommunity.org/ius-release.rpm</span>
+<span class="cmd-in">sudo yum install python36u{,-{libs,devel,pip}}</span></pre>
+
 <h2><code>bash</code>のアップグレード</h2>
-<pre>$ curl http://ftp.gnu.org/gnu/bash/bash-5.0-alpha.tar.gz -o bash-5.0-alpha.tar.gz
-$ tar xvf bash-5.0-alpha.tar.gz
-$ cd bash-5.0-alpha/
-$ ./configure --prefix=$HOME --build=x86_64-redhat-linux
-$ make &amp;&amp; make install
-$ cp doc/bash.1 ~/usr/share/man/man1/
-</pre>
+<pre><span class="cmd-in">curl http://ftp.gnu.org/gnu/bash/bash-5.0-alpha.tar.gz -o bash-5.0-alpha.tar.gz</span>
+<span class="cmd-in">tar xvf bash-5.0-alpha.tar.gz</span>
+<span class="cmd-in">cd bash-5.0-alpha/</span>
+<span class="cmd-in">./configure --prefix=$HOME --build=x86_64-redhat-linux</span>
+<span class="cmd-in">make &amp;&amp; make install</span>
+<span class="cmd-in">cp doc/bash.1 ~/usr/share/man/man1/</span></pre>
+
 <h2>GCCのアップグレード</h2>
-<pre>$ curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz
-$ tar xvf gcc-8.2.0.tar.xz
-$ cd gcc-8.2.0/
-$ slack-dog ./contrib/download_prerequisites
-$ ./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3
-$ make -j4 BOOT_CFLAGS=&apos;-march=native -O3&apos;
-$ make install
-</pre>
+<pre><span class="cmd-in">curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz</span>
+<span class="cmd-in">tar xvf gcc-8.2.0.tar.xz</span>
+<span class="cmd-in">cd gcc-8.2.0/</span>
+<span class="cmd-in">slack-dog ./contrib/download_prerequisites</span>
+<span class="cmd-in">./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3</span>
+<span class="cmd-in">make -j4 BOOT_CFLAGS=&apos;-march=native -O3&apos;</span>
+<span class="cmd-in">make install</span></pre>
+
 <h2>その他有用なものたちのインストール</h2>
-<pre>$ sudo yum install php
-</pre><p><span class="tex">L<sup>a</sup>T<sub>e</sub>X</span>も早いうちに入れよう．
+<pre><span class="cmd-in">sudo yum install php</span></pre>
+<p><span class="tex">L<sup>a</sup>T<sub>e</sub>X</span>も早いうちに入れよう．
 </p>
+
+<h2><span class="tex">L<sup>a</sup>T<sub>e</sub>X</span>のインストール</h2>
+<p><span class="tex">T<sub>e</sub>X</span> Liveを使う．
+</p>
+<pre><span class="cmd-in">sudo yum install perl-Digest-MD5</span>
+<span class="cmd-in">sudo ./install-tl</span></pre>
 
 <h1>発展的な環境構築</h1>
 <p>趣味の領域に含まれると思われるもの．
@@ -239,8 +245,8 @@ set mark-symlinked-directories On
 <h2><code>gitconfig</code>の編集</h2>
 <p>パラメータなどについては以下を参照．
 </p>
-<pre>$ git help config
-</pre><p><code>color.diff</code>の項目を見るとよい．数値を指定したときに<code>&lt;Esc&gt;38;5;##m</code>の形式になってくれるのはたまたまなのかも？
+<pre><span class="cmd-in">git help config</span></pre>
+<p><code>color.diff</code>の項目を見るとよい．数値を指定したときに<code>&lt;Esc&gt;38;5;##m</code>の形式になってくれるのはたまたまなのかも？
 </p>
 <pre>[color.diff]
         new = green bold
@@ -252,34 +258,35 @@ set mark-symlinked-directories On
 <p>MigMixはいいぞ．
 <code>/etc/fonts/conf.d/65-nonlatin.conf</code>を編集する．とりあえず一番上にしよう．
 </p>
-<pre>$ diff -up ~/tmp/65-nonlatin.conf /etc/fonts/conf.d/65-nonlatin.conf
---- /home/rsk0315/tmp/65-nonlatin.conf
-+++ /etc/fonts/conf.d/65-nonlatin.conf
-@@ -4,6 +4,7 @@
- 	&lt;alias&gt;
- 		&lt;family&gt;serif&lt;/family&gt;
- 		&lt;prefer&gt;
-+			&lt;family&gt;MigMix 1M&lt;/family&gt;
- 			&lt;family&gt;Artsounk&lt;/family&gt; &lt;!-- armenian --&gt;
- 			&lt;family&gt;BPG UTF8 M&lt;/family&gt; &lt;!-- georgian --&gt;
- 			&lt;family&gt;Kinnari&lt;/family&gt; &lt;!-- thai --&gt;
-@@ -69,6 +70,7 @@
- 	&lt;alias&gt;
- 		&lt;family&gt;sans-serif&lt;/family&gt;
- 		&lt;prefer&gt;
-+			&lt;family&gt;MigMix 1M&lt;/family&gt;
- 			&lt;family&gt;Nachlieli&lt;/family&gt; &lt;!-- hebrew --&gt;
- 			&lt;family&gt;Lucida Sans Unicode&lt;/family&gt;
- 			&lt;family&gt;Yudit Unicode&lt;/family&gt;
-@@ -144,6 +146,7 @@
- 	&lt;alias&gt;
- 		&lt;family&gt;monospace&lt;/family&gt;
- 		&lt;prefer&gt;
-+			&lt;family&gt;MigMix 1M&lt;/family&gt;
- 			&lt;family&gt;Miriam Mono&lt;/family&gt; &lt;!-- hebrew --&gt;
- 			&lt;family&gt;VL Gothic&lt;/family&gt;
- 			&lt;family&gt;IPAMonaGothic&lt;/family&gt;
-</pre>
+<pre><span class="cmd-in">diff -up ~/tmp/65-nonlatin.conf /etc/fonts/conf.d/65-nonlatin.conf</span>
+<span class="cmd-out">--- /home/rsk0315/tmp/65-nonlatin.conf
+</span><span class="cmd-out">+++ /etc/fonts/conf.d/65-nonlatin.conf
+</span><span class="cmd-out">@@ -4,6 +4,7 @@
+</span><span class="cmd-out">	&lt;alias&gt;
+</span><span class="cmd-out">		&lt;family&gt;serif&lt;/family&gt;
+</span><span class="cmd-out">		&lt;prefer&gt;
+</span><span class="cmd-out">+			&lt;family&gt;MigMix 1M&lt;/family&gt;
+</span><span class="cmd-out">			&lt;family&gt;Artsounk&lt;/family&gt; &lt;!-- armenian --&gt;
+</span><span class="cmd-out">			&lt;family&gt;BPG UTF8 M&lt;/family&gt; &lt;!-- georgian --&gt;
+</span><span class="cmd-out">			&lt;family&gt;Kinnari&lt;/family&gt; &lt;!-- thai --&gt;
+</span><span class="cmd-out">@@ -69,6 +70,7 @@
+</span><span class="cmd-out">	&lt;alias&gt;
+</span><span class="cmd-out">		&lt;family&gt;sans-serif&lt;/family&gt;
+</span><span class="cmd-out">		&lt;prefer&gt;
+</span><span class="cmd-out">+			&lt;family&gt;MigMix 1M&lt;/family&gt;
+</span><span class="cmd-out">			&lt;family&gt;Nachlieli&lt;/family&gt; &lt;!-- hebrew --&gt;
+</span><span class="cmd-out">			&lt;family&gt;Lucida Sans Unicode&lt;/family&gt;
+</span><span class="cmd-out">			&lt;family&gt;Yudit Unicode&lt;/family&gt;
+</span><span class="cmd-out">@@ -144,6 +146,7 @@
+</span><span class="cmd-out">	&lt;alias&gt;
+</span><span class="cmd-out">		&lt;family&gt;monospace&lt;/family&gt;
+</span><span class="cmd-out">		&lt;prefer&gt;
+</span><span class="cmd-out">+			&lt;family&gt;MigMix 1M&lt;/family&gt;
+</span><span class="cmd-out">			&lt;family&gt;Miriam Mono&lt;/family&gt; &lt;!-- hebrew --&gt;
+</span><span class="cmd-out">			&lt;family&gt;VL Gothic&lt;/family&gt;
+</span><span class="cmd-out">			&lt;family&gt;IPAMonaGothic&lt;/family&gt;
+</span></pre>
+
 <h1>便利コマンドの定義</h1>
 
 <h2>プロンプト文字列</h2>
