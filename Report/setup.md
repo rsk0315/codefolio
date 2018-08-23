@@ -456,5 +456,43 @@ PROMPT_COMMAND='on_prompt "$?" "$_"'
 GNU拡張の`ls`は` `や`'`などをエスケープできるオプションがあって素敵なんだけど，それを復元するのが厄介なので諦める．そもそもそんなファイル名にする方がどうかしている．
 
 #`
-to be filled in
+# -*- mode: sh; sh-shell: bash -*-
+
+while getopts :p:s: foo; do
+    case $foo in
+        p ) perm="$OPTARG";;
+        s ) suffix="$OPTARG";;
+    esac
+done
+
+latest=$(ls -ltA | grep -E "${suffix:+\\.(}$suffix${suffix:+)}\$" \
+             | grep "^-$perm" | awk '$0=$9' | sed q)
+[[ -z "$latest" ]] && exit 1
+echo $latest
+#`
+パーミッションと拡張子を指定可能．見つからなければ`1`を返す．
+
+それを利用して最新のソースを`make`する．俗にいう`g`に対応するスクリプト．
+#`
+# -*- mode: sh; sh-shell: bash -*-
+
+CC="${CC:-gcc-8.2}"
+CXX="${CXX:-g++-8.2}"
+
+cflags="-Wall -O3 -fsanitize=undefined"
+CFLAGS="$cflags $CFLAGS $@"
+CXXFLAGS="$cflags $CXXFLAGS $@"
+
+src=$(latest -s'c|cxx|cc|C|cpp') \
+    || { echo no source files found. >&2; exit; }
+make CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ${src%.*}
+#`
+
+最新の実行ファイルを実行する．俗にいう`a`に対応するスクリプト．必ずしも`./a.out`とは限らないファイルを実行できる．
+#`
+# -*- mode: sh; sh-shell: bash -*-
+
+src=$(latest -p ..x) || { echo no executables found. >&2; exit; }
+set -x
+"./$src" "$@"
 #`

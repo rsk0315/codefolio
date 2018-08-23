@@ -463,7 +463,44 @@ PROMPT_COMMAND=&apos;on_prompt &quot;$?&quot; &quot;$_&quot;&apos;
 GNU拡張の<code>ls</code>は<code> </code>や<code>&apos;</code>などをエスケープできるオプションがあって素敵なんだけど，それを復元するのが厄介なので諦める．そもそもそんなファイル名にする方がどうかしている．
 </p>
 
-<pre>to be filled in
+<pre># -*- mode: sh; sh-shell: bash -*-
+
+while getopts :p:s: foo; do
+    case $foo in
+        p ) perm=&quot;$OPTARG&quot;;;
+        s ) suffix=&quot;$OPTARG&quot;;;
+    esac
+done
+
+latest=$(ls -ltA | grep -E &quot;${suffix:+\\.(}$suffix${suffix:+)}\$&quot; \
+             | grep &quot;^-$perm&quot; | awk &apos;$0=$9&apos; | sed q)
+[[ -z &quot;$latest&quot; ]] &amp;&amp; exit 1
+echo $latest
+</pre><p>パーミッションと拡張子を指定可能．見つからなければ<code>1</code>を返す．
+</p>
+
+<p>それを利用して最新のソースを<code>make</code>する．俗にいう<code>g</code>に対応するスクリプト．
+</p>
+<pre># -*- mode: sh; sh-shell: bash -*-
+
+CC=&quot;${CC:-gcc-8.2}&quot;
+CXX=&quot;${CXX:-g++-8.2}&quot;
+
+cflags=&quot;-Wall -O3 -fsanitize=undefined&quot;
+CFLAGS=&quot;$cflags $CFLAGS $@&quot;
+CXXFLAGS=&quot;$cflags $CXXFLAGS $@&quot;
+
+src=$(latest -s&apos;c|cxx|cc|C|cpp&apos;) \
+    || { echo no source files found. &gt;&amp;2; exit; }
+make CC=&quot;$CC&quot; CXX=&quot;$CXX&quot; CFLAGS=&quot;$CFLAGS&quot; CXXFLAGS=&quot;$CXXFLAGS&quot; ${src%.*}
+</pre>
+<p>最新の実行ファイルを実行する．俗にいう<code>a</code>に対応するスクリプト．必ずしも<code>./a.out</code>とは限らないファイルを実行できる．
+</p>
+<pre># -*- mode: sh; sh-shell: bash -*-
+
+src=$(latest -p ..x) || { echo no executables found. &gt;&amp;2; exit; }
+set -x
+&quot;./$src&quot; &quot;$@&quot;
 </pre>      </main>
     </div>
   </body>
