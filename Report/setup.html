@@ -25,6 +25,9 @@
 
     <link href="/css/base.css" rel="stylesheet">
     <script src="/js/base.js"></script>
+
+    <link href="/css/codeblock.css" rel="stylesheet">
+    <script src="/js/codeblock.js"></script>
   </head>
   <body>
     <div id="main-div" class="float-container">
@@ -103,6 +106,15 @@ $ cd bash-5.0-alpha/
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux
 $ make &amp;&amp; make install
 $ cp doc/bash.1 ~/usr/share/man/man1/
+</pre>
+<h2>GCCのアップグレード</h2>
+<pre>$ curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz
+$ tar xvf gcc-8.2.0.tar.xz
+$ cd gcc-8.2.0/
+$ slack-dog ./contrib/download_prerequisites
+$ ./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3
+$ make -j4 BOOT_CFLAGS=&apos;-march=native -O3&apos;
+$ make install
 </pre>
 <h2>その他有用なものたちのインストール</h2>
 <pre>$ sudo yum install php

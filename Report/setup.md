@@ -85,6 +85,17 @@ $ make && make install
 $ cp doc/bash.1 ~/usr/share/man/man1/
 #`
 
+## GCCのアップグレード
+#`
+$ curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz
+$ tar xvf gcc-8.2.0.tar.xz
+$ cd gcc-8.2.0/
+$ slack-dog ./contrib/download_prerequisites
+$ ./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3
+$ make -j4 BOOT_CFLAGS='-march=native -O3'
+$ make install
+#`
+
 ## その他有用なものたちのインストール
 #`
 $ sudo yum install php
