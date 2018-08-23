@@ -9,7 +9,7 @@ $ sudo ./vmware-install.pl
 #`
 
 ## `sudo`の設定
-以下のコマンドを用いて`/etc/sudoers/`を編集し，いちいちパスワードを求められないようにする．
+以下のコマンドを用いて`/etc/sudoers`を編集し，いちいちパスワードを求められないようにする．
 #`
 $ sudo visudo
 #`
