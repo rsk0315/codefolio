@@ -3,6 +3,7 @@
 """A tool for converting markdown files to other format. In particular,
 destination format is LaTeX and HTML."""
 
+import html
 import os
 import re
 import sys
@@ -837,13 +838,6 @@ class Text(MarkdownElement):
         num_seps = self.num_seps()
         emph_flags = 0  # EMPH_TYPE
         at_flags = []
-        NAMED_ENTITIES = {
-            '&': '&amp;',
-            '"': '&quot;',
-            "'": '&apos;',
-            '<': '&lt;',
-            '>': '&gt;',
-        }
         ALIGN_STYLE = {
             'l': 'left',
             'c': 'center',
@@ -855,14 +849,12 @@ class Text(MarkdownElement):
 
         for kind, snippet in self._parsed:
             if kind == self.NORMAL:
-                snippet = snippet.replace('&', '&amp;')
-                for ch in '"\'<>':
-                    snippet = snippet.replace(ch, NAMED_ENTITIES[ch])
-                res += snippet
-
+                res += html.escape(snippet, quote=True)
             elif kind == self.ESCAPED:
-                res += NAMED_ENTITIES.get(snippet, '&#'+str(ord(snippet))+';')
-
+                if snippet in '&\'"<>':
+                    res += html.escape(snippet, quote=True)
+                else:
+                    res += '&#'+str(ord(snippet))+';'
             elif kind == self.SEPARATOR:
                 if sep is None:
                     raise ValueError(sep)
@@ -876,11 +868,8 @@ class Text(MarkdownElement):
                         + ALIGN_STYLE[next(al)] +'">'
                         )
 
-            elif kind == self.NEED_ESCAPE:
-                res += NAMED_ENTITIES.get(snippet, snippet)
-
-            elif kind == self.QUOTES:
-                res += NAMED_ENTITIES[snippet]
+            elif kind in (self.NEED_ESCAPE, self.QUOTES):
+                res += html.escape(snippet, quote=True)
 
             elif kind == self.FOOTNOTE:
                 res += self._footnotes[snippet].to_html(
@@ -938,10 +927,7 @@ class Text(MarkdownElement):
 
             elif kind == self.VERBATIM:
                 res += '<code>'
-                snippet = snippet.replace('&', '&amp;')
-                for ch in '"\'<>':
-                    snippet = snippet.replace(ch, NAMED_ENTITIES[ch])
-                res += snippet
+                res += html.escape(snippet)
                 res += '</code>'
 
             elif kind == self.LATEX:
@@ -1492,16 +1478,7 @@ class CodeBlock(MarkdownElement):
         )
 
     def to_html(self):
-        NAMED_ENTITIES = {
-            '&': '&amp;',
-            '"': '&quot;',
-            "'": '&apos;',
-            '<': '&lt;',
-            '>': '&gt;',
-        }
-        res = '\n'.join(self._parsed).replace('&', '&amp;')
-        for ch in '"\'<>':
-            res = res.replace(ch, NAMED_ENTITIES[ch])
+        res = html.escape('\n'.join(self._parsed), quote=True)
 
         if not self._kwargs['name']:
             return '<pre>' + res + '</pre>'
@@ -1511,9 +1488,129 @@ class CodeBlock(MarkdownElement):
             + '"><div style="margin:1.2em 0 0 0">' + res + '</div></pre>\n'
         )
 
+
+class CSISequence(object):
+    BASIC_COLOR = (
+        'black', 'red', 'green', 'yellow',
+        'blue', 'magenta', 'cyan', 'white'
+    )
+
+    def __init__(self, cmd, param):
+        self.cmd = cmd
+        self.param = param
+        self.attrs = {}
+        self._parse()
+
+    def _parse(self):
+        cmd = self.cmd
+        if cmd not in 'm':
+            # raise NotImplementedError
+            return
+
+        if cmd == 'm':
+            try:
+                self._parse_m()
+            except (StopIteration, KeyError, NotImplementedError):
+                self.attrs['reset'] = True
+
+    def __getitem__(self, key):
+        return self.attrs.get(key, None)
+
+    def __iter__(self):
+        return iter(self.attrs.items())
+
+    def __repr__(self):
+        return repr(self.attrs)
+
+    @classmethod
+    def extend_color(cls, n):
+        if 0 <= n <= 7:
+            return self.BASIC_COLOR[n]
+        elif 8 <= n <= 15:
+            return 'bright ' + self.BASIC_COLOR[n-8]
+        elif 16 <= n <= 231:
+            n -= 16
+            n, b = divmod(n, 6)
+            r, g = divmod(n, 6)
+            # r, g, b = [(0, 95, 135, 175, 215, 255)[c] for c in (r, g, b)]
+            return [55+40*c if c else 0 for c in (r, g, b)]
+        elif 232 <= n <= 255:
+            n -= 232
+            return [8+10*n for c in 'rgb']
+        else:
+            raise KeyError
+
+    def _parse_m(self):
+        if not self.param:
+            self.attrs['reset'] = True
+            return
+
+        params = [int(p) if p else 0 for p in self.param.split(';')]
+        it = iter(params)
+        for p in it:
+            if p == 0:
+                self.attrs = {'reset': True}
+            elif p == 1:
+                self.attrs['bd'] = True
+            elif p == 3:
+                self.attrs['it'] = True
+            elif p == 4:
+                self.attrs['ul'] = True
+            elif 30 <= p <= 49:
+                p10, p1 = divmod(p, 10)
+                fb = ('fg' if p10 == 3 else 'bg')
+                if p1 in range(0, 8):
+                    self.attrs[fb] = self.BASIC_COLOR[p1]
+                elif p1 == 8:
+                    p2 = next(it)
+                    if p2 == 2:
+                        self.attrs[fb] = [next(it) for c in 'rgb']
+                    elif p2 == 5:
+                        self.attrs[fb] = self.extend_color(next(it))
+                    else:
+                        raise KeyError
+                elif p1 == 9:
+                    self.attrs[fb] = None
+            elif 90 <= p <= 97 or 100 <= p <= 107:
+                p10, p1 = divmod(p, 10)
+                fb = ('fg' if p10 == 9 else 'bg')
+                self.attrs[fb] = 'bright ' + self.BASIC_COLOR[p1]
+            else:
+                raise NotImplementedError
+
+
 class ShellBlock(MarkdownElement):
     PAT = '#_'
     RE = re.compile(r'(?P<TOP>[$#>-]) ?(?P<TEXT>.*)')
+    CSI_RE = re.compile(
+        r'''
+        # maybe extended...
+        \x1b\[
+        (?:
+            (?P<PARAM_m>\d*(?:;\d*)*)m
+        )
+        ''',
+        flags=re.VERBOSE
+    )
+    NEWLINE, TEXT, CSI = range(3)
+    ANSI_COLORS = {
+        'black': '000000',
+        'red': 'aa0000',
+        'green': '00aa00',
+        'yellow': 'aa5500',
+        'blue': '0000aa',
+        'magenta': 'aa00aa',
+        'cyan': '00aaaa',
+        'white': 'aaaaaa',
+        'bright black': '555555',
+        'bright red': 'ff5555',
+        'bright green': '55ff55',
+        'bright yellow': 'ffff55',
+        'bright blue': '5555ff',
+        'bright magenta': 'ff55ff',
+        'bright cyan': '55ffff',
+        'bright white': 'ffffff',
+    }
 
     def _parse(self):
         self._parsed = []
@@ -1523,21 +1620,100 @@ class ShellBlock(MarkdownElement):
                 raise MarkdownSyntaxError(
                     'ill-formed shell block',
                     (self._filename, lineno, 0, len(line), line)
-                    )
+                )
 
-            self._parsed.append(m.group('TOP', 'TEXT'))
+            top, text = m.group('TOP', 'TEXT')
+            self._parsed.append((self.NEWLINE, top))
+            if top != '-':
+                self._parsed.append((self.TEXT, text))
+                continue
+
+            pos = 0
+            m2 = self.CSI_RE.search(text)
+            while m2 is not None:
+                start, end = m2.span()
+                cmd = m2.group()[-1]
+                param = m2.group('PARAM_'+cmd)
+                self._parsed.append((self.TEXT, text[pos:start]))
+                self._parsed.append((self.CSI, CSISequence(cmd, param)))
+
+                pos = end
+                m2 = self.CSI_RE.search(text, pos=pos)
+
+            if pos < len(text):
+                self._parsed.append((self.TEXT, text[pos:]))
 
     def to_latex(self):
         raise NotImplementedError
 
     def to_html(self):
-        NAMED_ENTITIES = {
-            '&': '&amp;',
-            '"': '&quot;',
-            "'": '&apos;',
-            '<': '&lt;',
-            '>': '&gt;',
-        }
+        res = '<pre>'
+        last = '0'
+        attrs = {}
+        for type_, param in self._parsed:
+            if type_ == self.NEWLINE:
+                if last == '-':
+                    res += '\n</span></span>'
+                elif param != '>' and last != '0':
+                    res += '</span>\n'
+
+                attrs = {}
+                last = param
+                if param == '$':
+                    res += '<span class="cmd-in">'
+                elif param == '#':
+                    res += '<span class="cmd-in cmd-root">'
+                elif param == '>':
+                    res += '\n<span class="cmd-cont"></span>'
+                elif param == '-':
+                    res += '<span class="cmd-out"><span>'
+            elif type_ == self.TEXT:
+                res += html.escape(param)
+            elif type_ == self.CSI:
+                res += '</span>'
+                if param['reset']:
+                    attrs = {}
+                for k, v in param:
+                    attrs[k] = v
+
+                if not attrs:
+                    res += '<span>'
+                    continue
+
+                span = '<span style="'
+                if (
+                        'fg' in attrs and isinstance(attrs['fg'], str)
+                        and attrs['fg'].isalpha() and 'bg' in attrs
+                        and not attrs['fg'].startswith('bright')
+                ):
+                    attrs['fg'] = 'bright ' + attrs['fg']
+
+                if 'bd' in attrs:
+                    span += ' font-weight:bold;'
+                if 'it' in attrs:
+                    span += ' font-style:italic;'
+                if 'fg' in attrs and attrs['fg'] is not None:
+                    fg = attrs['fg']
+                    span += ' color:#'
+                    if isinstance(fg, list):
+                        span += '{:02x}{:02x}{:02x};'.format(*fg)
+                    else:
+                        span += self.ANSI_COLORS[fg]
+                if 'bg' in attrs and attrs['bg'] is not None:
+                    bg = attrs['bg']
+                    span += ' background-color:#'
+                    if isinstance(bg, list):
+                        span += '{:02x}{:02x}{:02x};'.format(*bg)
+                    else:
+                        span += self.ANSI_COLORS[bg]
+
+                span += '">'
+                res += span
+
+        if last == '-':
+            res += '</span></span>'
+        res += '</pre>'
+        return res
 
         res = '<pre>'
         last = '0'
