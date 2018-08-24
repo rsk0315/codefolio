@@ -1698,14 +1698,14 @@ class ShellBlock(MarkdownElement):
                     if isinstance(fg, list):
                         span += '{:02x}{:02x}{:02x};'.format(*fg)
                     else:
-                        span += self.ANSI_COLORS[fg]
+                        span += self.ANSI_COLORS[fg]+';'
                 if 'bg' in attrs and attrs['bg'] is not None:
                     bg = attrs['bg']
                     span += ' background-color:#'
                     if isinstance(bg, list):
                         span += '{:02x}{:02x}{:02x};'.format(*bg)
                     else:
-                        span += self.ANSI_COLORS[bg]
+                        span += self.ANSI_COLORS[bg]+';'
 
                 span += '">'
                 res += span
