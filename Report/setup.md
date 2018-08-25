@@ -75,6 +75,18 @@ $ sudo yum install https://centos7.iuscommunity.org/ius-release.rpm
 $ sudo yum install python36u{,-{libs,devel,pip}}
 #_
 
+`pip`を使って便利モジュールを入れるのも忘れずに．
+#_
+$ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+$ python3 get-pip.py --user
+$ pip install --user numpy
+$ pip install --user scipy
+$ pip install --user pandas 
+$ pip install --user matplotlib
+$ pip install --user Image
+$ pip install --user mechanicalsoup
+#_
+
 ## `bash`のアップグレード
 #_
 $ curl http://ftp.gnu.org/gnu/bash/bash-5.0-alpha.tar.gz -o bash-5.0-alpha.tar.gz
