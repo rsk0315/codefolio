@@ -112,6 +112,7 @@ $ make install
 #_
 $ sudo yum install php
 $ sudo yum install mawk
+$ sudo yum install ruby ruby-devel
 #_
 @[LaTeX]@も早いうちに入れよう．
 
