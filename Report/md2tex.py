@@ -312,6 +312,24 @@ class SpecialText(MarkdownElement):
             return res
 
 
+class QuoteBlock(MarkdownElement):
+    RE = re.compile(r'^>*')
+
+    def __init__(self, opening):
+        MarkdownElement.__init__(self, [(0, '')], None, None, opening=opening)
+
+    def _parse(self):
+        pass
+
+    def to_html(self):
+        opening = self._kwargs['opening']
+        return '<blockquote>' if opening else '</blockquote>'
+
+    def to_latex(self):
+        opening = self._kwargs['opening']
+        return r'\begin{quote}' if opening else r'\end{quote}'
+
+
 class Text(MarkdownElement):
     (
         TEXT_TYPE, SECTION_TYPE, TABLE_TYPE, ITEMENUM_TYPE, FOOTNOTE_TYPE,
@@ -1973,11 +1991,23 @@ class MarkdownParser(object):
         self._lines = []  # [(lineno, line), ...]
         self._footnotes = {}  # {label: footnotetext, ...}
 
+        quoting = 0
         e_fin = enumerate(self._fin)  # do this for nested loop
         for lineno, line in e_fin:
             line = line.rstrip(' \t\n')  # keep ^L
             if line.startswith(self.COMMLINE_PAT):
                 continue
+
+            q = QuoteBlock.RE.match(line).end()
+            if quoting < q:
+                for i in range(q-quoting):
+                    self._lines.append((lineno, QuoteBlock(True)))
+            elif quoting > q:
+                for i in range(quoting-q):
+                    self._lines.append((lineno, QuoteBlock(False)))
+
+            line = line[q:]
+            quoting = q
 
             if line.startswith(self.COMMBLOCKBEGIN_PAT):
                 opened = 1
@@ -2096,6 +2126,11 @@ class MarkdownParser(object):
 
             self._lines.append((lineno, line))
 
+        if quoting:
+            for i in range(quoting):
+                self._lines.append((lineno, QuoteBlock(False)))
+
+
     def _parse(self):
         """Parse the contents in given file.  We do not parse with
         scanning the file, but with iterating the list of lines that is
@@ -2106,6 +2141,10 @@ class MarkdownParser(object):
 
         lines = iter(self._lines)
         for lineno, line in lines:
+            if isinstance(line, QuoteBlock):
+                self._parsed.append(line)
+                continue
+
             if line in ('\f', '\f\f'):
                 self._parsed.append(
                     Control([(lineno, line)], self._footnotes, self._filename)
