@@ -1683,7 +1683,7 @@ class ShellBlock(MarkdownElement):
                 span = '<span style="'
                 if (
                         'fg' in attrs and isinstance(attrs['fg'], str)
-                        and attrs['fg'].isalpha() and 'bg' in attrs
+                        and attrs['fg'].isalpha() and 'bd' in attrs
                         and not attrs['fg'].startswith('bright')
                 ):
                     attrs['fg'] = 'bright ' + attrs['fg']
