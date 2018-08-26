@@ -111,6 +111,7 @@ $ make install
 ## その他有用なものたちのインストール
 #_
 $ sudo yum install php
+$ sudo yum install mawk
 #_
 @[LaTeX]@も早いうちに入れよう．
 
