@@ -7,22 +7,23 @@
 #include <functional>
 #include <limits>
 
-// #define RELEASE
+#define RELEASE
 #ifdef RELEASE
 #  define fprintf(...) void(0)
 #endif  /* RELEASE */
 
-template <class T>
+template <class Tp>
 class RedBlackTree {
-  static constexpr T MAX=std::numeric_limits<T>::max();
+  // static constexpr Tp MAX=std::numeric_limits<Tp>::max();
+  static constexpr Tp MAX{0, 0};
 
-  size_t size_=0;
+public:
   struct Node {
     Node *children[2]={nullptr, nullptr}, *parent=nullptr;
-    T value, mins[2]={MAX, MAX};
+    Tp value, mins[2]={MAX, MAX};
     size_t lnum=0;
     enum Color { RED, BLACK } color=RED;
-    Node(const T &x): value(x) {}
+    Node(const Tp &x): value(x) {}
 
     const Node *successor() const {
       const Node *cur=this;
@@ -52,6 +53,34 @@ class RedBlackTree {
       }
     }
 
+    const Node *predecessor() const {
+      const Node *cur=this;
+      if (children[0]) {
+        cur = cur->children[0];
+        while (cur->children[1]) cur = cur->children[1];
+        return cur;
+      }
+      while (true) {
+        if (!cur->parent) return nullptr;
+        if (cur == cur->parent->children[1]) return cur->parent;
+        cur = cur->parent;
+      }
+    }
+
+    Node *predecessor() {
+      Node *cur=this;
+      if (children[0]) {
+        cur = cur->children[0];
+        while (cur->children[1]) cur = cur->children[1];
+        return cur;
+      }
+      while (true) {
+        if (!cur->parent) return nullptr;
+        if (cur == cur->parent->children[1]) return cur->parent;
+        cur = cur->parent;
+      }
+    }
+
     const Node *root() const {
       const Node *cur=this;
       while (cur->parent) cur = cur->parent;
@@ -69,7 +98,11 @@ class RedBlackTree {
       while (cur->children[1]) cur = cur->children[1];
       return cur;
     }
-  } *root=nullptr;
+  };
+
+private:
+  Node *root=nullptr;
+  size_t size_=0;
 
   RedBlackTree(Node *root): root(root) {
     if (!root) {
@@ -93,48 +126,12 @@ class RedBlackTree {
     return res;
   }
 
-  const Node *first() const {
-    if (!root) return nullptr;
-    const Node *cur=root;
-    while (cur->children[0]) cur = cur->children[0];
-    return cur;
-  }
-
-  Node *first() {
-    if (!root) return nullptr;
-    Node *cur=root;
-    while (cur->children[0]) cur = cur->children[0];
-    return cur;
-  }
-
-  const Node *last() const {
-    if (!root) return nullptr;
-    const Node *cur=root;
-    while (cur->children[1]) cur = cur->children[1];
-    return cur;
-  }
-
-  Node *last() {
-    if (!root) return nullptr;
-    Node *cur=root;
-    while (cur->children[1]) cur = cur->children[1];
-    return cur;
-  }
-
-  const Node *successor(const Node *cur) const {
-    return cur->successor();
-  }
-
-  Node *successor(Node *cur) {
-    return cur->successor();
-  }
-
   void swap(RedBlackTree &oth) {
     std::swap(size_, oth.size_);
     std::swap(root, oth.root);
   }
 
-  T submin(Node *subroot) const {
+  Tp submin(Node *subroot) const {
     if (!subroot) return MAX;
     return std::min({subroot->mins[0], subroot->value, subroot->mins[1]});
   }
@@ -276,7 +273,7 @@ class RedBlackTree {
   void reset_min(Node *cur) {
     // cur keeps intact
     assert(cur);
-    T min;
+    Tp min;
     while (cur->parent) {
       min = std::min({cur->mins[0], cur->value, cur->mins[1]});
       cur->parent->mins[cur == cur->parent->children[1]] = min;
@@ -286,7 +283,7 @@ class RedBlackTree {
 
   void reset_min() {
     // resets all mins
-    std::function<T (Node *)> dfs=[&](Node *subroot) {
+    std::function<Tp (Node *)> dfs=[&](Node *subroot) {
       if (!subroot) return MAX;
 
       subroot->mins[0] = dfs(subroot->children[0]);
@@ -296,14 +293,14 @@ class RedBlackTree {
     dfs(root);
   }
 
-  T min(const Node *subroot, size_t il, size_t ir) const {
+  Tp min(const Node *subroot, size_t il, size_t ir) const {
     // minimum value over [il, ir] (inclusive)
     assert(subroot);
 
     if (!subroot->children[0] && ir == 0)
       return subroot->value;
 
-    T res=MAX;
+    Tp res=MAX;
     size_t lnum=subroot->lnum;
     if (il == 0 && ir >= lnum) {
       res = std::min(res, subroot->mins[0]);
@@ -338,19 +335,6 @@ class RedBlackTree {
     size_ = 0;
   }
 
-  Node *node_at(size_t i) {
-    Node *res=root;
-    while (res->lnum != i) {
-      if (res->lnum < i) {
-        i -= res->lnum+1;
-        res = res->children[1];
-      } else {
-        res = res->children[0];
-      }
-    }
-    return res;
-  }
-
 public:
   RedBlackTree() = default;
 
@@ -371,8 +355,62 @@ public:
     reset_min();
   }
 
+  RedBlackTree(size_t n, Tp value=Tp()) {
+    root = new Node(value);
+    root->color = Node::BLACK;
+    Node *prev=root;
+    for (size_t i=0; i<n; ++i) {
+      Node *node=new Node(value);
+      assert(node->color == Node::RED);
+      prev->children[1] = node;
+      node->parent = prev;
+      insert_fixup(node);
+      prev = node;
+    }
+    size_ = n;
+    reset_min();
+  }
+
+  struct Node;
+
   size_t size() const {
     return size_;
+  }
+
+  const Node *first() const {
+    if (!root) return nullptr;
+    const Node *cur=root;
+    while (cur->children[0]) cur = cur->children[0];
+    return cur;
+  }
+
+  Node *first() {
+    if (!root) return nullptr;
+    Node *cur=root;
+    while (cur->children[0]) cur = cur->children[0];
+    return cur;
+  }
+
+  const Node *last() const {
+    if (!root) return nullptr;
+    const Node *cur=root;
+    while (cur->children[1]) cur = cur->children[1];
+    return cur;
+  }
+
+  Node *last() {
+    if (!root) return nullptr;
+    Node *cur=root;
+    while (cur->children[1]) cur = cur->children[1];
+    return cur;
+  }
+
+  const Node *successor(const Node *cur) const {
+    return cur->successor();
+  }
+
+  Node *successor(Node *cur) {
+    return cur->successor();
   }
 
   Node *insert_front(Node *node) {
@@ -399,7 +437,7 @@ public:
     return root;
   }
 
-  Node *insert_front(const T &x) {
+  Node *insert_front(const Tp &x) {
     return insert_front(new Node(x));
   }
 
@@ -422,7 +460,7 @@ public:
     return root;
   }
 
-  Node *insert_back(const T &x) {
+  Node *insert_back(const Tp &x) {
     return insert_back(new Node(x));
   }
 
@@ -668,7 +706,20 @@ public:
     return {left, right};
   }
 
-  Node *node_at(size_t pos, const T &val) {
+  Node *node_at(size_t i) {
+    Node *res=root;
+    while (res->lnum != i) {
+      if (res->lnum < i) {
+        i -= res->lnum+1;
+        res = res->children[1];
+      } else {
+        res = res->children[0];
+      }
+    }
+    return res;
+  }
+
+  Node *node_at(size_t pos, const Tp &val) {
     Node *node=node_at(pos);
     node->value = val;
     reset_min(node);
@@ -677,7 +728,6 @@ public:
 
   Node *cshift(size_t il, size_t ir) {
 #if 1  /* insert/erase-based circular shift */
-    /* XXX */
     Node *mr=node_at(ir);
     erase(mr);
     if (il == 0) {
@@ -704,8 +754,25 @@ public:
 #endif
   }
 
-  T min(size_t il, size_t ir) const {
+  Tp min(size_t il, size_t ir) const {
     return min(root, il, ir);
+  }
+
+  template <class Compare>
+  Node *upper_bound(const Node &node, Compare comp) {
+    if (root == nullptr) return nullptr;
+    Node *res=root;
+    while (true) {
+      int dir=(!(comp(node.value, res->value)));
+      Node *tmp=res->children[dir];
+      if (tmp == nullptr) {
+        break;
+      }
+      res = tmp;
+    }
+    if (!comp(node.value, res->value))
+      return res->successor();
+    return res;
   }
 
   /************************ Debug functions ************************/
@@ -762,13 +829,13 @@ public:
 
       if (right) dfs(right, depth+1, bh);
 
-      // XXX only suitable for [T = int]
-      fprintf(stderr, "%zu\t%s%*s%d%s (%zu) [%zu] {%d, %d}%s\n",
+      // XXX only suitable for [Tp = ???]
+      fprintf(stderr, "%zu\t%s%*s(%jd, %zu)%s (%zu) [%zu]%s\n",
               size_-1-i,
               is_red(subroot)? "\x1b[31;1m":"\x1b[37;1m",
-              depth*2+2, "  ", subroot->value,
+              depth*2+2, "  ",
+              subroot->value.first, subroot->value.second,
               "\x1b[0m", bh, subroot->lnum, 
-              subroot->mins[0], subroot->mins[1],
               (left && right)? "":" *");
 
       ++i;
@@ -783,35 +850,5 @@ public:
   }
   /************************ End of debug functions ************************/
 };
-
-int main() {
-  size_t n;
-  int q;
-  scanf("%zu %d", &n, &q);
-
-  std::vector<int> a(n);
-  for (size_t i=0; i<n; ++i)
-    scanf("%d", &a[i]);
-
-  RedBlackTree<int> rb(a.begin(), a.end());
-
-  for (int i=0; i<q; ++i) {
-    int t;
-    scanf("%d", &t);
-
-    if (t == 0) {
-      size_t l, r;
-      scanf("%zu %zu", &l, &r);
-      rb.cshift(l, r);
-    } else if (t == 1) {
-      size_t l, r;
-      scanf("%zu %zu", &l, &r);
-      printf("%d\n", rb.min(l, r));
-    } else if (t == 2) {
-      size_t pos;
-      int val;
-      scanf("%zu %d", &pos, &val);
-      rb.node_at(pos, val);
-    }
-  }
-}
+template <class Tp>
+constexpr Tp RedBlackTree<Tp>::MAX;
