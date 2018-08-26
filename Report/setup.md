@@ -204,10 +204,17 @@ export LESS=Fr
 stty rprnt undef stop undef werase undef kill undef
 #`
 デフォルトに戻す場合は以下の通り．
-#`[~/.bashrc]
-stty rprnt \^r stop \^s werase \^w kill \^u
-#`
+#_
+$ stty rprnt \^r stop \^s werase \^w kill \^u
+#_
 履歴展開が有効な場合に`^`が暴発しないように注意．
+また，個別に以下のようにしてもよい．
+#_
+$ stty rprnt \^r
+$ stty stop \^s
+$ stty werase \^w
+$ stty kill \^u
+#_
 
 ### `inputrc`の編集
 #`[~/.inputrc]
