@@ -12,6 +12,10 @@
 #  define fprintf(...) void(0)
 #endif  /* RELEASE */
 
+// TODO: implement iterators
+//     : make interface like STL
+//     : make output of verify() take care of Tp
+
 template <class Tp>
 class RedBlackTree {
   // static constexpr Tp MAX=std::numeric_limits<Tp>::max();
