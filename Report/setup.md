@@ -44,6 +44,12 @@ $ make && make install
 #_
 `prefix`は`$(HOME)`になっているので，`$PATH`を見てちゃんと新しいのが実行されるかを確認する．
 
+`GIT_EDITOR`などを適宜変更しよう．
+#_
+$ man git-var
+#_
+を参考にするとよい．
+
 ## `vim`のアップグレード
 #_
 $ sudo yum install libX11-devel libXt-devel gtk2-devel ncurses-devel
@@ -102,11 +108,34 @@ $ cp doc/bash.1 ~/usr/share/man/man1/
 $ curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz
 $ tar xvf gcc-8.2.0.tar.xz
 $ cd gcc-8.2.0/
-$ slack-dog ./contrib/download_prerequisites
+$ ./contrib/download_prerequisites
 $ ./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3
 $ make -j4 BOOT_CFLAGS='-march=native -O3'
 $ make install
 #_
+
+`-fsanitize=undefined`つきでコンパイルしたファイルを正しく実行するためには`libubsan.so`が必要．
+また，システムにあるライブラリが古くて以下のようなエラーが出ることがある．
+#_
+$ ./a.out
+- ./a.out: /lib64/libstdc++.so.6: version `CXXABI_1.3.9' not found (required by ./a.out)
+#_
+これらを回避するために，以下を`LD_LIBRARY_PATH`に追加するとよい．
+- `$HOME/lib64/`
+- `$HOME/Downloads/gcc-8.2.0/x86_64-redhat-linux/libsanitizer/ubsan/.libs/`
+  - これは正しい策なのか微妙？
+
+
+また，一般にパスを追加する際に以下のようにするのは危険に思われる．
+#`[~/.bashrc]
+PATH=/new/path/to/dir:$PATH
+#`
+`$PATH`が空のときにカレントディレクトリが含まれてしまうためである（ヒント：`::`または先頭・末尾の`:`によって表される空ディレクトリ名は`.`を意味する）．
+`$PATH`が空でないときのみ`:`に展開する記法を用いて以下のようにしたい．
+#`[~/.bashrc]
+PATH=/new/path/to/dir${PATH:+:}$PATH
+#`
+また，`"..."`で囲まないことについては，空白除去が行われない感じなので問題ない気がする．
 
 ## その他有用なものたちのインストール
 #_
@@ -514,9 +543,9 @@ cflags="-Wall -O3 -fsanitize=undefined"
 CFLAGS="$cflags $CFLAGS $@"
 CXXFLAGS="$cflags $CXXFLAGS $@"
 
-src=$(latest -s'c|cxx|cc|C|cpp') \
+src="$(latest -s'c|cxx|cc|C|cpp')" \
     || { echo no source files found. >&2; exit; }
-make CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ${src%.*}
+make CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" "${src%.*}"
 #`
 
 最新の実行ファイルを実行する．俗にいう`a`に対応するスクリプト．必ずしも`./a.out`とは限らないファイルを実行できる．

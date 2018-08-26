@@ -69,6 +69,11 @@
 <span class="cmd-in">make &amp;&amp; make install</pre><p><code>prefix</code>は<code>$(HOME)</code>になっているので，<code>$PATH</code>を見てちゃんと新しいのが実行されるかを確認する．
 </p>
 
+<p><code>GIT_EDITOR</code>などを適宜変更しよう．
+</p>
+<pre><span class="cmd-in">man git-var</pre><p>を参考にするとよい．
+</p>
+
 <h2><code>vim</code>のアップグレード</h2>
 <pre><span class="cmd-in">sudo yum install libX11-devel libXt-devel gtk2-devel ncurses-devel</pre><p><code>atk-devel</code>も依存している？
 </p>
@@ -111,10 +116,34 @@
 <pre><span class="cmd-in">curl http://ftp.tsukuba.wide.ad.jp/software/gcc/releases/gcc-8.2.0/gcc-8.2.0.tar.xz -o gcc-8.2.0.tar.xz</span>
 <span class="cmd-in">tar xvf gcc-8.2.0.tar.xz</span>
 <span class="cmd-in">cd gcc-8.2.0/</span>
-<span class="cmd-in">slack-dog ./contrib/download_prerequisites</span>
+<span class="cmd-in">./contrib/download_prerequisites</span>
 <span class="cmd-in">./configure --prefix=$HOME --build=x86_64-redhat-linux --program-suffix=-8.2 --disable-multilib --enable-languages=c,c++ C{,XX}FLAGS=-O3</span>
 <span class="cmd-in">make -j4 BOOT_CFLAGS=&#x27;-march=native -O3&#x27;</span>
 <span class="cmd-in">make install</pre>
+<p><code>-fsanitize=undefined</code>つきでコンパイルしたファイルを正しく実行するためには<code>libubsan.so</code>が必要．
+また，システムにあるライブラリが古くて以下のようなエラーが出ることがある．
+</p>
+<pre><span class="cmd-in">./a.out</span>
+<span class="cmd-out"><span>./a.out: /lib64/libstdc++.so.6: version `CXXABI_1.3.9&#x27; not found (required by ./a.out)</span></span></pre><p>これらを回避するために，以下を<code>LD_LIBRARY_PATH</code>に追加するとよい．
+</p>
+<ul>
+  <li><code>$HOME/lib64/</code></li>
+  <li><code>$HOME/Downloads/gcc-8.2.0/x86_64-redhat-linux/libsanitizer/ubsan/.libs/</code></li>
+  <ul>
+    <li>これは正しい策なのか微妙？</li>
+  </ul>
+</ul>
+
+<p>また，一般にパスを追加する際に以下のようにするのは危険に思われる．
+</p>
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0">PATH=/new/path/to/dir:$PATH</div></pre>
+<p><code>$PATH</code>が空のときにカレントディレクトリが含まれてしまうためである（ヒント：<code>::</code>または先頭・末尾の<code>:</code>によって表される空ディレクトリ名は<code>.</code>を意味する）．
+<code>$PATH</code>が空でないときのみ<code>:</code>に展開する記法を用いて以下のようにしたい．
+</p>
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0">PATH=/new/path/to/dir${PATH:+:}$PATH</div></pre>
+<p>また，<code>&quot;...&quot;</code>で囲まないことについては，空白除去が行われない感じなので問題ない気がする．
+</p>
+
 <h2>その他有用なものたちのインストール</h2>
 <pre><span class="cmd-in">sudo yum install php</span>
 <span class="cmd-in">sudo yum install mawk</span>
@@ -503,9 +532,9 @@ cflags=&quot;-Wall -O3 -fsanitize=undefined&quot;
 CFLAGS=&quot;$cflags $CFLAGS $@&quot;
 CXXFLAGS=&quot;$cflags $CXXFLAGS $@&quot;
 
-src=$(latest -s&#x27;c|cxx|cc|C|cpp&#x27;) \
+src=&quot;$(latest -s&#x27;c|cxx|cc|C|cpp&#x27;)&quot; \
     || { echo no source files found. &gt;&amp;2; exit; }
-make CC=&quot;$CC&quot; CXX=&quot;$CXX&quot; CFLAGS=&quot;$CFLAGS&quot; CXXFLAGS=&quot;$CXXFLAGS&quot; ${src%.*}</div></pre>
+make CC=&quot;$CC&quot; CXX=&quot;$CXX&quot; CFLAGS=&quot;$CFLAGS&quot; CXXFLAGS=&quot;$CXXFLAGS&quot; &quot;${src%.*}&quot;</div></pre>
 
 <p>最新の実行ファイルを実行する．俗にいう<code>a</code>に対応するスクリプト．必ずしも<code>./a.out</code>とは限らないファイルを実行できる．
 </p>
