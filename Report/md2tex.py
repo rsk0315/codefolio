@@ -234,7 +234,8 @@ class SpecialText(MarkdownElement):
     # We may fail: "*a ,*b", "a\,b"
     COMMA_RE = re.compile(
         r"""
-        (?P<COMMA>\s*(?P<DOT>[,;:.])\s*)
+        (?P<COMMA>\s*(?P<DOT>,)\s*) 
+        # false positive of [,.:;] is annoying
         """, flags=re.VERBOSE
     )
 
@@ -356,7 +357,8 @@ class Text(MarkdownElement):
         | (?P<MATH>\$+)
         | (?P<SPECIAL>"""+SpecialText.RE+')', flags=re.VERBOSE
     )
-    AT_CMD_RE = re.compile(r"""\[(?P<NAME>[\w:#-]+)\]""")
+    # AT_CMD_RE = re.compile(r"""\[(?P<NAME>[\w:#-]+)\]""")
+    AT_CMD_RE = re.compile(r"""\[(?P<NAME>[^]]+)\]""")
 
 
     def __init__(
@@ -498,7 +500,9 @@ class Text(MarkdownElement):
         while spc_m is not None:
             start, end = spc_m.span()
             len_ = end-start
-            self._parsed.append((self.NORMAL, line[offset:start]))
+            if offset < start:
+                self._parsed.append((self.NORMAL, line[offset:start]))
+
             offset = end
             if sep is not None and spc_m.start('SEPARATOR') > -1:
                 self._parsed.append((self.SEPARATOR, sep))
@@ -851,16 +855,17 @@ class Text(MarkdownElement):
         return res
 
     def to_html(self, sep=None, align=None):
-        res = ''
-        count_seps = 0
-        num_seps = self.num_seps()
-        emph_flags = 0  # EMPH_TYPE
-        at_flags = []
         ALIGN_STYLE = {
             'l': 'left',
             'c': 'center',
             'r': 'right',
         }
+        res = ''
+        count_seps = 0
+        num_seps = self.num_seps()
+        emph_flags = 0  # EMPH_TYPE
+        at_flags = []
+        last = (None, None)
 
         if align is not None:
             al = iter(align)
@@ -911,9 +916,16 @@ class Text(MarkdownElement):
                 if snippet == self.CLOSE:
                     if at_flags[-1] == 'align':
                         res += '\\]'
+                    elif at_flags[-1].startswith('url:'):
+                        if last[0] == self.AT_CMD and last[1] != self.CLOSE:
+                            res += html.escape(at_flags[-1][4:])
+
+                        res += '</a>'
                     elif at_flags[-1] not in ('TeX', 'LaTeX', 'LaTeXe'):
                         res += '</span>'
+
                     at_flags.pop()
+                    last = (kind, snippet)
                     continue
 
                 at_flags.append(snippet)
@@ -940,6 +952,9 @@ class Text(MarkdownElement):
                     res += 'T<sub>e</sub>X</span>'
                     if snippet[-1] == 'e':
                         res += ' 2<sub style="font-size:1em">&epsilon;</sub>'
+                elif snippet.startswith('url:'):
+                    # need more sanitizing?
+                    res += '<a href="' + html.escape(snippet[4:]) + '">'
                 else:
                     assert False
 
@@ -963,6 +978,8 @@ class Text(MarkdownElement):
 
             else:
                 raise KeyError(kind)
+
+            last = (kind, snippet)
 
         res += '\n'
         return res
