@@ -142,6 +142,7 @@ PATH=/new/path/to/dir${PATH:+:}$PATH
 $ sudo yum install php
 $ sudo yum install mawk
 $ sudo yum install ruby ruby-devel
+$ sudo yum install xsel
 #_
 @[LaTeX]@も早いうちに入れよう．
 
