@@ -125,7 +125,7 @@ span.tt:after {
     padding: 0 6px;
     font-size: 12px;
     color: #333;
-    /* cursor: pointer; */
+    cursor: pointer;
     background-color: rgba(0,0,0,.07);
     /* border: 1px solid #ccc; */
     border-radius: 0 4px 0 4px;
