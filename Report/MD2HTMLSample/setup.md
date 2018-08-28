@@ -122,8 +122,6 @@ $ ./a.out
 #_
 これらを回避するために，以下を`LD_LIBRARY_PATH`に追加するとよい．
 - `$HOME/lib64/`
-- `$HOME/Downloads/gcc-8.2.0/x86_64-redhat-linux/libsanitizer/ubsan/.libs/`
-  - これは正しい策なのか微妙？
 
 
 また，一般にパスを追加する際に以下のようにするのは危険に思われる．
