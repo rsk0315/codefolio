@@ -120,13 +120,11 @@ $ make install
 $ ./a.out
 - ./a.out: /lib64/libstdc++.so.6: version `CXXABI_1.3.9' not found (required by ./a.out)
 #_
-これらを回避するために，以下を`LD_LIBRARY_PATH`に追加するとよい．
-- `$HOME/lib64/`
-
+これらを回避するために，`$HOME/lib64/`を`LD_LIBRARY_PATH`に追加するとよい．
 
 また，一般にパスを追加する際に以下のようにするのは危険に思われる．
 #`[~/.bashrc]
-PATH=/new/path/to/dir:$PATH
+# PATH=/new/path/to/dir:$PATH  # bad?
 #`
 `$PATH`が空のときにカレントディレクトリが含まれてしまうためである（ヒント：`::`または先頭・末尾の`:`によって表される空ディレクトリ名は`.`を意味する）．
 `$PATH`が空でないときのみ`:`に展開する記法を用いて以下のようにしたい．

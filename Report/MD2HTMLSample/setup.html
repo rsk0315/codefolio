@@ -124,15 +124,12 @@
 また，システムにあるライブラリが古くて以下のようなエラーが出ることがある．
 </p>
 <pre><span class="cmd-in">./a.out</span>
-<span class="cmd-out"><span>./a.out: /lib64/libstdc++.so.6: version `CXXABI_1.3.9&#x27; not found (required by ./a.out)</span></span></pre><p>これらを回避するために，以下を<code>LD_LIBRARY_PATH</code>に追加するとよい．
+<span class="cmd-out"><span>./a.out: /lib64/libstdc++.so.6: version `CXXABI_1.3.9&#x27; not found (required by ./a.out)</span></span></pre><p>これらを回避するために，<code>$HOME/lib64/</code>を<code>LD_LIBRARY_PATH</code>に追加するとよい．
 </p>
-<ul>
-  <li><code>$HOME/lib64/</code></li>
-</ul>
 
 <p>また，一般にパスを追加する際に以下のようにするのは危険に思われる．
 </p>
-<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0">PATH=/new/path/to/dir:$PATH</div></pre>
+<pre class="sourcecode" filename="~/.bashrc"><div style="margin:1.2em 0 0 0"># PATH=/new/path/to/dir:$PATH  # bad?</div></pre>
 <p><code>$PATH</code>が空のときにカレントディレクトリが含まれてしまうためである（ヒント：<code>::</code>または先頭・末尾の<code>:</code>によって表される空ディレクトリ名は<code>.</code>を意味する）．
 <code>$PATH</code>が空でないときのみ<code>:</code>に展開する記法を用いて以下のようにしたい．
 </p>
