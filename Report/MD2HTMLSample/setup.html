@@ -194,7 +194,21 @@ export LESS=Fr</div></pre>
   <li><code>less -F</code>：一画面で収まるならそのまま表示</li>
   <li><code>less -r</code>：エスケープシーケンスを解釈</li>
 </ul>
+<h3>補完の設定</h3>
+<p><code>Tab</code>などによる補完の設定．
+</p>
 
+<p>何かしらの原因で，空行で補完を試みると<code>bash: words: bad array subscript</code>のようなエラーが起きることがある．
+空行での補完を無効化すると抑止できるので，それをする．
+</p>
+
+<p>また，バックアップファイルなどが補完されると厄介なので，<code>FIGNORE</code>によってそれを防ぐ．
+</p>
+
+<pre># Completion configurations
+completion_loader () { return 124; }
+complete -EF completion_loader +o {bashdefault,deafult}
+export FIGNORE=.o:~:#${FIGNORE:+:}$FIGINORE</pre>
 <h3>キーバインドの補助設定</h3>
 <p><code>C-s</code>などが期待通りに動作するようにする．
 </p>
