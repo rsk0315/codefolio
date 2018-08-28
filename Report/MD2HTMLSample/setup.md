@@ -293,6 +293,8 @@ emacsの初期化ファイル．
 " バックスペースの挙動
 :set backspace=eol,start,indent
 #`
+
+`vimrc`が長い方がえらいと思っている人たちは正気ですか？
   
 ## `gitconfig`の編集
 パラメータなどについては以下を参照．
