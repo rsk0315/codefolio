@@ -1498,8 +1498,17 @@ class ItemEnum(MarkdownElement):
 
 
 class CodeBlock(MarkdownElement):
-    PAT = '#`'
-    RE = re.compile(r'(?P<PREFIX>#`+)(?:\[(?P<NAME>.+)\])?')
+    RE = re.compile(
+        r'''
+        (?P<PREFIX>\#`+|```)
+        (?:
+            (?P<B>\[)?
+            (?P<NAME>.+)
+            (?(B)\])
+        )?
+        ''',
+        flags=re.VERBOSE
+    )
 
     def _parse(self):
         self._parsed = [line for lineno, line in self._lines_withno]
@@ -1516,7 +1525,7 @@ class CodeBlock(MarkdownElement):
         res = html.escape('\n'.join(self._parsed), quote=True)
 
         if not self._kwargs['name']:
-            return '<pre>' + res + '</pre>'
+            return '<pre>' + res + '</pre>\n'
 
         return (
             '<pre class="sourcecode" filename="' + self._kwargs['name']
@@ -2070,7 +2079,7 @@ class MarkdownParser(object):
 
                 continue
 
-            if line.startswith(CodeBlock.PAT):
+            if CodeBlock.RE.fullmatch(line):
                 pre_lineno = lineno
                 m = CodeBlock.RE.fullmatch(line)
                 if m is None:
@@ -2198,7 +2207,7 @@ class MarkdownParser(object):
                 )
                 continue
 
-            if line.startswith(CodeBlock.PAT):
+            if CodeBlock.RE.fullmatch(line):
                 m = CodeBlock.RE.fullmatch(line)
                 if m is None:
                     raise MarkdownSyntaxError(
