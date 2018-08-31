@@ -161,11 +161,11 @@ class Agent(object):
         })
 
         if trace:
-            pid = os.fork()
-            if pid == 0:
-                self.trace(cid)
+            pid_ = os.fork()
+            if pid_ == 0:
+                self.trace(pid, cid)
 
-    def trace(self, cid):
+    def trace(self, pid, cid):
         mysub_page = self.s.get(
             'https://beta.atcoder.jp/contests/{}/submissions/me'.format(cid)
         )
@@ -186,7 +186,9 @@ class Agent(object):
             if status != 'WJ' and '/' not in status: break
             sleep(5)
 
-        os.system('notify-send Terminal "{} (#{})"'.format(status, sid))
+        os.system('notify-send {} "{} (#{})"'.format(
+            pid, status, sid
+        ))
         alert = (ALERT_OK if status == 'AC' else ALERT_BAD)
         os.system('paplay '+alert)
 
@@ -222,14 +224,14 @@ class Agent(object):
         return prefix
 
     @classmethod
-    def _guess_cid(cls, cid):
-        m = re.fullmatch(r'(a[bgpr]c\d{3})_[A-Za-z\d]', cid)
+    def _guess_cid(cls, pid):
+        m = re.fullmatch(r'(a[bgpr]c\d{3})_[A-Za-z\d]', pid)
         if m is not None:
             return m.group(1)
 
-        m = re.fullmatch(r'(.+)_[A-Za-z\d]', cid)
-        if m is None:
-            raise KeyError  # ValueError ???
+        m = re.fullmatch(r'(.+)_[A-Za-z\d]', pid)
+        # if m is None:
+        #     raise KeyError  # ValueError ???
 
         # XXX not always this works
         # ??? try access -> ask to user ???
