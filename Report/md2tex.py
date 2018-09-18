@@ -1691,7 +1691,14 @@ class ShellBlock(MarkdownElement):
         raise NotImplementedError
 
     def to_html(self):
-        res = '<pre>'
+        if self._kwargs['style']:
+            fg, bg = self._kwargs['style']
+            res = '<pre style="color:{}; background-color:{}">'.format(
+                html.escape(fg), html.escape(bg)  # in case
+            )
+        else:
+            res = '<pre>'
+
         last = '0'
         attrs = {}
         for type_, param in self._parsed:
@@ -2114,7 +2121,7 @@ class MarkdownParser(object):
                 for lineno, line in e_fin:
                     line = line.rstrip()
                     self._lines.append((lineno, line))
-                    if line == pre_line:
+                    if line.startswith(ShellBlock.PAT):
                         break
 
                 else:
@@ -2255,12 +2262,16 @@ class MarkdownParser(object):
                 pre_line = line
                 lines_withno = []
                 for lineno, line in lines:
-                    if line == pre_line:
+                    if line.startswith(ShellBlock.PAT):
                         break
+
                     lines_withno.append((lineno, line))
 
                 self._parsed.append(
-                    ShellBlock(lines_withno, self._footnotes, self._filename)
+                    ShellBlock(
+                        lines_withno, self._footnotes, self._filename,
+                        style=pre_line.split(':')[1:]
+                    )
                 )
                 continue
 
