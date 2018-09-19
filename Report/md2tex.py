@@ -2355,7 +2355,8 @@ LATEX_PREAMBLE = r"""\documentclass[a4paper]{jsarticle}
 % math
 \usepackage{euler}
 \usepackage{amsmath}
-\thinmuskip=6mu
+\usepackage{amssymb}
+\thinmuskip=5mu
 \SetMathAlphabet{\mathrm}{normal}{T1}{ccr}{m}{n}
 \DeclareSymbolFont{concreteop}{T1}{ccr}{m}{n}
 \makeatletter
