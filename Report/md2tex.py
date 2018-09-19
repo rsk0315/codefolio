@@ -829,6 +829,8 @@ class Text(MarkdownElement):
                     res += '{{\\color{{{}}}'.format(snippet[6:])
                 elif snippet in ('TeX', 'LaTeX', 'LaTeXe'):
                     res += '\\' + snippet + '{'
+                elif snippet.startswith('url:'):
+                    res += '\\url{' + snippet[4:] + '}{'  # XXX
                 else:
                     assert False
 
