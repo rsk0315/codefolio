@@ -1527,11 +1527,12 @@ class CodeBlock(MarkdownElement):
         res = html.escape('\n'.join(self._parsed), quote=True)
 
         if not self._kwargs['name']:
-            return '<pre>' + res + '</pre>\n'
+            # return '<pre>' + res + '</pre>\n'
+            return '<div><pre>' + res + '</pre></div>\n'
 
         return (
-            '<pre class="sourcecode" filename="' + self._kwargs['name']
-            + '"><div style="margin:1.2em 0 0 0">' + res + '</div></pre>\n'
+            '<div><pre class="sourcecode" filename="' + self._kwargs['name']
+            + '"><div style="margin:1.2em 0 0 0">' + res + '</div></pre></div>\n'
         )
 
 
@@ -1695,11 +1696,12 @@ class ShellBlock(MarkdownElement):
     def to_html(self):
         if self._kwargs['style']:
             fg, bg = self._kwargs['style']
-            res = '<pre style="color:{}; background-color:{}">'.format(
-                html.escape(fg), html.escape(bg)  # in case
-            )
         else:
-            res = '<pre>'
+            fg, bg = '#f3f3f3', '#2e3436'
+
+        res = '<div><pre style="color:{}; background-color:{}">'.format(
+            html.escape(fg), html.escape(bg)  # in case
+        )
 
         last = '0'
         attrs = {}
@@ -1765,7 +1767,10 @@ class ShellBlock(MarkdownElement):
 
         if last == '-':
             res += '</span></span>'
-        res += '</pre>'
+        else:
+            res += '</span>'
+
+        res += '</pre></div>\n'
         return res
 
         res = '<pre>'
@@ -1804,7 +1809,7 @@ class ShellBlock(MarkdownElement):
             res, tmp = res[:-8], res[-8:]
             assert tmp == '\n</span>'
 
-        res += '</pre>\n'
+        res += '</pre></div>\n'
         return res
 
 
@@ -1885,6 +1890,22 @@ class RawText(MarkdownElement):
 
     def to_html(self):
         return '\n'.join(self._parsed) + '\n'
+
+
+class AlignedMath(MarkdownElement):
+    OPENPAT, CLOSEPAT = '#[', '#]'
+
+    def _parse(self):
+        self._parsed = [line for lineno, line in self._lines_withno]
+
+    def to_latex(self):
+        res = '\\begin{eqnarray*}\n'
+        res += '\n'.join(self._parsed)
+        res += '\n\\end{eqnarray*}\n'
+        return res
+
+    def to_html(self):
+        raise NotImplementedError
 
 
 # ---- Parser ------------
@@ -2135,7 +2156,29 @@ class MarkdownParser(object):
                         )
                     )
 
-                continue                
+                continue
+
+            if line.startswith(AlignedMath.OPENPAT):
+                pre_lineno = lineno
+                pre_line = line
+                self._lines.append((lineno, line))
+                for lineno, line in e_fin:
+                    line = line.rstrip()
+                    self._lines.append((lineno, line))
+                    if line.startswith(AlignedMath.CLOSEPAT):
+                        break
+                else:
+                    raise MarkdownSyntaxError(
+                        'unclosed aligned math environment',
+                        (
+                            self._filename, pre_lineno, 0, len(pre_line),
+                            pre_line
+                            )
+                        )
+
+                continue
+
+            # Add here
 
             m = Footnote.RE.match(line)
             if m is not None:
@@ -2277,6 +2320,19 @@ class MarkdownParser(object):
                 )
                 continue
 
+            if line.startswith(AlignedMath.OPENPAT):
+                lines_withno = []
+                for lineno, line in lines:
+                    if line.startswith(AlignedMath.CLOSEPAT):
+                        break
+
+                    lines_withno.append((lineno, line))
+
+                self._parsed.append(
+                    AlignedMath(lines_withno, None, self._filename)
+                )
+                continue
+
             # Add here if new elements are implemented
 
             if line.startswith('#'):
@@ -2377,6 +2433,21 @@ LATEX_PREAMBLE = r"""\documentclass[a4paper]{jsarticle}
 
 % framing
 \usepackage{framed}
+
+% TikZ
+% See https://tex.stackexchange.com/questions/18806
+\def\pgfsysdriver{pgfsys-dvipdfmx.def}
+\usepackage{pgf, tikz}
+\usetikzlibrary{
+  arrows,
+  automata,
+  backgrounds,
+  decorations.pathmorphing,
+  fit,
+  petri,
+  positioning,
+  shapes,
+}
 """
 
 HTML_HEAD = r"""    <meta charset="utf-8">
