@@ -1603,6 +1603,12 @@ class CSISequence(object):
                 self.attrs['it'] = True
             elif p == 4:
                 self.attrs['ul'] = True
+            elif p == 7:
+                # reverse video
+                fg = self.attrs.get('fg', 'fg')
+                bg = self.attrs.get('bg', 'bg')
+                self.attrs['fg'] = bg
+                self.attrs['bg'] = fg
             elif 30 <= p <= 49:
                 p10, p1 = divmod(p, 10)
                 fb = ('fg' if p10 == 3 else 'bg')
@@ -1699,6 +1705,8 @@ class ShellBlock(MarkdownElement):
         else:
             fg, bg = '#f3f3f3', '#2e3436'
 
+        FG, BG = fg, bg  # default color
+
         res = '<div><pre style="color:{}; background-color:{}">'.format(
             html.escape(fg), html.escape(bg)  # in case
         )
@@ -1749,16 +1757,30 @@ class ShellBlock(MarkdownElement):
                     span += ' font-style:italic;'
                 if 'fg' in attrs and attrs['fg'] is not None:
                     fg = attrs['fg']
+                    if fg == 'fg':
+                        fg = FG
+                    elif fg == 'bg':
+                        fg = BG
+
                     span += ' color:#'
                     if isinstance(fg, list):
                         span += '{:02x}{:02x}{:02x};'.format(*fg)
+                    elif fg.startswith('#'):
+                        span += fg[1:] + ';'
                     else:
                         span += self.ANSI_COLORS[fg]+';'
                 if 'bg' in attrs and attrs['bg'] is not None:
                     bg = attrs['bg']
+                    if bg == 'fg':
+                        bg = FG
+                    elif bg == 'bg':
+                        bg = BG
+
                     span += ' background-color:#'
                     if isinstance(bg, list):
                         span += '{:02x}{:02x}{:02x};'.format(*bg)
+                    elif bg.startswith('#'):
+                        span += bg[1:] + ';'
                     else:
                         span += self.ANSI_COLORS[bg]+';'
 
