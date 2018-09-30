@@ -5,7 +5,11 @@
     cursor: pointer;
 }
 .ps1:after {
+    color: #2e3436;
     content: '$';
+}
+.ps1:hover:after {
+    color: #fff;
 }
 .ps1-root:after {
     content: '#';
@@ -23,7 +27,7 @@
 
 .cmd-cont:before {
     border: 1px solid transparent;
-    color: rgba(0, 0, 0, .3);
+    color: rgba(0, 0, 0, .3);  /* FIXME */
     content: '>';
 }
 .cmd-out:before {

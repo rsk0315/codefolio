@@ -125,10 +125,10 @@ span.tt:after {
     padding: 0 6px;
     font-size: 12px;
     color: #333;
-    /* cursor: pointer; */
+    cursor: pointer;
     background-color: rgba(0,0,0,.07);
     /* border: 1px solid #ccc; */
-    border-radius: 0 4px 0 4px;
+    border-radius: 4px 0 4px 0;
     line-height: 23px;
 }
 
@@ -136,7 +136,27 @@ span.tt:after {
     font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-blockquote {
-    font-size: 14px;
-    padding: 0px 10px;
+/* pre { */
+/*     display: block; */
+/*     overflow-x: auto; */
+/*     -webkit-overflow-scrolling: touch; */
+/* } */
+/* pre div { */
+/*     display: block; */
+/*     overflow-x: auto; */
+/*     -webkit-overflow-scrolling: touch; */
+/* } */
+pre {
+    display: block;
+    overflow-x: auto;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    word-wrap: normal;
+    word-break: normal;
+    word-spacing: normal;
+    white-space: pre;
+    hyphens: none;
+    
+    -webkit-overflow-scrolling: auto;
 }
