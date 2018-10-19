@@ -337,10 +337,10 @@ class Text(MarkdownElement):
         TITLE_TYPE, AUTHOR_TYPE
     ) = range(7)
     (
-        NORMAL, ESCAPED, SEPARATOR, NEED_ESCAPE, QUOTES, FOOTNOTE,
+        NORMAL, ESCAPED, SEPARATOR, NEED_ESCAPE, QUOTES, FOOTNOTE, LINK,
         BOLD, ITALIC, AT_CMD, VERBATIM, LATEX, MATH, OTHER
         # XXX small-caps
-    ) = [(1 << i) for i in range(13)]
+    ) = [(1 << i) for i in range(14)]
     OPEN, CLOSE = range(2)
     RE = re.compile(
         r"""
@@ -355,6 +355,10 @@ class Text(MarkdownElement):
         | (?P<AT_CLOSE>@)
         | (?P<LATEX>&+)
         | (?P<MATH>\$+)
+        | (?P<LINK>
+            (?: \[(?P<TITLE>(?:[^\]]|\\.)+)\] )?
+            \( (?P<URI>https?://[^\)]+) \)
+          )
         | (?P<SPECIAL>"""+SpecialText.RE+')', flags=re.VERBOSE
     )
     # AT_CMD_RE = re.compile(r"""\[(?P<NAME>[\w:#-]+)\]""")
@@ -550,6 +554,9 @@ class Text(MarkdownElement):
                         )
                     )
                 )
+
+            elif spc_m.start('LINK') > -1:
+                self._parsed.append((self.LINK, (spc_m.group('URI', 'TITLE'))))
 
             elif spc_m.start('AT_CMD') > -1:
                 # parse @[here]...@
@@ -843,6 +850,10 @@ class Text(MarkdownElement):
             elif kind == self.MATH:
                 res += '$'+snippet+'$'
 
+            elif kind == self.LINK:
+                # raise NotImplementedError
+                pass
+
             elif kind == self.OTHER:
                 res += snippet.to_latex()
 
@@ -974,6 +985,14 @@ class Text(MarkdownElement):
                 snippet = re.sub(r'>(?!\w)', r'\\gt', snippet)
                 snippet = re.sub(r'>', r'\\gt ', snippet)
                 res += ' $' + snippet + '$ '
+
+            elif kind == self.LINK:
+                uri, title = snippet
+                if title is None:
+                    title = uri
+
+                uri, title = map(html.escape, (uri, title))
+                res += f'<a href="{uri}">{title}</a>'
 
             elif kind == self.OTHER:
                 res += snippet.to_html()
