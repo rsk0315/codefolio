@@ -1,0 +1,312 @@
+.\" -*- nroff -*-
+.\" Copyright (c) 2018 by rsk0315
+.\"
+.TH ANSI\ ESCAPE\ CODE 7  2018-10-22 "GNU" "Linux Programmer's Manual"
+.SH NAME
+ANSI escape code \- control sequences in terminal
+.SH DESCRIPTION
+It is a standard for in-band signaling to control the cursor location, color,
+and other options on video text terminals.
+Certain sequences of bytes, most starting with \fBESC\fP and \fB[\fP, are
+embedded into the text, which the terminal looks for and interprets as
+commands, not as character codes.
+.SH "ESCAPE SEQUENCES"
+Sequences have different lengths.
+All sequences start with \fBESC\fP, followed by a second byte in the range
+0x40-0x5F ([\fB@A-Z[\e]^_\fR]).
+.PP
+The standard says that in 8-bit environments these two-byte sequences can be
+merged into single C1 control code in the 0x80-0x9F range.
+However on modern devices those code are often used for other purposes, such as
+parts of UTF-8 or for CP-1252 characters, so only the 2-byte sequence is used.
+.PP
+Other C0 codes besides \fBESC\fP -- commonly
+.BR BEL ,
+.BR BS ,
+.BR CR ,
+.BR LF ,
+.BR FF ,
+.BR TAB ,
+.BR VT ,
+.BR SO ,
+and
+.BR SI
+-- produce similar or identical effects to some control sequences when output.
+
+.SS "Some ANSI escape sequences (not a complete list)"
+.TP
+\fBESC N\fR (SS2, Single Shift Two)
+.br
+.RS 0
+\fBESC O\fR (SS3, Single Shift Three)
+.RS 7
+Select a single character from one of the alternative character sets.
+In xterm, SS2 selects the G2 character set, and SS3 selects the G3 character
+set.
+.RS -7
+.TP
+\fBESC P\fR (DCS, Device Control String)
+Terminated by \fBST\fR.
+Xterm's uses of this sequence include defining User-Degined Keys, and
+requesting or setting Termcap/Terminfo data.
+.TP
+\fBESC [\fR (CSI, Control Sequence Introducer)
+Most of the useful sequences, see next section.
+.TP
+\fBESC \e\fR (ST, String Terminator)
+Terminates strings in other controls.
+.TP
+\fBESC ]\fR (OSC, Operating System Command)
+Starts a control string for the operating system to use, terminated by
+\fBST\fR.
+In xterm, they may also be terminated by \fBBEL\fR.
+In xterm, the window title can be set by \fBOSC 0;\fIwindow-title\fBBEL\fR.
+.TP
+\fBESC X\fR (SOS, Start of String)
+.br
+.RS 0
+\fBESC ^\fR (PM, Privacy Message)
+.br
+.RS 0
+\fBESC _\fR (APC, Application Program Command)
+.br
+.RS 7
+Takes an argument of a string of text, terminated by \fBST\fR.
+The uses for these string control sequences are defined by the application or
+privacy discipline.
+These functions are not implemented and the arguments are ignored by xterm.
+.RS -7
+.TP
+\fBESC c\fR (RIS, Reset to Initial State)
+Resets the device to its original state.
+This may include (if applicable): reset graphic rendition, clear tabulation
+stops, reset to default font, and more.
+.PP
+Pressing special keys on the keyboard, as well as outputting many xterm
+\fBCSI\fR, \fBDCS\fR, or \fBOSC\fR sequences, often produces a \fBCSI\fR,
+\fBDCS\fR, or \fBOSC\fR sequence, sent from the terminal to the computer as
+though the user typed it.
+.SS "CSI sequences"
+The \fBESC [\fR is followed by any number (including none) of "parameter bytes"
+in the range 0x30-0x3F ([\fB0-9:;<=>?\fR]),
+then by any number of "intermediate bytes" in the range 0x20-0x2F
+([\fB !\(dq#$%&\(aq()*+,-./\fR]), then finally by a single "final byte" in the
+range 0x40-0x7E ([\fB@A-Z[\e]^_`a-z{|}~\fR]).
+.PP
+All common sequences just use the paramaters as a series of semicolon-separated
+numbers such as \fB1;2;3\fR.
+Missing numbers are treated as \fB0\fR (\fB1;;3\fR acts like the middle number
+is \fB0\fR, and no parameters at all in \fBESC[m\fR acts like a \fB0\fR reset
+code).
+Some sequences (such as \fBCUU\fR) treat \fB0\fR as \fB1\fR in order to make
+missing parameters useful.
+\" Bytes other than digits and semicolon seem to not be used.
+\" [citation needed]
+.PP
+A subset of arrangements was declared "private" so that terminal manufacturers
+could insert their own sequences without conflicting with the standard.
+Sequences containing the parameter bytes \fB<=>?\fR or the final bytes
+0x70-0x7E ([\fBp-z{|}~\fR]) are private.
+.PP
+The behavior of the terminal is undefined in the case where a CSI sequence
+contains any character outside of the range 0x20-0x7E.
+These illegal characters are either C0 control characters (the range 0-0x1F),
+\fBDEL\fR (0x7F), or bytes with the high bit set.
+\" Possible responses are to ignore the byte, to process it immediately, and
+\" furthermore whether to continue with the CSI sequence, to abort it immediately,
+\" or to ignore the rest of it.
+\" [citation needed]
+.SS "Some ANSI control sequences (not a complete list)"
+.TP
+\fBCSI \fIn \fBA\fR (CUU, Cursor Up)
+.br
+.RS 0
+\fBCSI \fIn \fBB\fR (CUD, Cursor Down)
+.br
+.RS 0
+\fBCSI \fIn \fBC\fR (CUD, Cursor Forward)
+.br
+.RS 0
+\fBCSI \fIn \fBD\fR (CUD, Cursor Back)
+.br
+.RS 7
+Moves the cursor \fIn\fR (default 1) cells in the given direction.
+If the cursor is already at the edge of the screen, this has no effect.
+.RS -7
+.TP
+\fBCSI \fIn \fBE\fR (CNL, Cursor Next Line)
+Moves cursor to beginning of the line \fIn\fR (default 1) lines down.
+(not \fIANSI.SYS\fR)
+.TP
+\fBCSI \fIn \fBF\fR (CPL, Cursor Previous Line)
+Moves cursor to beginning of the line \fIn\fR (default 1) lines up.
+(not \fIANSI.SYS\fR)
+.TP
+\fBCSI \fIn \fBG\fR (CHA, Cursor Horizontal Absolute)
+Moves the cursor to column \fIn\fR (default 1).
+(not \fIANSI.SYS\fR)
+.TP
+\fBCSI \fIn \fB; \fIm \fBH\fR (CUP, Cursor Position)
+Moves the cursor to row \fIn\fR, column \fIm\fR.
+The values are 1-based, and default to 1 (top left corner) if ommited.
+A sequence such as \fBCSI ;5H\fR is a synonym for \fBCSI 1;5H\fR as well as
+\fBCSI 17;H\fR is the same as \fBCSI 17H\fR and \fBCSI 17;1H\fR.
+.TP
+\fBCSI \fIn \fBJ\fR (ED, Erase in Display)
+Clears part of the screen.
+If \fIn\fR is 0 (or missing), clear from cursor to end of screen.
+If \fIn\fR is 1, clear from cursor to beginning of the screen.
+If \fIn\fR is 2, clear entire screen (and moves cursor to upper left on DOS
+\fIANSI.SYS\fR).
+If \fIn\fR is 3, clear entire screen and delete all lines saved in the
+scrollback buffer (this feature was added for xterm and is supported by other
+terminal applications).
+.TP
+\fBCSI \fIn \fBK\fR (EL, Erase in Line)
+Erases part of the line.
+If \fIn\fR is 0 (or missing), clear from cursor to the end of the line.
+If \fIn\fR is 1, clear from cursor to beginning of the line.
+If \fIn\fR is 2, clear entire line.
+Cursor position does not change.
+.TP
+\fBCSI \fIn \fBS\fR (SU, Scroll Up)
+Scroll whole page up by \fIn\fR (default 1) lines.
+New lines are added at the bottom.
+(not \fIANSI.SYS\fR).
+.TP
+\fBCSI \fIn \fBT\fR (SD, Scroll Down)
+Scroll whole page down by \fIn\fR (default 1) lines.
+New lines are added at the top.
+(not \fIANSI.SYS\fR).
+.TP
+\fBCSI \fIn \fB; \fIm \fBf\fR (HVP, Horizontal Vertical Position)
+Same as \fBCUP\fR.
+.TP
+\fBCSI \fIn \fBm\fR (SGR, Select Graphic Rendition)
+Sets the appearance of the following characters, see SGR parameters below.
+.TP
+\fBCSI 5i\fR (AUX Port On)
+Enable aux serial port usually for local serial printer.
+.TP
+\fBCSI 4i\fR (AUX Port Off)
+Disable aux serial port usually for local serial printer.
+.TP
+\fBCSI 6n\fR (DSR, Device Status Report)
+Reports the cursor position (CPR) to the application as (as though typed at the
+keyboard) \fBESC[\fIn\fB;\fIm\fBR\fR, where \fIn\fR is the row and \fIm\fR
+is the column.
+.TP
+\fBCSI s\fR (SCP, Save Cursor Position)
+Saves the cursor position/state.
+.TP
+\fBCSI u\fR (RCP, Restore Cursor Position)
+Restores the cursor position/state.
+.SS "Some popular private sequences"
+.TP
+\fBCSI ? 25 h\fR
+DECTCEM shows the cursor, from the VT320.
+.TP
+\fBCSI ? 25 l\fR
+DECTCEM hides the cursor.
+.TP
+\fBCSI ? 1049 h
+Enables alternative screen buffer.
+.TP
+\fBCSI ? 1049 l
+Disables alternative screen buffer.
+.TP
+\fBCSI ? 2004 h\fR
+Turns on \fBbracketed paste mode\fR.
+Text pasted into the terminal will be surrounded by \fBESC[200~\fR and
+\fBESC[201~\fR, and characters in it should not be treated as commands (for
+example in Vim).
+From Unix terminal emulators.
+.TP
+\fBCSI ? 2004 l\fR
+Turns off bracketed paste mode.
+.SS "SGR (Select Graphic Rendition) Parameters"
+SGR sets display attributes.
+Several attributes can be set in the same sequence, separated by semicolons.
+Each display attribute remains in effect until a following occurrence of
+\fBSGR\fR reset it.
+If no codes are given, \fBCSI m\fR is treated as \fBCSI 0 m\fR (reset/normal).
+.PP
+In ECMA-48 SGR is called "Select Graphic Rendition."
+In Linux manual pages the term "Set Graphics Rendition" is used.
+.TS
+tab(:) allbox;
+l l l.
+ \fBCode\fR (\fIn\fR):\fBEffect\fR:\fBNote\fR
+ 0:Reset / Normal:all attributes off
+ 1:Bold or increased intensity
+ 2:Faint (decreasede intensity)
+ 3:Italic:Not widely supported. Sometimes treated as inverse.
+ 4:Underline
+ 5:Slow Blink:less than 150 per minute
+ 6:Rapid Blink:MS-DOS ANSI.SYS; 150+ per minute; not widely supported
+ 7:Reverse Video:swap foreground and background colors
+ 8:Conceal:Not widely supported
+ 9:Crossed-out:Characters legible, but marked for deletion
+ 10:Primary (default) font
+ 11-19:Alternative font:Select alternative font \fIn\fR-10
+ 20:Fraktur:Rarely supported
+ 21:Doubly underline \fBor\fR Bold off:Double-underline per ECMA-48.
+ 22:Normal color or intensity:Neither bold nor faint
+ 23:Not italic, not Fraktur
+ 24:Underline off:Not singly or double underlined
+ 25:Blink off
+ 27:Inverse off
+ 28:Reveal:conceal off
+ 29:Not crossed out
+ 30-37:Set foreground color:See color table below
+ 38:Set foreground color:Next arguments are \fB5;\fIn\fR or \fB2;\fIr\fB;\fIg\fB;\fIb\fR, see below
+ 39:Default foreground color:implementaion defeined (according to standard)
+ 40-47:Set background color:See color table below
+ 48:Set background color:Next arguments are \fB5;\fIn\fR or \fB2;\fIr\fB;\fIg\fB;\fIb\fR, see below
+ 49:Default background color:implementaion defeined (according to standard)
+ 51:Framed
+ 52:Encircled
+ 53:Overlined
+ 54:Not framed or encircled
+ 55:Not overlined
+ 90-97:Set bright foreground color:aixterm (not in standard)
+ 100-107:Set bright background color:aixterm (not in standard)
+.TE
+.SS Colors
+.TP
+\fB3/4 bit\fR
+.TS
+tab(:) allbox;
+l l.
+ 0:black
+ 1:red
+ 2:green
+ 3:yellow
+ 4:blue
+ 5:magenta
+ 6:cyan
+ 7:white
+.TE
+.TP
+\fB8-bit\fR
+.br
+\fBESC [ ... 38 ; 5 ; \fIn\fB ... m\fR selects foreground color
+.br
+\fBESC [ ... 48 ; 5 ; \fIn\fB ... m\fR selects background color
+.PP
+.RS 7
+  0-  7: standard colors (as in \fBESC [\fR <\fI30-37\fR> \fBm\fR)
+.br
+  8- 15: high intensity colors (as in \fBESC [\fR <\fI90-97\fR> \fBm\fR)
+.br
+ 16-231: 6 * 6 * 6 cube (216 colors), 16 + 36 * r + 6 * g + b
+.br
+232-255: grayscale from black to white in 24 steps
+.RS -7
+.TP
+\fB24-bit\fR
+.br
+\fBESC [ 38 ; 5 ; \fIr \fB; \fIg \fB; \fIb \fB;\fB ... m\fR selects foreground color
+.br
+\fBESC [ 48 ; 5 ; \fIr \fB; \fIg \fB; \fIb \fB;\fB ... m\fR selects background color
+.br
