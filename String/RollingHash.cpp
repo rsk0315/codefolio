@@ -1,4 +1,4 @@
-template <intmax_t X=9436884629, intmax_t MOD=1000000007>
+template <intmax_t X=943681729, intmax_t MOD=1000000007>
 class RollingHash {
   std::vector<intmax_t> hash;
   intmax_t offset(size_t len) const {
