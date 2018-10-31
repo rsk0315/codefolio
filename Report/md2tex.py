@@ -2199,7 +2199,10 @@ class MarkdownParser(object):
 
                 continue
 
-            if line.startswith(AlignedMath.OPENPAT):
+            if (
+                    line.startswith(AlignedMath.OPENPAT)
+                    and not Footnote.RE.match(line)):
+
                 pre_lineno = lineno
                 pre_line = line
                 self._lines.append((lineno, line))
