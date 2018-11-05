@@ -265,7 +265,7 @@ namespace FastOut {
     // We know the division is too slow; we wish we could avoid using them
     // TWICE PER LOOP!  ...Now, we notice that compilers are so smart that
     // can replace it by shift operations...  The division-compatible
-    //instructions for unsigned are shorter than ones for signed.
+    // instructions for unsigned are shorter than ones for signed.
     typename std::make_unsigned<Int>::type out_=out;
     do {
       *--minipos = '0' + out_%10;
