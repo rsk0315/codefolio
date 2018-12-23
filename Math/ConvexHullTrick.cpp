@@ -37,11 +37,12 @@ public:
       it = ll.emplace_hint(it, a, b);
       fprintf(stderr, "(+) %dx%+d: either ends\n", a, b);
     } else {
+      it = ll.emplace_hint(it, a, b);
       if (is_redundant(it)) {
+        ll.erase(it);
         fprintf(stderr, "(x) %dx%+d: redundant\n", a, b);
         return;
       }
-      it = ll.emplace_hint(it, a, b);
       fprintf(stderr, "(+) %dx%+d: normally\n", a, b);
     }
 
