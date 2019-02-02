@@ -121,11 +121,11 @@ class Agent(object):
 
         sys.stdout = sys.__stdout__
 
-        r = self.s.get('https://beta.atcoder.jp/login')
+        r = self.s.get('https://atcoder.jp/login')
         soup = BeautifulSoup(r.text, 'lxml')
         csrf_token = soup.find(attrs={'name': 'csrf_token'}).get('value')
 
-        self.s.post('https://beta.atcoder.jp/login', data={
+        self.s.post('https://atcoder.jp/login', data={
             'username': username,
             'password': password,
             'csrf_token': csrf_token,
@@ -139,7 +139,7 @@ class Agent(object):
         with open(inname) as fin:
             source = self._prettify_source(fin.read())
 
-        target_url = 'https://beta.atcoder.jp/contests/{}/submit'.format(cid)
+        target_url = 'https://atcoder.jp/contests/{}/submit'.format(cid)
         target_page = self.s.get(target_url)
         soup = BeautifulSoup(target_page.text, 'lxml')
         csrf_token = soup.find(attrs={'name': 'csrf_token'}).get('value')
@@ -167,7 +167,7 @@ class Agent(object):
 
     def trace(self, pid, cid):
         mysub_page = self.s.get(
-            'https://beta.atcoder.jp/contests/{}/submissions/me'.format(cid)
+            'https://atcoder.jp/contests/{}/submissions/me'.format(cid)
         )
         soup = BeautifulSoup(mysub_page.text, 'lxml')
         a = soup.find(attrs={
@@ -177,7 +177,7 @@ class Agent(object):
 
         status = 'WJ'
         while True:
-            result_page = self.s.get('https://beta.atcoder.jp'+a['href'])
+            result_page = self.s.get('https://atcoder.jp'+a['href'])
             soup = BeautifulSoup(result_page.text, 'lxml')
             span = soup.find(attrs={'class': 'label'})
             status = span.text.strip()
