@@ -14,7 +14,7 @@ class rolling_hash {
   }
 
 public:
-  rolling_hash(const std::string &s): hash(s.length()+1) {
+  rolling_hash(const std::string& s): hash(s.length()+1) {
     for (size_t i = 0; i < s.length(); ++i)
       hash[i+1] = (hash[i]*X+s[i]) % MOD;
   }
@@ -31,7 +31,7 @@ public:
   intmax_t substr(size_t i, size_t j) const {
     // hash of substring s[i..j-1] (inclusive)
     assert(i < j);
-    intmax_t res=hash[j];
+    intmax_t res = hash[j];
     res = (res - offset(j-i)*hash[i]) % MOD;
     if (res < 0) res += MOD;
     return res;
@@ -47,7 +47,7 @@ public:
   }
 
   void debug() const {
-    for (size_t i=0; i<hash.size(); ++i)
+    for (size_t i = 0; i < hash.size(); ++i)
       fprintf(stderr, "%jd%c", hash[i], i+1<hash.size()? ' ':'\n');
   }
 };

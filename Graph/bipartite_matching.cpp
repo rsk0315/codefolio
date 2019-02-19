@@ -18,7 +18,7 @@ size_t bipartite_match(const Graph<Weight> &g, size_t mid) {
   };
 
   size_t match=0;
-  for (size_t i=0; i<mid; ++i) {
+  for (size_t i = 0; i < mid; ++i) {
     std::vector<bool> visited(g.size());
     if (augment(i, visited))
       ++match;

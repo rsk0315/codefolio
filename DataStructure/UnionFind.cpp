@@ -1,8 +1,8 @@
-class UnionFind {
+class union_find {
   std::vector<intmax_t> tree;
 
 public:
-  UnionFind(size_t n): tree(n, -1) {}
+  union_find(size_t n): tree(n, -1) {}
 
   size_t find(size_t v) {
     if (tree[v] < 0)
