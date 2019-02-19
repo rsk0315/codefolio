@@ -10,7 +10,7 @@ struct edge {
 
 template <class Tp>
 struct graph: public std::vector<std::vector<edge<Tp>>> {
-  Graph(size_t n): std::vector<std::vector<edge<Tp>>>(n) {}
+  graph(size_t n): std::vector<std::vector<edge<Tp>>>(n) {}
 
   void connect_to(size_t src, size_t dst, Tp cost) {
     (*this)[src].emplace_back(dst, 1, cost, (*this)[dst].size());
@@ -22,7 +22,7 @@ template <class Tp>
 Tp inf() { return 1 << 29; }
 
 template <class Tp>
-Tp mincost_flow(Graph<Tp>& g, size_t s, size_t t, Tp f) {
+Tp mincost_flow(graph<Tp>& g, size_t s, size_t t, Tp f) {
   Tp res = 0;
   Tp max = inf<Tp>();
   while (f > 0) {
@@ -36,7 +36,7 @@ Tp mincost_flow(Graph<Tp>& g, size_t s, size_t t, Tp f) {
         if (dist[v] == max) continue;
 
         for (size_t i = 0; i < g[v].size(); ++i) {
-          Edge<Tp>& e = g[v][i];
+          edge<Tp>& e = g[v][i];
           if (e.cap > 0 && dist[e.dst] > dist[v] + e.cost) {
             dist[e.dst] = dist[v] + e.cost;
             pv[e.dst] = v;
