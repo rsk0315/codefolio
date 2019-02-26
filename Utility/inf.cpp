@@ -1,2 +1,2 @@
-template <class T>
-constexpr T inf=(T(1)<<(8*sizeof(T)-3));
+template <class Tp>
+constexpr Tp inf = Tp(1) << (8*sizeof(Tp)-3);
