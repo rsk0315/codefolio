@@ -1,13 +1,13 @@
 template <class Weight>
-struct Edge {
+struct edge {
   size_t src, dst;
   Weight cost;
 
-  Edge(size_t src, size_t dst, Weight cost=1):
+  edge(size_t src, size_t dst, Weight cost=1):
     src(src), dst(dst), cost(cost)
   {}
 
-  bool operator <(const Edge<Weight> &rhs) const {
+  bool operator <(const edge<Weight> &rhs) const {
     if (cost != rhs.cost) return cost < rhs.cost;
     if (src != rhs.src) return src < rhs.src;
     return dst < rhs.dst;
@@ -15,8 +15,8 @@ struct Edge {
 };
 
 template <class Weight>
-struct Graph: public std::vector<std::vector<Edge<Weight>>> {
-  Graph(size_t n): std::vector<std::vector<Edge<Weight>>>(n) {}
+struct graph: public std::vector<std::vector<edge<Weight>>> {
+  graph(size_t n): std::vector<std::vector<edge<Weight>>>(n) {}
 
   void connect_with(size_t src, size_t dst, Weight cost=1) {
     (*this)[src].emplace_back(src, dst, cost);
@@ -29,7 +29,7 @@ struct Graph: public std::vector<std::vector<Edge<Weight>>> {
 
   std::vector<size_t> sccomp(size_t &num) const {
     const size_t V=this->size();
-    Graph rev(V);
+    graph rev(V);
     for (const auto &v: *this)
       for (const auto &e: v)
         rev.connect_to(e.dst, e.src, e.cost);
