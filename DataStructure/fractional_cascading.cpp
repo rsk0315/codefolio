@@ -22,89 +22,112 @@ class fractional_cascading {
     bool operator <(const node_type& other) const { return **this < *other; }
   };
 
-  std::vector<std::vector<node_type>> body;
+  std::vector<std::vector<node_type>> lbs, ubs;
   std::vector<iterator_type> begins, ends;
 
 public:
   fractional_cascading(BidirIt first, BidirIt last) {
     size_t n = std::distance(first, last);
-    body.resize(n+1);
+    lbs.resize(n+1);
+    ubs.resize(n+1);
     begins.resize(n);
     ends.resize(n);
 
-    auto body_next = body.end();
-    auto body_current = body_next-1;
+    auto lbs_next = lbs.end();
+    auto lbs_current = lbs_next-1;
     auto begins_i = begins.end();
     auto ends_i = ends.end();
-    size_t i = n;
+    BidirIt it = last;
     do {
-      --last;
-      --body_next;
-      --body_current;
-      size_t m = last->size() + body_next->size()/2;
-      fprintf(stderr, "m: %zu\n", m);
-      body_current->reserve(m);
-      *--begins_i = last->begin();
-      *--ends_i = last->end();
-      iterator_type j0 = last->begin();
-      typename node_type::self_iterator j1 = body_next->begin();
+      --it;
+      --lbs_next;
+      --lbs_current;
+      size_t m = it->size() + lbs_next->size()/2;
+      lbs_current->reserve(m);
+      *--begins_i = it->begin();
+      *--ends_i = it->end();
+      iterator_type j0 = it->begin();
+      typename node_type::self_iterator j1 = lbs_next->begin();
       auto j1sub = j1;
-      if (j1 < body_next->end()) ++j1;
-      while (body_current->size() < m) {
-        bool take_j0 = false;
-        if (j1 == body_next->end()) {
-          take_j0 = true;
-        } else if (j0 != last->end() && *j0 < **j1) {
-          take_j0 = true;
-        }
-        if (take_j0) {
-          fprintf(stderr, "[%zu][%td]: %d\n", i, j0-last->begin(), *j0);
-          while (j1sub < body_next->end() && **j1sub < *j0) ++j1sub;
-          body_current->emplace_back(*j0, j0, j1sub);
+      if (j1 < lbs_next->end()) ++j1;
+      while (lbs_current->size() < m) {
+        if (j1 == lbs_next->end() || (j0 != it->end() && *j0 < **j1)) {
+          while (j1sub < lbs_next->end() && **j1sub < *j0) ++j1sub;
+          lbs_current->emplace_back(*j0, j0, j1sub);
           ++j0;
         } else {
-          fprintf(stderr, "[%zu][%td]: %d\n", i, j1-body_next->begin(), **j1);
-          body_current->emplace_back(**j1, j0, j1);
-          if (++j1 < body_next->end()) ++j1;
+          lbs_current->emplace_back(**j1, j0, j1);
+          if (++j1 < lbs_next->end()) ++j1;  // +2 may cause undefined behavior
         }
       }
-      --i;
-    } while (last != first);
+    } while (it != first);
+
+    auto ubs_next = ubs.end();
+    auto ubs_current = ubs_next-1;
+    begins_i = begins.end();
+    ends_i = ends.end();
+    it = last;
+    do {
+      --it;
+      --ubs_next;
+      --ubs_current;
+      size_t m = it->size() + ubs_next->size()/2;
+      ubs_current->reserve(m);
+      --begins_i;
+      --ends_i;
+      iterator_type j0 = it->begin();
+      typename node_type::self_iterator j1 = ubs_next->begin();
+      auto j1sub = j1;
+      if (j1 < ubs_next->end()) ++j1;
+      while (ubs_current->size() < m) {
+        if (j1 == ubs_next->end() || (j0 != it->end() && *j0 < **j1)) {
+          while (j1sub < ubs_next->end() && **j1sub < *j0) ++j1sub;
+          ubs_current->emplace_back(*j0, j0, j1sub);
+          ++j0;
+        } else {
+          ubs_current->emplace_back(**j1, j0, j1);  // XXX
+          if (++j1 < ubs_next->end()) ++j1;
+        }
+      }
+    } while (it != first);
 
     inspect();
   }
 
   std::vector<iterator_type> lower_bounds(value_type x) const {
-    auto it = std::lower_bound(body[0].begin(), body[0].end(), node_type(x));
-    std::vector<iterator_type> res{it->iter};    
-    fprintf(stderr, "pushed: %d\n", *it->iter);
+    auto it = std::lower_bound(lbs[0].begin(), lbs[0].end(), node_type(x));
+    std::vector<iterator_type> res{it->iter};
 
-    for (size_t i = 1; i+1 < body.size(); ++i) {
+    for (size_t i = 1; i+1 < lbs.size(); ++i) {
       auto ub = it->next;
       auto lb = ub-1;
-      fprintf(stderr, "**lb: %d, **ub: %d\n", **lb, **ub);
-      // it = ((ub->iter == ends[i] || !(**lb < x))? lb:ub);
       it = (!(**lb < x)? lb:ub);
       res.push_back(it->iter);
-      fprintf(stderr, "pushed: %d\n", *(it->iter));
     }
       
     return res;
   }
 
   void inspect() const {
-    for (size_t i = 0; i+1 < body.size(); ++i)
-      for (size_t j = 0; j < body[i].size(); ++j)
+    for (size_t i = 0; i+1 < lbs.size(); ++i)
+      for (size_t j = 0; j < lbs[i].size(); ++j)
         fprintf(stderr, "\x1b[31;1m%d\x1b[m[%td, %td]%c",
-                *body[i][j], body[i][j].iter-begins[i], body[i][j].next-body[i+1].begin(),
-                j+1<body[i].size()? ' ':'\n');
+                *lbs[i][j], lbs[i][j].iter-begins[i], lbs[i][j].next-lbs[i+1].begin(),
+                j+1<lbs[i].size()? ' ':'\n');
+
+    fprintf(stderr, "===\n");
+    for (size_t i = 0; i+1 < ubs.size(); ++i)
+      for (size_t j = 0; j < ubs[i].size(); ++j)
+        fprintf(stderr, "\x1b[31;1m%d\x1b[m[%td, %td]%c",
+                *ubs[i][j], ubs[i][j].iter-begins[i], ubs[i][j].next-ubs[i+1].begin(),
+                j+1<ubs[i].size()? ' ':'\n');
   }
 };
 
 int main() {
   size_t k = 4;
   std::vector<std::vector<int>> L(k);
-  const int INF = 1e9;
+  const int INF = 1e4;
   L[0] = {24, 64, 65, 80, 93, INF};
   L[1] = {23, 25, 26, INF};
   L[2] = {13, 44, 62, 62, 62, 62, 62, 66, INF};
