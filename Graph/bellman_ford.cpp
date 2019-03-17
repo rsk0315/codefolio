@@ -1,19 +1,20 @@
 template <class Weight>
-std::vector<Weight> bellman_ford(const Graph<Weight> &g, size_t s, bool &nl) {
-  std::vector<Weight> dist(g.size(), inf<Weight>);
-  dist[s] = 0;
-  nl = false;
-  for (size_t k=0; k<g.size(); ++k)
-    for (size_t i=0; i<g.size(); ++i)
-      for (const Edge<Weight> &e: g[i]) {
-        if (dist[e.dst] > dist[e.src] + e.cost) {
-          dist[e.dst] = dist[e.src] + e.cost;
-          if (k+1 == g.size()) {
-            dist[e.dst] = -inf<Weight>;
-            nl = true;
-          }
-        }
-      }
-
-  return dist;
+std::vector<Weight> shortest(const graph<Weight>& g, size_t s) {
+  // based-on Bellman-Ford algorithm
+  size_t V = g.size();
+  std::vector<Weight> res(V, inf<Weight>);
+  res[s] = 0;
+ 
+  for (size_t i = 1; i < V; ++i)
+    for (size_t v = 0; v < V; ++v)
+      for (const auto& e: g[v])
+        if (res[e.dst] > res[e.src] + e.cost)
+          res[e.dst] = res[e.src] + e.cost;
+ 
+  for (size_t v = 0; v < V; ++v)
+    for (const auto& e: g[v])
+      if (res[e.dst] > res[e.src] + e.cost)
+        res[e.dst] = -inf<Weight>;
+  
+  return res;
 }

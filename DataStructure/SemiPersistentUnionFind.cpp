@@ -1,15 +1,15 @@
-template <class T>
-class SemiPersistentArray {
-  using Node = std::pair<size_t, T>;  // <timestamp, value>
+template <class Tp>
+class semi_persistent_array {
+  using Node = std::pair<size_t, Tp>;  // <timestamp, value>
   std::vector<std::vector<Node>> entity;
-  size_t last=0;
+  size_t last = 0;
 
 public:
-  SemiPersistentArray(size_t n, T v=T()):
+  semi_persistent_array(size_t n, Tp v=Tp()):
     entity(n, std::vector<Node>(1, {0, v}))
   {}
 
-  void update(size_t i, T x, size_t t) {
+  void update(size_t i, Tp x, size_t t) {
     assert(last <= t);
     last = t;
     if (entity[i].back().first == t) {
@@ -20,27 +20,28 @@ public:
     }
   }
 
-  T get(size_t i, size_t t=-1) const {
+  Tp get(size_t i, size_t t=-1) const {
     if (entity[i].back().first <= t) {
       // most-frequent case
       return entity[i].back().second;
     }
 
-    size_t lb=0, ub=entity[i].size();
+    size_t lb = 0;
+    size_t ub = entity[i].size();
     while (ub-lb > 1) {
-      size_t mid=(lb+ub)>>1;
+      size_t mid = (lb+ub)>>1;
       ((entity[i][mid].first <= t)? lb:ub) = mid;
     }
     return entity[i][lb].second;
   }
 };
 
-class SemiPersistentUnionFind {
-  SemiPersistentArray<int> tree;
-  size_t last=0;
+class semi_persistent_union_find {
+  semi_persistent_array<intmax_t> tree;
+  size_t last = 0;
 
   size_t find_root(size_t v, size_t t) const {
-    int pv=tree.get(v, t);
+    intmax_t pv = tree.get(v, t);
     while (pv >= 0) {
       v = pv;
       pv = tree.get(pv, t);
@@ -49,7 +50,7 @@ class SemiPersistentUnionFind {
   }
 
 public:
-  SemiPersistentUnionFind(size_t n): tree(n, -1) {}
+  semi_persistent_union_find(size_t n): tree(n, -1) {}
 
   bool unite(size_t u, size_t v, size_t t=-1) {
     if (t+1 != 0) {
@@ -59,7 +60,8 @@ public:
     u = find_root(u, t);
     v = find_root(v, t);
     if (u == v) return false;
-    int su=-tree.get(u, t), sv=-tree.get(v, t);
+    size_t su = -tree.get(u, t);
+    size_t sv = -tree.get(v, t);
     if (su == sv) {
       tree.update(v, -sv-1, t);
     } else if (su > sv) {
