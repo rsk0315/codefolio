@@ -1,2 +1,2 @@
-template <class T>
-using greater_queue=std::priority_queue<T, std::deque<T>, std::greater<T>>;
+template <class Tp>
+using greater_queue = std::priority_queue<Tp, std::deque<Tp>, std::greater<Tp>>;
