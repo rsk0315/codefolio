@@ -6,7 +6,7 @@ class segment_tree {
   size_t m = 1;
   BinaryOperation1 op1;  // update
   BinaryOperation2 op2;  // aggregate
-  Tp e1, e2;  // unit elements
+  Tp e2;  // unit elements
 
   void init_resize(size_t n) {
     while (m <= n) m <<= 1;
@@ -21,9 +21,8 @@ class segment_tree {
 public:
   segment_tree(size_t n, Tp e=Tp(),
                const BinaryOperation1& op1=std::plus<Tp>(),
-               const Tp& e1=0,
                const BinaryOperation2& op2=std::plus<Tp>(),
-               const Tp& e2=0): op1(op1), op2(op2), e1(e1), e2(e2) {
+               const Tp& e2=0): op1(op1), op2(op2), e2(e2) {
 
     init_resize(n);
     for (size_t i = m/2; i < m; ++i) c[i] = e;
@@ -33,9 +32,8 @@ public:
   template <class ForwardIt>
   segment_tree(ForwardIt first, ForwardIt last,
                const BinaryOperation1& op1=std::plus<Tp>(),
-               const Tp& e1=0,
                const BinaryOperation2& op2=std::plus<Tp>(),
-               const Tp& e2=0): op1(op1), op2(op2), e1(e1), e2(e2) {
+               const Tp& e2=0): op1(op1), op2(op2), e2(e2) {
 
     static_assert(std::is_same<Tp, typename ForwardIt::value_type>::value, "");
     init_resize(std::distance(first, last));
