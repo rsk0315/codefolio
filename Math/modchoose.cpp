@@ -8,7 +8,7 @@ public:
     fact_inv.resize(N+1);
     fact[0] = 1;
     for (intmax_t i = 1; i <= N; ++i)
-      fact[i] = fact[i-1] * i % MOD;
+      fact[i] = fact[i-1] * i % mod;
 
     fact_inv[N] = modinv(fact[N], mod);
     for (intmax_t i = N; i--;)
