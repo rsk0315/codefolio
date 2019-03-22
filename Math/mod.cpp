@@ -21,6 +21,25 @@ Tp modinv(Tp a, Tp mod) {
 }
 
 template <class Tp>
+Tp modadd(Tp a, Tp b, Tp mod) {
+  a += b % mod;
+  if (a < 0) a += mod;
+  if (a >= mod) a -= mod;
+  return a;
+}
+
+template <class Tp>
+Tp modadd(const std::initializer_list<Tp>& adds, Tp mod) {
+  Tp res = 0;
+  for (const auto& add: adds) {
+    res += add % mod;
+    if (res < 0) res += mod;
+    if (res >= mod) res -= mod;
+  }
+  return res;
+}
+
+template <class Tp>
 Tp modsub(Tp a, Tp b, Tp mod) {
   a -= b % mod;
   if (a < 0) a += mod;
