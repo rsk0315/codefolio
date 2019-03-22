@@ -27,3 +27,10 @@ Tp modsub(Tp a, Tp b, Tp mod) {
   if (a >= mod) a -= mod;
   return a;
 }
+
+template <class Tp>
+Tp modmul(const std::initializer_list<Tp>& muls, Tp mod) {
+  Tp res = 1;
+  for (const auto& mul: muls) (res *= mul) %= mod;
+  return res;
+}
