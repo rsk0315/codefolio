@@ -1,5 +1,6 @@
 template <class Tp>
 class lines {
+  // naive implementation
   std::map<Tp, Tp> ll;
 
   bool is_redundant(const typename std::map<Tp, Tp>::iterator& it) const {
