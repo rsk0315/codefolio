@@ -1,11 +1,3 @@
-#define _GLIBCXX_DEBUG
-#include <cstdio>
-#include <cstdint>
-#include <cassert>
-#include <vector>
-#include <algorithm>
-#include <limits>
-
 template <class Tp, class BinaryOperation1, class BinaryOperation2>
 class segment_tree {
 public:
@@ -35,7 +27,7 @@ private:
   }
 
   void apply(size_t i, Tp x, size_t k) {
-    // called in push()
+    // called in push() and update()
     c[i] = op2(c[i], x, k);
     if (i < m/2) d[i] = op2(d[i], x);
   }
@@ -124,48 +116,3 @@ public:
     return op1(resl, resr);
   }
 };
-
-template <class Tp>
-struct find {
-  using pair_type = std::pair<Tp, bool>;
-  pair_type identity = {std::numeric_limits<Tp>::max(), true};
-  pair_type operator ()(const pair_type& x, const pair_type& y) const {
-    return std::min(x, y);
-  }
-};
-
-template <class Tp>
-struct update {
-  using pair_type = std::pair<Tp, bool>;
-  pair_type identity = {0, false};
-  pair_type operator ()(const pair_type& x, const pair_type& y) const {
-    return y.second? y:x;
-  }
-  pair_type operator ()(const pair_type& x, const pair_type& y, size_t) const {
-    return y.second? y:x;
-  }
-};
-
-int main() {
-  size_t n, q;
-  scanf("%zu %zu", &n, &q);
-
-  segment_tree<std::pair<int, bool>, find<int>, update<int>> st(n);
-  for (size_t i = 0; i < q; ++i) {
-    int com;
-    scanf("%d", &com);
-
-    if (com == 0) {
-      // update(s, t, x)
-      size_t s, t;
-      int x;
-      scanf("%zu %zu %d", &s, &t, &x);
-      st.update(s, t+1, {x, true});
-    } else if (com == 1) {
-      // find(s, t)
-      size_t s, t;
-      scanf("%zu %zu", &s, &t);
-      printf("%d\n", st.aggregate(s, t+1).first);
-    }
-  }
-}
