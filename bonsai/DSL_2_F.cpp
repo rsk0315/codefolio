@@ -35,7 +35,7 @@ private:
   }
 
   void apply(size_t i, Tp x, size_t k) {
-    // called in push()
+    // called in push() and update()
     c[i] = op2(c[i], x, k);
     if (i < m/2) d[i] = op2(d[i], x);
   }
@@ -123,6 +123,13 @@ public:
     }
     return op1(resl, resr);
   }
+
+  void inspect() const {
+    for (size_t i = 0; i < m/2; ++i)
+      fprintf(stderr, "%zu: %d/%d (%d/%d)\n", i, c[i].first, c[i].second, d[i].first, d[i].second);
+    for (size_t i = m/2; i < m; ++i)
+      fprintf(stderr, "%zu: %d/%d (---)\n", i, c[i].first, c[i].second);
+  }
 };
 
 template <class Tp>
@@ -167,5 +174,6 @@ int main() {
       scanf("%zu %zu", &s, &t);
       printf("%d\n", st.aggregate(s, t+1).first);
     }
+    st.inspect();
   }
 }
