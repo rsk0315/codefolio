@@ -16,6 +16,8 @@ class bit_vector {
   }
 
 public:
+  bit_vector() {}
+
   bit_vector(const std::vector<bool>& b): n(b.size()) {
     raw.assign(n/nbit+1, 0);
     for (size_t i = 0; i < n; ++i)
@@ -71,15 +73,69 @@ public:
 
 template <class Tp>
 class wavelet_matrix {
-  std::vector<Tp> c;
   static constexpr size_t bitlen = 8 * sizeof(Tp);
+  std::vector<Tp> c;
+  std::vector<size_t> zeros;
+  size_t n;
   std::array<bit_vector, bitlen> a;
+
+public:
+  template <class ForwardIt>
+  wavelet_matrix(ForwardIt first, ForwardIt last):
+    c(first, last), zeros(bitlen), n(c.size())
+  {
+    std::vector<Tp> whole = c;
+    for (size_t i = bitlen; i--;) {
+      std::vector<Tp> zero, one;
+      std::vector<bool> vb(n);
+      for (size_t j = 0; j < n; ++j) {
+        ((whole[j] >> i & 1)? one:zero).push_back(whole[j]);
+        vb[j] = (whole[j] >> i & 1);
+      }
+
+      zeros[bitlen-i-1] = zero.size();
+      a[bitlen-i-1] = bit_vector(vb);
+      if (i == 0) break;
+
+      whole = std::move(zero);
+      whole.insert(whole.end(), one.begin(), one.end());
+    }
+
+    inspect();
+  }
+
+  size_t rank(size_t t, Tp x) const {
+    size_t s = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      if (x >> i & 1) {
+        t = zeros[j] + a[j].rank1(t);
+        s = zeros[j] + a[j].rank1(s);
+      } else {
+        t = a[j].rank0(t);
+        s = a[j].rank0(s);
+      }
+    }
+    return t - s;
+  }
+
+  size_t select(size_t t, Tp x) const {
+    
+  }
+
+  void inspect() const {
+    for (size_t i = 0; i < bitlen; ++i) {
+      fprintf(stderr, "%zu: ", i);
+      for (size_t j = 0; j < n; ++j)
+        fprintf(stderr, "%d%c", a[i][j], j+1<n? ' ':'\n');
+    }
+  }
 };
 
 #include <cassert>
 #include <random>
 
-int test() {
+void test() {
   std::mt19937 rsk(0315);
   size_t n = 16384;
   std::vector<bool> base(n);
@@ -112,5 +168,26 @@ int test() {
   for (size_t i = 0; i <= n; ++i) {
     fprintf(stderr, "expected: %zu, got: %zu\n", select1[i], bv.select1(i));
     assert(bv.select1(i) == select1[i]);
+  }
+}
+
+int main() {
+  std::vector<int> a{
+    11,  0, 15,  6,
+     5,  2,  7, 12,
+    11,  0, 12, 12,
+    13,  4,  6, 13,
+     1, 11,  6,  1,
+     7, 10,  2,  7,
+    14, 11,  1,  7,
+     5,  4, 14,  6
+  };
+
+  wavelet_matrix<int> wm(a.begin(), a.end());
+  while (true) {
+    size_t t;
+    int x;
+    if (scanf("%zu %d", &t, &x) != 2) break;
+    printf("%zu\n", wm.rank(t, x));
   }
 }
