@@ -64,6 +64,14 @@ public:
     return ub;
   }
 
+  size_t rank(size_t k, int x) const {
+    return x? rank1(k) : rank0(k);
+  }
+
+  size_t select(size_t k, int x) const {
+    return x? select1(k) : select0(k);
+  }
+
   bool operator [](size_t k) const {
     size_t large = k / nbit;
     size_t small = k % nbit;
@@ -71,13 +79,13 @@ public:
   }
 };
 
-template <class Tp>
+template <class Tp, size_t bitlen = 8 * sizeof(Tp)>
 class wavelet_matrix {
-  static constexpr size_t bitlen = 8 * sizeof(Tp);
+  // static constexpr size_t bitlen = 8 * sizeof(Tp);
   std::vector<Tp> c;
   std::vector<size_t> zeros;
   size_t n;
-  std::array<bit_vector, bitlen> a;
+  std::array<bit_vector, bitlen+1> a;
 
 public:
   template <class ForwardIt>
@@ -95,8 +103,12 @@ public:
 
       zeros[bitlen-i-1] = zero.size();
       a[bitlen-i-1] = bit_vector(vb);
-      if (i == 0) break;
-
+      if (i == 0) {
+        std::vector<bool> vb(n);
+        for (size_t j = zero.size(); j < n; ++j) vb[j] = true;
+        a[bitlen] = bit_vector(vb);
+        break;
+      }
       whole = std::move(zero);
       whole.insert(whole.end(), one.begin(), one.end());
     }
@@ -109,23 +121,35 @@ public:
     for (size_t i = bitlen; i--;) {
       size_t j = bitlen-i-1;
       if (x >> i & 1) {
-        t = zeros[j] + a[j].rank1(t);
         s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
       } else {
-        t = a[j].rank0(t);
         s = a[j].rank0(s);
+        t = a[j].rank0(t);
       }
     }
     return t - s;
   }
 
   size_t select(size_t t, Tp x) const {
-    
+    for (size_t i = 0; i < bitlen; ++i) {
+      fprintf(stderr, "%zu\n", t);
+      size_t j = bitlen-i;
+      if (x >> i & 1) {
+        size_t ti = zeros[j-1];
+        size_t tr = a[j].rank1(ti);
+        fprintf(stderr, "ti: %zu, tr: %zu\n", ti, tr);
+        t = a[j].select1(t+tr) - ti;
+      } else {
+        t = a[j].select0(t);
+      }
+    }
+    return t;
   }
 
   void inspect() const {
     for (size_t i = 0; i < bitlen; ++i) {
-      fprintf(stderr, "%zu: ", i);
+      fprintf(stderr, "%zu (%zu): ", i, zeros[i]);
       for (size_t j = 0; j < n; ++j)
         fprintf(stderr, "%d%c", a[i][j], j+1<n? ' ':'\n');
     }
@@ -188,6 +212,6 @@ int main() {
     size_t t;
     int x;
     if (scanf("%zu %d", &t, &x) != 2) break;
-    printf("%zu\n", wm.rank(t, x));
+    printf("%zu\n", wm.select(t, x));
   }
 }
