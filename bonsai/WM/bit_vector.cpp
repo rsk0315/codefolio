@@ -11,7 +11,7 @@ class bit_vector {
   std::vector<intmax_t> raw;
   std::vector<int> acc;
 
-  int popcount(intmax_t x) const {
+  int popcount(uintmax_t x) const {
     return __builtin_popcountll(x);
   }
 
@@ -32,7 +32,7 @@ public:
     size_t large = k / nbit;
     size_t small = k % nbit;
     size_t res = acc[large];
-    if (small > 0) res += popcount(raw[large] & ((intmax_t(1) << small) - 1));
+    if (small > 0) res += popcount(raw[large] & ((uintmax_t(1) << small) - 1));
     return res;
   }
 
@@ -128,6 +128,7 @@ public:
   }
 
   size_t rank(size_t t, Tp x) const {
+    if (t == 0) return 0;
     size_t s = 0;
     for (size_t i = bitlen; i--;) {
       size_t j = bitlen-i-1;
@@ -143,6 +144,7 @@ public:
   }
 
   size_t select(size_t t, Tp x) const {
+    if (t == 0) return 0;
     size_t si = start_index(x);
     t += a[bitlen-1].rank(si, x & 1);
     t = a[bitlen-1].select(t, x & 1);
@@ -247,17 +249,17 @@ int main() {
      5,  4, 14,  6
   };
 
-  // for (size_t i = 0; i < a.size(); ++i)
-  //   fprintf(stderr, "%d%c", a[i], i+1<a.size()? ' ':'\n');
+  for (size_t i = 0; i < a.size(); ++i)
+    fprintf(stderr, "%d%c", a[i], i+1<a.size()? ' ':'\n');
 
   wavelet_matrix<int, 5> wm(a.begin(), a.end());
-  // while (true) {
-  //   size_t t;
-  //   int x;
-  //   if (scanf("%zu %d", &t, &x) != 2) break;
-  //   printf("%zu\n", wm.select(t, x));
-  //   // printf("%zu\n", wm.rank(t, x));
-  // }
+  while (true) {
+    size_t t;
+    int x;
+    if (scanf("%zu %d", &t, &x) != 2) break;
+    printf("select(t:%zu, x:%d): %zu\n", t, x, wm.select(t, x));
+    // printf("%zu\n", wm.rank(t, x));
+  }
 
   test_wm();
 }
