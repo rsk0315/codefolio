@@ -85,7 +85,23 @@ class wavelet_matrix {
   std::vector<Tp> c;
   std::vector<size_t> zeros;
   size_t n;
-  std::array<bit_vector, bitlen+1> a;
+  std::array<bit_vector, bitlen> a;
+
+  size_t start_index(Tp x) const {
+    size_t s = 0;
+    size_t t = 0;
+    for (size_t i = bitlen; i-- > 1;) {
+      size_t j = bitlen-i-1;
+      if (x >> i & 1) {
+        s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
+      } else {
+        s = a[j].rank0(s);
+        t = a[j].rank0(t);
+      }
+    }
+    return s;
+  }
 
 public:
   template <class ForwardIt>
@@ -103,17 +119,12 @@ public:
 
       zeros[bitlen-i-1] = zero.size();
       a[bitlen-i-1] = bit_vector(vb);
-      if (i == 0) {
-        std::vector<bool> vb(n);
-        for (size_t j = zero.size(); j < n; ++j) vb[j] = true;
-        a[bitlen] = bit_vector(vb);
-        break;
-      }
+      if (i == 0) break;
       whole = std::move(zero);
       whole.insert(whole.end(), one.begin(), one.end());
     }
 
-    inspect();
+    // inspect();
   }
 
   size_t rank(size_t t, Tp x) const {
@@ -132,18 +143,17 @@ public:
   }
 
   size_t select(size_t t, Tp x) const {
-    for (size_t i = 0; i < bitlen; ++i) {
-      fprintf(stderr, "%zu\n", t);
-      size_t j = bitlen-i;
-      if (x >> i & 1) {
-        size_t ti = zeros[j-1];
-        size_t tr = a[j].rank1(ti);
-        fprintf(stderr, "ti: %zu, tr: %zu\n", ti, tr);
-        t = a[j].select1(t+tr) - ti;
-      } else {
-        t = a[j].select0(t);
-      }
+    size_t si = start_index(x);
+    t += a[bitlen-1].rank(si, x & 1);
+    t = a[bitlen-1].select(t, x & 1);
+
+    for (size_t i = 1; i < bitlen; ++i) {
+      // fprintf(stderr, "t: %zu\n", t);
+      size_t j = bitlen-i-1;
+      if (x >> i & 1) t -= zeros[j];
+      t = a[j].select(t, x >> i & 1);
     }
+
     return t;
   }
 
@@ -159,7 +169,7 @@ public:
 #include <cassert>
 #include <random>
 
-void test() {
+void test_bv() {
   std::mt19937 rsk(0315);
   size_t n = 16384;
   std::vector<bool> base(n);
@@ -195,6 +205,36 @@ void test() {
   }
 }
 
+void test_wm() {
+  std::mt19937 rsk(0315);
+
+  size_t n = 16384;
+  int m = 1024;
+  std::vector<int> base(n);
+  for (size_t i = 0; i < n; ++i)
+    base[i] = rsk() % m;
+
+  // for (size_t i = 0; i < n; ++i)
+  //   fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
+
+  wavelet_matrix<int, 12> wm(base.begin(), base.end());
+  for (int j = 0; j < m; ++j) {
+    // fprintf(stderr, "%d:\n", j);
+    size_t count = 0;
+    for (size_t i = 0; i < n; ++i) {
+      // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(i, j));
+      assert(count == wm.rank(i, j));
+      if (base[i] == j) {
+        ++count;
+        // fprintf(stderr, "expects: %zu, got: %zu\n", i+1, wm.select(count, j));
+        assert(i+1 == wm.select(count, j));
+      }
+    }
+    // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(n, j));
+    assert(count == wm.rank(n, j));
+  }
+}
+
 int main() {
   std::vector<int> a{
     11,  0, 15,  6,
@@ -207,11 +247,17 @@ int main() {
      5,  4, 14,  6
   };
 
-  wavelet_matrix<int> wm(a.begin(), a.end());
-  while (true) {
-    size_t t;
-    int x;
-    if (scanf("%zu %d", &t, &x) != 2) break;
-    printf("%zu\n", wm.select(t, x));
-  }
+  // for (size_t i = 0; i < a.size(); ++i)
+  //   fprintf(stderr, "%d%c", a[i], i+1<a.size()? ' ':'\n');
+
+  wavelet_matrix<int, 5> wm(a.begin(), a.end());
+  // while (true) {
+  //   size_t t;
+  //   int x;
+  //   if (scanf("%zu %d", &t, &x) != 2) break;
+  //   printf("%zu\n", wm.select(t, x));
+  //   // printf("%zu\n", wm.rank(t, x));
+  // }
+
+  test_wm();
 }
