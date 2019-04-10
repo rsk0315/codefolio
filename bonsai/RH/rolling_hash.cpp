@@ -1,3 +1,10 @@
+#include <cstdio>
+#include <cstdint>
+#include <cassert>
+#include <string>
+#include <vector>
+#include <algorithm>
+
 template <intmax_t X = 943681729, intmax_t MOD = 1000000007>
 class rolling_hash {
   std::vector<intmax_t> hash, offset;
@@ -44,3 +51,19 @@ public:
       fprintf(stderr, "%jd%c", hash[i], i+1<hash.size()? ' ':'\n');
   }
 };
+
+int main() {
+  char buf[131072];
+  scanf("%s", buf);
+  std::string s = buf;
+  std::string t(s.rbegin(), s.rend());
+  size_t n = s.length();
+
+  rolling_hash<> r1(s), r2(t);
+  for (size_t i = 0; i <= n; ++i)
+    for (int c = 'a'; c <= 'z'; ++c)
+      if (r1.inserted(i, c) == r2.inserted(n-i, c))
+        return !printf("%s%c%s\n", s.substr(0, i).c_str(), c, s.substr(i).c_str());
+
+  puts("NA");
+}
