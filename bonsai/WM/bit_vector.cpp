@@ -143,6 +143,11 @@ public:
     return t - s;
   }
 
+  Tp max_lt(Tp x, size_t s, size_t t) const;
+  Tp max_le(Tp x, size_t s, size_t t) const;
+  Tp min_gt(Tp x, size_t s, size_t t) const;
+  Tp min_ge(Tp x, size_t s, size_t t) const;
+
   std::array<size_t, 3> rank_three_way(Tp x, size_t t) const {
     if (t == 0) return {0, 0, 0};
 
