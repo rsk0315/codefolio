@@ -154,11 +154,9 @@ public:
       size_t j = bitlen-i-1;
       size_t z = a[j].rank0(t) - a[j].rank0(s);
       if (k < z) {
-        // 0
         s = a[j].rank0(s);
         t = a[j].rank0(t);
       } else {
-        // 1
         res |= Tp(1) << i;
         s = zeros[j] + a[j].rank1(s);
         t = zeros[j] + a[j].rank1(t);
@@ -210,114 +208,26 @@ public:
 
     return t;
   }
-
-  void inspect() const {
-    for (size_t i = 0; i < bitlen; ++i) {
-      fprintf(stderr, "%zu (%zu): ", i, zeros[i]);
-      for (size_t j = 0; j < n; ++j)
-        fprintf(stderr, "%d%c", a[i][j], j+1<n? ' ':'\n');
-    }
-  }
 };
 
-#include <cassert>
-#include <random>
-
-void test_bv() {
-  std::mt19937 rsk(0315);
-  size_t n = 16384;
-  std::vector<bool> base(n);
-  for (size_t i = 0; i < n; ++i) {
-    if (rsk() % 2) base[i] = true;
-  }
-
-  for (size_t i = 0; i <= 10; ++i)
-    fprintf(stderr, "%d%c", !!base[i], i<10? ' ':'\n');
-
-  bit_vector bv(base);
-  std::vector<size_t> rank1(n+1);
-  for (size_t i = 0; i < n; ++i)
-    if (bv[i]) ++rank1[i+1];
-  for (size_t i = 1; i <= n; ++i)
-    rank1[i] += rank1[i-1];
-
-  std::vector<size_t> select1(n+1, -1);
-  select1[0] = 0;
-  {
-    size_t count = 0;
-    for (size_t i = 0; i < n; ++i) {
-      if (bv[i]) select1[++count] = i+1;
-    }
-  }
-
-  for (size_t i = 0; i <= n; ++i)
-    assert(bv.rank1(i) == rank1[i]);
-
-  for (size_t i = 0; i <= n; ++i) {
-    fprintf(stderr, "expected: %zu, got: %zu\n", select1[i], bv.select1(i));
-    assert(bv.select1(i) == select1[i]);
-  }
-}
-
-void test_wm() {
-  std::mt19937 rsk(0315);
-
-  size_t n = 16384;
-  int m = 1024;
-  std::vector<int> base(n);
-  for (size_t i = 0; i < n; ++i)
-    base[i] = rsk() % m;
-
-  // for (size_t i = 0; i < n; ++i)
-  //   fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
-
-  wavelet_matrix<int, 12> wm(base.begin(), base.end());
-  for (int j = 0; j < m; ++j) {
-    // fprintf(stderr, "%d:\n", j);
-    size_t count = 0;
-    for (size_t i = 0; i < n; ++i) {
-      // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(j, i));
-      assert(count == wm.rank(j, i));
-      if (base[i] == j) {
-        ++count;
-        // fprintf(stderr, "expects: %zu, got: %zu\n", i+1, wm.select(j, count));
-        assert(i+1 == wm.select(j, count));
-      }
-    }
-    // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(j, n));
-    assert(count == wm.rank(j, n));
-  }
-}
-
 int main() {
-  std::vector<int> a{
-    11,  0, 15,  6,
-     5,  2,  7, 12,
-    11,  0, 12, 12,
-    13,  4,  6, 13,
-     1, 11,  6,  1,
-     7, 10,  2,  7,
-    14, 11,  1,  7,
-     5,  4, 14,  6
-  };
+  size_t N;
+  scanf("%zu", &N);
 
-  for (size_t i = 0; i < a.size(); ++i)
-    fprintf(stderr, "%d%c", a[i], i+1<a.size()? ' ':'\n');
-
-  wavelet_matrix<int, 5> wm(a.begin(), a.end());
-  while (true) {
-    // int x;
-    // size_t t;
-    // if (scanf("%d %zu", &x, &t) != 2) break;
-    // printf("select(x:%d, t:%zu): %zu\n", x, t, wm.select(x, t));
-    // printf("%zu\n", wm.rank(x, t));
-    // auto tw = wm.rank_three_way(x, t);
-    // printf("%zu %zu %zu\n", tw[0], tw[1], tw[2]);
-
-    size_t k, s, t;
-    if (scanf("%zu %zu %zu", &k, &s, &t) != 3) break;
-    printf("%d\n", wm.quantile(k, s, t));
+  std::vector<int> a(N);
+  for (auto& ai: a) {
+    scanf("%d", &ai);
+    ai >>= __builtin_ctz(ai);
   }
 
-  test_wm();
+  wavelet_matrix<int, 30> wm(a.begin(), a.end());
+  std::vector<int> b(N);
+  for (size_t i = 0; i < N; ++i)
+    b[i] = wm.quantile(i, 0, N);
+
+  int res = 1;
+  for (size_t i = 1; i < N; ++i)
+    if (b[i] != b[i-1]) ++res;
+
+  printf("%d\n", res);
 }
