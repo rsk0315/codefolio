@@ -81,7 +81,6 @@ public:
 
 template <class Tp, size_t bitlen = 8 * sizeof(Tp)>
 class wavelet_matrix {
-  // static constexpr size_t bitlen = 8 * sizeof(Tp);
   std::vector<Tp> c;
   std::vector<size_t> zeros;
   size_t n;
@@ -123,8 +122,6 @@ public:
       whole = std::move(zero);
       whole.insert(whole.end(), one.begin(), one.end());
     }
-
-    // inspect();
   }
 
   size_t rank(Tp x, size_t t) const {
@@ -154,11 +151,9 @@ public:
       size_t j = bitlen-i-1;
       size_t z = a[j].rank0(t) - a[j].rank0(s);
       if (k < z) {
-        // 0
         s = a[j].rank0(s);
         t = a[j].rank0(t);
       } else {
-        // 1
         res |= Tp(1) << i;
         s = zeros[j] + a[j].rank1(s);
         t = zeros[j] + a[j].rank1(t);
