@@ -4,6 +4,7 @@
 #include <array>
 #include <algorithm>
 #include <utility>
+#include <tuple>
 
 class bit_vector {
   size_t n;
@@ -27,6 +28,8 @@ public:
     for (size_t i = 1; i < acc.size(); ++i)
       acc[i] = acc[i-1] + popcount(raw[i-1]);
   }
+
+  size_t size() const { return n; }
 
   size_t rank1(size_t k) const {
     size_t large = k / nbit;
@@ -123,8 +126,6 @@ public:
       whole = std::move(zero);
       whole.insert(whole.end(), one.begin(), one.end());
     }
-
-    // inspect();
   }
 
   size_t rank(Tp x, size_t t) const {
@@ -143,10 +144,120 @@ public:
     return t - s;
   }
 
-  Tp max_lt(Tp x, size_t s, size_t t) const;
-  Tp max_le(Tp x, size_t s, size_t t) const;
-  Tp min_gt(Tp x, size_t s, size_t t) const;
-  Tp min_ge(Tp x, size_t s, size_t t) const;
+  std::pair<bool, Tp> max_lt(Tp x, size_t s, size_t t) const {
+    return max_le(x-1, s, t);
+  }
+  std::pair<bool, Tp> max_le(Tp x, size_t s, size_t t) const {
+    if (s == t) return {false, 0};
+    size_t ri = bitlen+1;
+    size_t rs = -1;
+    size_t rt = -1;
+    bool tight = true;
+    bool reverted = false;
+    Tp res = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      size_t z = a[j].rank0(t) - a[j].rank0(s);
+      size_t tg = (tight? (x >> i & 1) : 1);
+      if (reverted) tg = 0;
+
+      bool ok0 = (z > 0);
+      bool ok1 = (z < t-s);
+      size_t ch = 0;
+
+      reverted = false;
+      if (tg == 1) {
+        if (ok0) {
+          ri = i;
+          rs = s;
+          rt = t;
+        }
+        if (ok1) {
+          ch = 1;
+        } else {
+          tight = false;
+        }
+      } else if (!ok0 && tight) {
+        if (ri > bitlen) return {false, 0};
+        i = ri+1;
+        s = rs;
+        t = rt;
+        tight = false;
+        Tp mask = (Tp(1) << i) - 1;
+        res |= mask;
+        res ^= mask;
+        reverted = true;
+        continue;
+      }
+
+      if (ch == 0) {
+        s = a[j].rank0(s);
+        t = a[j].rank0(t);
+      } else {
+        s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
+        res |= Tp(1) << i;
+      }
+    }
+    return {true, res};
+  }
+  std::pair<bool, Tp> min_gt(Tp x, size_t s, size_t t) const {
+    return min_ge(x+1, s, t);
+  }
+  std::pair<bool, Tp> min_ge(Tp x, size_t s, size_t t) const {
+    if (s == t) return {false, 0};
+    size_t ri = bitlen+1;
+    size_t rs = -1;
+    size_t rt = -1;
+    bool tight = true;
+    bool reverted = false;
+    Tp res = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      size_t z = a[j].rank0(t) - a[j].rank0(s);
+      size_t tg = (tight? (x >> i & 1) : 0);
+      if (reverted) tg = 1;
+
+      bool ok0 = (z > 0);
+      bool ok1 = (z < t-s);
+      size_t ch = 1;
+
+      reverted = false;
+      if (tg == 0) {
+        if (ok1) {
+          ri = i;
+          rs = s;
+          rt = t;
+        }
+        if (ok0) {
+          ch = 0;
+        } else {
+          tight = false;
+        }
+      } else if (!ok1 && tight) {
+        if (ri > bitlen) return {false, 0};
+        i = ri+1;
+        s = rs;
+        t = rt;
+        tight = false;
+        Tp mask = (Tp(1) << ri) - 1;  // XXX
+        res |= mask;
+        res ^= mask;
+        reverted = true;
+        continue;
+      }
+
+      if (ch == 0) {
+        s = a[j].rank0(s);
+        t = a[j].rank0(t);
+      } else {
+        s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
+        res |= Tp(1) << i;
+      }
+    }
+    return {true, res};
+  }
 
   Tp quantile(size_t k, size_t s, size_t t) const {
     Tp res = 0;
@@ -221,13 +332,22 @@ int main() {
   }
 
   wavelet_matrix<int, 30> wm(a.begin(), a.end());
-  std::vector<int> b(N);
-  for (size_t i = 0; i < N; ++i)
-    b[i] = wm.quantile(i, 0, N);
+  // std::vector<int> b(N);
+  // for (size_t i = 0; i < N; ++i)
+  //   b[i] = wm.quantile(i, 0, N);
 
-  int res = 1;
-  for (size_t i = 1; i < N; ++i)
-    if (b[i] != b[i-1]) ++res;
+  // int res = 1;
+  // for (size_t i = 1; i < N; ++i)
+  //   if (b[i] != b[i-1]) ++res;
+
+  int res = 0;
+  int x = 0;
+  while (true) {
+    bool f;
+    std::tie(f, x) = wm.min_gt(x, 0, N);
+    if (!f) break;
+    ++res;
+  }
 
   printf("%d\n", res);
 }

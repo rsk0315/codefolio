@@ -140,10 +140,86 @@ public:
     return t - s;
   }
 
-  Tp max_lt(Tp x, size_t s, size_t t) const;
-  Tp max_le(Tp x, size_t s, size_t t) const;
-  Tp min_gt(Tp x, size_t s, size_t t) const;
-  Tp min_ge(Tp x, size_t s, size_t t) const;
+  std::pair<bool, Tp> max_lt(Tp x, size_t s, size_t t) const {
+    return max_le(x-1, s, t);
+  }
+  std::pair<bool, Tp> max_le(Tp x, size_t s, size_t t) const {
+    // XXX
+    if (s == t) return {false, 0};
+    bool tight = true;
+    Tp res = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      size_t z = a[j].rank0(t) - a[j].rank0(s);
+      size_t tg = (tight? (x >> i & 1) : 1);
+
+      bool ok0 = (z > 0);
+      bool ok1 = (z < t-s);
+      size_t ch = 0;
+
+      if (!tight) {
+        if (ok1) ch = 1;
+      } else if (tg == 1) {
+        if (ok1) {
+          ch = 1;
+        } else {
+          tight = false;
+        }
+      } else if (!ok0) {
+        return {false, 0};
+      }
+
+      if (ch == 0) {
+        s = a[j].rank0(s);
+        t = a[j].rank0(t);
+      } else {
+        s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
+        res |= Tp(1) << i;
+      }
+    }
+    return {true, res};
+  }
+  std::pair<bool, Tp> min_gt(Tp x, size_t s, size_t t) const {
+    return min_ge(x+1, s, t);
+  }
+  std::pair<bool, Tp> min_ge(Tp x, size_t s, size_t t) const {
+    // XXX
+    if (s == t) return {false, 0};
+    bool tight = true;
+    Tp res = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      size_t z = a[j].rank0(t) - a[j].rank0(s);
+      size_t tg = (tight? (x >> i & 1) : 0);
+
+      bool ok0 = (z > 0);
+      bool ok1 = (z < t-s);
+      size_t ch = 1;
+
+      if (!tight) {
+        if (ok0) ch = 0;
+      } else if (tg == 0) {
+        if (ok0) {
+          ch = 0;
+        } else {
+          tight = false;
+        }
+      } else if (!ok1) {
+        return {false, 0};
+      }
+
+      if (ch == 0) {
+        s = a[j].rank0(s);
+        t = a[j].rank0(t);
+      } else {
+        s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
+        res |= Tp(1) << i;
+      }
+    }
+    return {true, res};
+  }
 
   Tp quantile(size_t k, size_t s, size_t t) const {
     Tp res = 0;
