@@ -41,6 +41,8 @@ class red_black_tree {
     enum Color {RED, BLACK} color = RED;
     node(const Tp& x): value(x) {}
 
+    ~node() {}
+
     node* successor() { return neighbor(1); }
     const node* successor() const { return neighbor(1); }
     node* predecessor() { return neighbor(0); }
@@ -306,10 +308,11 @@ private:
   }
 
   void release() {
+    root = first = nullptr;
+    size_ = 0;
   }
 
-  void clear() {
-  }
+  void clear() {}  // XXX
 
   iterator merge(red_black_tree&& other, node* med) {
     if (!med) return merge(std::move(other));
@@ -406,7 +409,6 @@ public:
   }
 
   red_black_tree(red_black_tree&& other) {
-    clear();
     root = other.root;
     first = other.first;
     size_ = other.size_;
@@ -474,11 +476,10 @@ public:
   }
 
   red_black_tree& operator =(red_black_tree&& other) {
-    clear();
+    // clear();
     root = other.root;
     first = other.first;
-    other.root = other.first = nullptr;
-    other.size_ = 0;
+    other.release();
     return *this;
   }
 
@@ -496,15 +497,14 @@ public:
     size_t bh1 = black_height();
     size_t bh2 = oth.black_height();
     if (bh1 >= bh2) {
-      Tp tmp = std::move(oth.first->value);
+      node* tmp = oth.first;
       oth.pop_front();
       merge(std::move(oth), tmp);
     } else {
       node* right = root;
       while (right->children[1]) right = right->children[1];
-      Tp tmp = std::move(right->value);
       pop_back();
-      merge(std::move(oth), tmp);
+      merge(std::move(oth), right);
     }
     return med;
   }
@@ -583,4 +583,8 @@ int main() {
   for (int x: rbt) printf("%d\n", x);
   puts("...");
   for (int x: s) printf("%d\n", x);
+  puts("---");
+
+  rbt.merge(std::move(s));
+  for (int x: rbt) printf("%d\n", x);
 }
