@@ -41,7 +41,19 @@ class red_black_tree {
     enum Color {RED, BLACK} color = RED;
     node(const Tp& x): value(x) {}
 
-    ~node() {}
+    ~node() {
+      fprintf(stderr, "delete: %d\n", value);
+      if (children[0]) {
+        fprintf(stderr, "delete[0]: %d\n", children[0]->value);
+        delete children[0];
+        children[0] = nullptr;
+      }
+      if (children[1]) {
+        fprintf(stderr, "delete[1]: %d\n", children[1]->value);
+        delete children[1];
+        children[1] = nullptr;
+      }
+    }
 
     node* successor() { return neighbor(1); }
     const node* successor() const { return neighbor(1); }
@@ -312,7 +324,10 @@ private:
     size_ = 0;
   }
 
-  void clear() {}  // XXX
+  void clear() {
+    // XXX
+    release();
+  }
 
   iterator merge(red_black_tree&& other, node* med) {
     if (!med) return merge(std::move(other));
@@ -353,7 +368,7 @@ private:
       } else {
         med->parent->children[1] = med;
       }
-      cur->parent = other.root = med;
+      cur->parent = other.root->parent = med;
     } else {
       cur = other.root;
       while (bh1 <= bh2) {
@@ -414,6 +429,8 @@ public:
     size_ = other.size_;
     other.release();
   }
+
+  ~red_black_tree() { delete root; }
 
   size_t size() const { return size_; }
 
@@ -509,7 +526,7 @@ public:
     return med;
   }
 
-  [[nodiscard]] red_black_tree split(iterator crit_) {
+  red_black_tree split(iterator crit_) {
     if (crit_ == end()) return {};
 
     node* crit = crit_.nd;
@@ -550,13 +567,7 @@ public:
       }
     }
 
-    left.reset_size();
-    left.first = left.root;
-    while (left.first->children[0]) left.first = left.first->children[0];
     *this = std::move(left);
-    right.reset_size();
-    right.first = right.root;
-    while (right.first->children[0]) right.first = right.first->children[0];
 
     crit_orig->left_size = 0;
     crit_orig->parent = nullptr;
