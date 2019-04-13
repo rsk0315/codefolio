@@ -80,6 +80,7 @@ public:
       return tmp;
     }
 
+    bool operator ==(const iterator other) const { return nd == other.nd; }
     bool operator !=(const iterator other) const { return nd != other.nd; }
   };
 
@@ -95,6 +96,8 @@ private:
     }
 
     root->parent = nullptr;
+    first = root;
+    while (first->children[0]) first = first->children[0];
     root->color = node::BLACK;
     reset_size();
   }
@@ -219,7 +222,7 @@ private:
     }
   }
 
-  node* insert(node* nd, node* before_of) {
+  node* insert(node* before_of, node* nd) {
     assert(nd);
 
     nd->children[0] = nd->children[1] = nullptr;
@@ -304,7 +307,67 @@ private:
   void release() const {
   }
 
-  iterator merge(red_black_tree&& other, const Tp& med);
+  iterator merge(red_black_tree&& other, node* med) {
+    if (!med) return merge(other);
+
+    if (!root && !other.root) {
+      insert(nullptr, med);
+      return root;
+    }
+
+    med->color = node::RED;
+    if (!root) {
+      other.insert(other.first, med);
+      *this = std::move(other);
+      return root;
+    }
+    if (!other.root) {
+      med->left_size = 0;
+      insert(nullptr, med);
+      return med;
+    }
+
+    size_t bh1 = black_height();
+    size_t bh2 = other.black_height();
+    node* cur;
+    if (bh1 >= bh2) {
+      cur = root;
+      while (bh1 >= bh2) {
+        if (cur->color == node::BLACK && bh1-- == bh2) break;
+        cur = cur->children[1];
+      }
+      med->children[0] = cur;
+      med->children[1] = other.root;
+      med->parent = cur->parent;
+
+      if (!med->parent) {
+        root = med;
+        med->color = node::BLACK;
+      } else {
+        med->parent->children[1] = med;
+      }
+      cur->parent = other.root = med;
+    } else {
+      cur = other.root;
+      while (bh1 <= bh2) {
+        if (cur->color == node::BLACK && bh1 == bh2--) break;
+        cur = cur->children[0];
+      }
+      med->children[0] = root;
+      med->children[1] = cur;
+      med->parent = cur->parent;
+      med->parent->children[0] = med;
+      cur->parent = root->parent = med;
+      root = other.root;
+      propagate_left_size(med, size_+1);
+    }
+
+    med->left_size = calc_size(med->children[0]);
+    size_ += other.size_ + 1;
+    other.root = other.first = nullptr;
+    insert_fixup(med);
+    return med;
+  }
 
 public:
   red_black_tree() = default;
@@ -368,18 +431,18 @@ public:
     return res;
   }
 
-  void push_back(const Tp& x) { insert(new node(x), nullptr); }
+  void push_back(const Tp& x) { insert(nullptr, new node(x)); }
   void push_front(const Tp& x) {
     node* first = root;
     if (first)
       while (first->children[0]) first = first->children[0];
-    insert(new node(x), first);
+    insert(first, new node(x));
   }
-  void insert(iterator it, const Tp& x) { insert(new node(x), it.nd); }
+  void insert(iterator it, const Tp& x) { insert(it.nd, new node(x)); }
   template <class ForwardIt>
   void insert(iterator it, ForwardIt first, ForwardIt last) {
     while (first != last) {
-      insert(new node(*first), it.nd);
+      insert(it.nd, new node(*first));
       ++first;
     }
   }
@@ -398,6 +461,11 @@ public:
     return erase(it.nd);
   }
 
+  // red_black_tree& operator =(const red_black_tree& other) {
+  //   release();
+  //   // needs deep copy
+  // }
+
   red_black_tree& operator =(red_black_tree&& other) {
     release();
     root = other.root;
@@ -406,30 +474,82 @@ public:
     return *this;
   }
 
-  // iterator merge(red_black_tree&& oth) {
-  //   iterator med = oth.first;
-  //   if (!oth.root) return med;
-  //   if (!root) {
-  //     *this = oth;
-  //     return nullptr;
-  //   }
-  //   size_t bh1 = black_height();
-  //   size_t bh2 = oth.black_height();
-  //   if (bh1 >= bh2) {
-  //     Tp tmp = std::move(oth.first->value);
-  //     oth.pop_front();
-  //     merge(oth, tmp);
-  //   } else {
-  //     node* right = root;
-  //     while (right->children[1]) right = right->children[1];
-  //     Tp tmp = std::move(right->value);
-  //     pop_back();
-  //     merge(oth, tmp);
-  //   }
-  //   return med;
-  // }
+  iterator merge(red_black_tree&& other, const Tp& med) {
+    return merge(other, new node(med));
+  }
 
-  // [[nodiscard]] red_black_tree split(iterator crit);
+  iterator merge(red_black_tree&& oth) {
+    iterator med = oth.first;
+    if (!oth.root) return med;
+    if (!root) {
+      *this = oth;
+      return nullptr;
+    }
+    size_t bh1 = black_height();
+    size_t bh2 = oth.black_height();
+    if (bh1 >= bh2) {
+      Tp tmp = std::move(oth.first->value);
+      oth.pop_front();
+      merge(oth, tmp);
+    } else {
+      node* right = root;
+      while (right->children[1]) right = right->children[1];
+      Tp tmp = std::move(right->value);
+      pop_back();
+      merge(oth, tmp);
+    }
+    return med;
+  }
+
+  [[nodiscard]] red_black_tree split(iterator crit_) {
+    if (crit_ == end()) return {};
+
+    node* crit = crit_.nd;
+    if (crit == first) {
+      red_black_tree tmp;
+      std::swap(tmp, *this);
+      return tmp;
+    }
+
+    node* crit_orig = crit;
+    red_black_tree left(crit->children[0]);
+    red_black_tree right(crit->children[1]);
+    crit->children[0] = crit->children[1] = nullptr;
+
+    if (crit == root) {
+      *this = std::move(left);
+      right.insert(right.first, crit);
+      return right;
+    }
+
+    size_t crit_dir = (crit == crit->parent->children[1]);
+    crit = crit->parent;
+    while (crit) {
+      red_black_tree subtree(crit->children[!crit_dir]);
+      crit->children[!crit_dir] = nullptr;
+      node* med = crit;
+      bool merge_left = crit_dir;
+      if (crit != root) crit_dir = (crit == crit->parent->children[1]);
+      crit = crit->parent;
+
+      med->parent = nullptr;
+      med->children[0] = med->children[1] = nullptr;
+      if (merge_left) {
+        subtree.merge(left, med);
+        std::swap(left, subtree);
+      } else {
+        right.merge(subtree, med);
+      }
+    }
+
+    *this = std::move(left);
+    right.reset_size();
+
+    crit_orig->left_size = 0;
+    crit_orig->parent = nullptr;
+    right.insert(right.first, crit_orig);
+    return right;
+  }
 
   iterator begin() { return first; }
   iterator end() { return nullptr; }
@@ -444,4 +564,10 @@ int main() {
   auto it = rbt.nth(3);
   rbt.insert(it, 4);
   for (int x: rbt) printf("%d\n", x);
+  puts("---");
+
+  auto s = std::move(rbt.split(it));
+  for (int x: rbt) printf("%d\n", x);
+  puts("...");
+  for (int x: s) printf("%d\n", x);
 }
