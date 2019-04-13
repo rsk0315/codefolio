@@ -31,6 +31,11 @@ private:
   void calc(size_t p, size_t k) {
     // called in build()
     c[p] = op1(c[p<<1], c[p<<1|1]);
+    fprintf(stderr, "calc(%zu)\n", p);
+    if (p < m/2) {
+      fprintf(stderr, "d[%zu]: %d/%d\n", p, d[p].first, d[p].second);
+      assert(d[p] == op2.identity);
+    }
     if (p < m/2) c[p] = op2(c[p], d[p], k);
   }
 

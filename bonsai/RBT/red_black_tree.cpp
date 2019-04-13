@@ -181,6 +181,7 @@ private:
         sibling->color = node::BLACK;
         parent->color = node::RED;
         rotate(parent, !sibling_dir);
+        sibling = parent->children[sibling_dir];
       }
 
       if (sibling) {
