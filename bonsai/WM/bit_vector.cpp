@@ -64,11 +64,11 @@ public:
     return ub;
   }
 
-  size_t rank(size_t k, int x) const {
+  size_t rank(int x, size_t k) const {
     return x? rank1(k) : rank0(k);
   }
 
-  size_t select(size_t k, int x) const {
+  size_t select(int x, size_t k) const {
     return x? select1(k) : select0(k);
   }
 
@@ -127,7 +127,7 @@ public:
     // inspect();
   }
 
-  size_t rank(size_t t, Tp x) const {
+  size_t rank(Tp x, size_t t) const {
     if (t == 0) return 0;
     size_t s = 0;
     for (size_t i = bitlen; i--;) {
@@ -143,17 +143,45 @@ public:
     return t - s;
   }
 
-  size_t select(size_t t, Tp x) const {
+  std::array<size_t, 3> rank_three_way(Tp x, size_t t) const {
+    if (t == 0) return {0, 0, 0};
+
+    size_t lt = 0;
+    size_t eq = t;
+    size_t gt = 0;
+
+    size_t s = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      size_t tmp = (t - s);
+      if (x >> i & 1) {
+        s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
+        size_t d = tmp - (t-s);
+        eq -= d;
+        lt += d;
+      } else {
+        s = a[j].rank0(s);
+        t = a[j].rank0(t);
+        size_t d = tmp - (t-s);
+        eq -= d;
+        gt += d;
+      }
+    }
+    return {lt, eq, gt};
+  }
+
+  size_t select(Tp x, size_t t) const {
     if (t == 0) return 0;
     size_t si = start_index(x);
-    t += a[bitlen-1].rank(si, x & 1);
-    t = a[bitlen-1].select(t, x & 1);
+    t += a[bitlen-1].rank(x & 1, si);
+    t = a[bitlen-1].select(x & 1, t);
 
     for (size_t i = 1; i < bitlen; ++i) {
       // fprintf(stderr, "t: %zu\n", t);
       size_t j = bitlen-i-1;
       if (x >> i & 1) t -= zeros[j];
-      t = a[j].select(t, x >> i & 1);
+      t = a[j].select(x >> i & 1, t);
     }
 
     return t;
@@ -224,16 +252,16 @@ void test_wm() {
     // fprintf(stderr, "%d:\n", j);
     size_t count = 0;
     for (size_t i = 0; i < n; ++i) {
-      // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(i, j));
-      assert(count == wm.rank(i, j));
+      // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(j, i));
+      assert(count == wm.rank(j, i));
       if (base[i] == j) {
         ++count;
-        // fprintf(stderr, "expects: %zu, got: %zu\n", i+1, wm.select(count, j));
-        assert(i+1 == wm.select(count, j));
+        // fprintf(stderr, "expects: %zu, got: %zu\n", i+1, wm.select(j, count));
+        assert(i+1 == wm.select(j, count));
       }
     }
-    // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(n, j));
-    assert(count == wm.rank(n, j));
+    // fprintf(stderr, "expects: %zu, got: %zu\n", count, wm.rank(j, n));
+    assert(count == wm.rank(j, n));
   }
 }
 
@@ -254,11 +282,13 @@ int main() {
 
   wavelet_matrix<int, 5> wm(a.begin(), a.end());
   while (true) {
-    size_t t;
     int x;
-    if (scanf("%zu %d", &t, &x) != 2) break;
-    printf("select(t:%zu, x:%d): %zu\n", t, x, wm.select(t, x));
-    // printf("%zu\n", wm.rank(t, x));
+    size_t t;
+    if (scanf("%d %zu", &x, &t) != 2) break;
+    // printf("select(x:%d, t:%zu): %zu\n", x, t, wm.select(x, t));
+    // printf("%zu\n", wm.rank(x, t));
+    auto tw = wm.rank_three_way(x, t);
+    printf("%zu %zu %zu\n", tw[0], tw[1], tw[2]);
   }
 
   test_wm();
