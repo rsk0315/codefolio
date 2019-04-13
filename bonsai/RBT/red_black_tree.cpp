@@ -239,8 +239,9 @@ private:
       before_of->children[1] = nd;
     } else {
       before_of->children[0] = nd;
+      if (before_of == first) first = nd;
     }
-    if (before_of == first) first = nd;
+
     nd->parent = before_of;
     ++size_;
     propagate_left_size(nd, 1);
@@ -304,11 +305,14 @@ private:
     return calc_size(nd);
   }
 
-  void release() const {
+  void release() {
+  }
+
+  void clear() {
   }
 
   iterator merge(red_black_tree&& other, node* med) {
-    if (!med) return merge(other);
+    if (!med) return merge(std::move(other));
 
     if (!root && !other.root) {
       insert(nullptr, med);
@@ -401,6 +405,14 @@ public:
     size_ = n;
   }
 
+  red_black_tree(red_black_tree&& other) {
+    clear();
+    root = other.root;
+    first = other.first;
+    size_ = other.size_;
+    other.release();
+  }
+
   size_t size() const { return size_; }
 
   iterator nth(size_t pos) const {
@@ -461,28 +473,24 @@ public:
     return erase(it.nd);
   }
 
-  // red_black_tree& operator =(const red_black_tree& other) {
-  //   release();
-  //   // needs deep copy
-  // }
-
   red_black_tree& operator =(red_black_tree&& other) {
-    release();
+    clear();
     root = other.root;
-    other.root = nullptr;
+    first = other.first;
+    other.root = other.first = nullptr;
     other.size_ = 0;
     return *this;
   }
 
   iterator merge(red_black_tree&& other, const Tp& med) {
-    return merge(other, new node(med));
+    return merge(std::move(other), new node(med));
   }
 
   iterator merge(red_black_tree&& oth) {
     iterator med = oth.first;
     if (!oth.root) return med;
     if (!root) {
-      *this = oth;
+      *this = std::move(oth);
       return nullptr;
     }
     size_t bh1 = black_height();
@@ -490,13 +498,13 @@ public:
     if (bh1 >= bh2) {
       Tp tmp = std::move(oth.first->value);
       oth.pop_front();
-      merge(oth, tmp);
+      merge(std::move(oth), tmp);
     } else {
       node* right = root;
       while (right->children[1]) right = right->children[1];
       Tp tmp = std::move(right->value);
       pop_back();
-      merge(oth, tmp);
+      merge(std::move(oth), tmp);
     }
     return med;
   }
@@ -535,15 +543,20 @@ public:
       med->parent = nullptr;
       med->children[0] = med->children[1] = nullptr;
       if (merge_left) {
-        subtree.merge(left, med);
-        std::swap(left, subtree);
+        subtree.merge(std::move(left), med);
+        left = std::move(subtree);
       } else {
-        right.merge(subtree, med);
+        right.merge(std::move(subtree), med);
       }
     }
 
+    left.reset_size();
+    left.first = left.root;
+    while (left.first->children[0]) left.first = left.first->children[0];
     *this = std::move(left);
     right.reset_size();
+    right.first = right.root;
+    while (right.first->children[0]) right.first = right.first->children[0];
 
     crit_orig->left_size = 0;
     crit_orig->parent = nullptr;
