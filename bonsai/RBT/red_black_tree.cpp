@@ -42,14 +42,11 @@ class red_black_tree {
     node(const Tp& x): value(x) {}
 
     ~node() {
-      fprintf(stderr, "delete: %d\n", value);
       if (children[0]) {
-        fprintf(stderr, "delete[0]: %d\n", children[0]->value);
         delete children[0];
         children[0] = nullptr;
       }
       if (children[1]) {
-        fprintf(stderr, "delete[1]: %d\n", children[1]->value);
         delete children[1];
         children[1] = nullptr;
       }
