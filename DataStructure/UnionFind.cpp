@@ -1,14 +1,14 @@
 class union_find {
-  std::vector<intmax_t> tree;
+  mutable std::vector<intmax_t> c;
 
 public:
-  union_find(size_t n): tree(n, -1) {}
+  union_find(size_t n): c(n, -1) {}
 
-  size_t find(size_t v) {
-    if (tree[v] < 0)
+  size_t find(size_t v) const {
+    if (c[v] < 0)
       return v;
 
-    return (tree[v] = find(tree[v]));
+    return (c[v] = find(c[v]));
   }
 
   bool unite(size_t u, size_t v) {
@@ -17,19 +17,20 @@ public:
     if (u == v)
       return false;
 
-    if (-tree[u] >= -tree[v])
+    if (-c[u] > -c[v])
       std::swap(u, v);
 
-    tree[v] += tree[u];
-    tree[u] = v;
+    c[v] += c[u];
+    c[u] = v;
     return true;
   }
 
-  bool connected(size_t u, size_t v) {
+  bool connected(size_t u, size_t v) const {
     return (find(u) == find(v));
   }
 
-  size_t size(size_t v) {
-    return -tree[find(v)];
+  size_t size() const { return c.size(); }
+  size_t size(size_t v) const {
+    return -c[find(v)];
   }
 };
