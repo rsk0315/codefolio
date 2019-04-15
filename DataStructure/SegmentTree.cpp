@@ -12,10 +12,9 @@ private:
   size_t m = 1;
   binary_operation1 op1;  // aggregate
   binary_operation2 op2;  // update
-  value_type e1;  // unit elements
 
   void init_resize(size_t n) {
-    while (m < n+n) m <<= 1;
+    m = 2*n;
     c.resize(m);
   }
 
@@ -25,18 +24,14 @@ private:
   }
 
 public:
-  segment_tree(size_t n, const value_type& e,
-               const value_type& e1): e1(e1) {
-
+  segment_tree(size_t n, const value_type& e) {
     init_resize(n);
     for (size_t i = m/2; i < m; ++i) c[i] = e;
     init_aggregate();
   }
 
   template <class ForwardIt>
-  segment_tree(ForwardIt first, ForwardIt last,
-               const value_type& e1): e1(e1) {
-
+  segment_tree(ForwardIt first, ForwardIt last) {
     static_assert(std::is_same<Tp, typename ForwardIt::value_type>::value, "");
     init_resize(std::distance(first, last));
     for (size_t i = m/2; first != last; ++i) c[i] = *first++;
@@ -53,15 +48,16 @@ public:
   }
 
   value_type aggregate(size_t l, size_t r) const {
-    value_type resl = e1;
-    value_type resr = e1;
+    value_type resl = op1.identity;
+    value_type resr = op1.identity;
     l += m/2;
     r += m/2;
     while (l < r) {
       if (l & 1) resl = op1(resl, c[l++]);
       if (r & 1) resr = op1(c[--r], resr);
-      l >>= 1;
-      r >>= 1;
+      size_t j = __builtin_ctzll(l | r);
+      l >>= j;
+      r >>= j;
     }
     return op1(resl, resr);
   }
