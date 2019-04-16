@@ -3,6 +3,16 @@
 #include <iostream>
 #include <string>
 #include <tuple>
+#include <vector>
+
+template <class Tp>
+std::ostream& operator <<(std::ostream& os, const std::vector<Tp>& c) {
+  for (auto it = c.cbegin(); it != c.cend(); ++it) {
+    os << *it;
+    os << ((std::next(it) != c.cend())? " ":"");
+  }
+  return os;
+}
 
 class formatter {
   const char* fmt;
@@ -46,18 +56,24 @@ constexpr formatter operator ""_fmt(const char* fmt, size_t) {
   return formatter(fmt);
 }
 
-#define LEN_ARGS(...)                                                   \
+#define LEN_VA_ARGS(...)                                                \
   std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value        \
   
-#define printf_macro(fmt, ...) do {                     \
+#define print(fmt, ...) do {                            \
     constexpr formatter f = fmt ## _fmt;                \
     constexpr size_t lhs = f.vars();                    \
-    constexpr size_t rhs = LEN_ARGS(__VA_ARGS__);       \
-    static_assert(lhs == rhs);                          \
+    constexpr size_t rhs = LEN_VA_ARGS(__VA_ARGS__);    \
+    static_assert(lhs <= rhs, "missing arguments");     \
+    static_assert(lhs >= rhs, "extra arguments");       \
     f.print(__VA_ARGS__);                               \
   } while (false)
 
 int main() {
   int a = 0;
-  printf_macro("{} {}\n", ++a, 4.2);
+  print("abc {} {}\n", ++a, 4.2);
+
+  std::string s = "Hello";
+  print("{}\n", s);
+
+  print("{}");
 }
