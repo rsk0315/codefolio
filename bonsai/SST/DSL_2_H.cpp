@@ -10,9 +10,10 @@ class starry_sky_tree {
   std::vector<Tp> c;
 
   size_t roundup_powtwo(size_t n) const {
-    if (n == 0) return 1;
-    if ((n & (n-1)) == 0) return n+1;
-    return size_t(1) << (64 - __builtin_clzll(n));
+    // if (n == 0) return 1;
+    // if ((n & (n-1)) == 0) return n+1;
+    // return size_t(1) << (64 - __builtin_clzll(n));
+    return n;
   }
 
   void init_build() {
@@ -117,6 +118,12 @@ public:
     }
     return *std::max_element(cand.begin(), cand.end());
   }
+
+  void inspect() const {
+    size_t m = c.size();
+    for (size_t i = 1; i < m; ++i)
+      fprintf(stderr, "%d%c", c[i], ((i&(i+1))? ' ':'\n'));
+  }
 };
 
 int main() {
@@ -140,5 +147,6 @@ int main() {
       scanf("%zu %zu", &s, &t);
       printf("%d\n", -sst.max(s, t+1));
     }
+    sst.inspect();
   }
 }
