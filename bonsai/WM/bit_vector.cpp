@@ -144,29 +144,46 @@ public:
     return max_le(x-1, s, t);
   }
   std::pair<bool, Tp> max_le(Tp x, size_t s, size_t t) const {
-    // XXX
     if (s == t) return {false, 0};
+    size_t ri = bitlen+1;
+    size_t rs = -1;
+    size_t rt = -1;
     bool tight = true;
+    bool reverted = false;
     Tp res = 0;
     for (size_t i = bitlen; i--;) {
       size_t j = bitlen-i-1;
       size_t z = a[j].rank0(t) - a[j].rank0(s);
       size_t tg = (tight? (x >> i & 1) : 1);
+      if (reverted) tg = 0;
 
       bool ok0 = (z > 0);
       bool ok1 = (z < t-s);
       size_t ch = 0;
 
-      if (!tight) {
-        if (ok1) ch = 1;
-      } else if (tg == 1) {
+      reverted = false;
+      if (tg == 1) {
+        if (ok0) {
+          ri = i;
+          rs = s;
+          rt = t;
+        }
         if (ok1) {
           ch = 1;
         } else {
           tight = false;
         }
-      } else if (!ok0) {
-        return {false, 0};
+      } else if (!ok0 && tight) {
+        if (ri > bitlen) return {false, 0};
+        i = ri+1;
+        s = rs;
+        t = rt;
+        tight = false;
+        Tp mask = (Tp(1) << i) - 1;
+        res |= mask;
+        res ^= mask;
+        reverted = true;
+        continue;
       }
 
       if (ch == 0) {
@@ -184,29 +201,46 @@ public:
     return min_ge(x+1, s, t);
   }
   std::pair<bool, Tp> min_ge(Tp x, size_t s, size_t t) const {
-    // XXX
     if (s == t) return {false, 0};
+    size_t ri = bitlen+1;
+    size_t rs = -1;
+    size_t rt = -1;
     bool tight = true;
+    bool reverted = false;
     Tp res = 0;
     for (size_t i = bitlen; i--;) {
       size_t j = bitlen-i-1;
       size_t z = a[j].rank0(t) - a[j].rank0(s);
       size_t tg = (tight? (x >> i & 1) : 0);
+      if (reverted) tg = 1;
 
       bool ok0 = (z > 0);
       bool ok1 = (z < t-s);
       size_t ch = 1;
 
-      if (!tight) {
-        if (ok0) ch = 0;
-      } else if (tg == 0) {
+      reverted = false;
+      if (tg == 0) {
+        if (ok1) {
+          ri = i;
+          rs = s;
+          rt = t;
+        }
         if (ok0) {
           ch = 0;
         } else {
           tight = false;
         }
-      } else if (!ok1) {
-        return {false, 0};
+      } else if (!ok1 && tight) {
+        if (ri > bitlen) return {false, 0};
+        i = ri+1;
+        s = rs;
+        t = rt;
+        tight = false;
+        Tp mask = (Tp(1) << ri) - 1;  // suspicious
+        res |= mask;
+        res ^= mask;
+        reverted = true;
+        continue;
       }
 
       if (ch == 0) {
