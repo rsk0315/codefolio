@@ -79,10 +79,10 @@ class matching_automaton {
       std::shared_ptr<node> next(cur->find(c));
       while (!(next || cur == root)) cur = cur->suffix_link;
       if (next) cur = next;
-      if (cur->accepting) fn(s.substr(i+1-cur->length, cur->length));
+      if (cur->accepting) fn(i+1-cur->length, cur->length);
       std::shared_ptr<node> out(cur->output_link);
       while (out) {
-        fn(s.substr(i+1-out->length, out->length));
+        fn(i+1-out->length, out->length);
         out = out->output_link;
       }
     }
@@ -95,7 +95,12 @@ public:
     build_links();
   }
 
-  void match(const String& s) const {
-    match_do(s, [](const String& t) { printf("%s\n", t.c_str()); });
+  std::vector<std::pair<size_t, size_t>> find_all_matches(const String& s) {
+    std::vector<std::pair<size_t, size_t>> res;
+    match_do(s, [&](size_t i, size_t j) { res.emplace_back(i, j); });
   }
+
+  std::vector<std::pair<size_t, size_t>> print_all_matches(const String& s) {
+    match_do(s, [&](size_t i, size_t j) { printf("%s\n", s.substr(i, j).c_str()); });
+  }  
 };
