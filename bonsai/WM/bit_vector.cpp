@@ -301,6 +301,36 @@ public:
     return {lt, eq, gt};
   }
 
+  std::array<size_t, 3> xored_rank_three_way(Tp x, Tp y, size_t t) const {
+    if (t == 0) return {0, 0, 0};
+
+    size_t lt = 0;
+    size_t eq = t;
+    size_t gt = 0;
+
+    size_t s = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      size_t tmp = (t - s);
+      if ((x ^ y) >> i & 1) {
+        s = zeros[j] + a[j].rank1(s);
+        t = zeros[j] + a[j].rank1(t);
+      } else {
+        s = a[j].rank0(s);
+        t = a[j].rank0(t);
+      }
+
+      size_t d = tmp - (t-s);
+      eq -= d;
+      if (y >> i & 1) {
+        lt += d;
+      } else {
+        gt += d;
+      }
+    }
+    return {lt, eq, gt};
+  }
+
   size_t select(Tp x, size_t t) const {
     if (t == 0) return 0;
     size_t si = start_index(x);
@@ -394,6 +424,52 @@ void test_wm() {
   }
 }
 
+void test_xor() {
+  std::mt19937 rsk(0315);
+
+  size_t n = 16384;
+  int m = 16;
+  std::vector<int> base(n);
+  for (size_t i = 0; i < n; ++i)
+    base[i] = rsk() % m;
+
+  // std::vector<int> base{0, 1, 2, 3};
+  // size_t n = base.size();
+  // int m = 4;
+
+  for (size_t i = 0; i < n; ++i)
+    fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
+
+  wavelet_matrix<int, 12> wm(base.begin(), base.end());
+  for (int x = 0; x < m; ++x) {
+    for (int y = 1; y < m; ++y) {
+      // xor with x, compare with y
+      std::array<size_t, 3> expected{0, 0, 0};
+      for (size_t i = 0; i < n; ++i) {
+        if ((base[i] ^ x) > y) {
+          ++expected[2];
+        } else if ((base[i] ^ x) < y) {
+          ++expected[0];
+        } else {
+          ++expected[1];
+        }
+
+        auto got = wm.xored_rank_three_way(x, y, i+1);
+
+        if (got != expected) {
+          fprintf(stderr, "expected: [%zu %zu %zu]\n",
+                  expected[0], expected[1], expected[2]);
+
+          fprintf(stderr, "got: [%zu %zu %zu]\n",
+                  got[0], got[1], got[2]);
+          fprintf(stderr, "(x, y, t): (%d, %d, %zu)\n", x, y, i+1);
+          assert(got == expected);
+        }
+      }
+    }
+  }
+}
+
 int main() {
   std::vector<int> a{
     11,  0, 15,  6,
@@ -410,7 +486,7 @@ int main() {
     fprintf(stderr, "%d%c", a[i], i+1<a.size()? ' ':'\n');
 
   wavelet_matrix<int, 5> wm(a.begin(), a.end());
-  while (true) {
+  while (false) {
     // int x;
     // size_t t;
     // if (scanf("%d %zu", &x, &t) != 2) break;
@@ -424,5 +500,6 @@ int main() {
     printf("%d\n", wm.quantile(k, s, t));
   }
 
-  test_wm();
+  // test_wm();
+  test_xor();
 }
