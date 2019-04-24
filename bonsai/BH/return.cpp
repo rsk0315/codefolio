@@ -67,6 +67,7 @@ class meldable_heap {
   typename std::list<binomial_tree>::iterator max;
 
   void coalesce() {
+    std::vector<binomial_tree> t;
     size_t n = 0;
     for (const auto& bt: c)
       n += size_t(1) << bt.rank;
@@ -77,8 +78,8 @@ class meldable_heap {
       return;
     }
 
-    n = 64 - __builtin_clzll(n);
-    std::vector<binomial_tree> t(n);
+    n = size_t(1) << (63 - __builtin_clzll(n));
+    t.resize(n);
 
     for (auto& bt: c) {
       while (t[bt.rank].root)
@@ -159,6 +160,16 @@ public:
 
 #include <random>
 
+meldable_heap<int> hoge(size_t n) {
+  std::uniform_int_distribution<int> uid(-1000, 1000);
+  std::mt19937 rsk(0315);
+  meldable_heap<int> res;
+  for (size_t i = 0; i < n; ++i)
+    res.push(uid(rsk));
+
+  return res;
+}
+
 int main() {
   // meldable_heap<int> mh0(1), mh1(2);
   // mh0.inspect();
@@ -169,38 +180,6 @@ int main() {
   // mh0.inspect();
   // fprintf(stderr, "%d\n", mh0.top());
 
-  meldable_heap<int> mh0, mh1;
-  std::mt19937 rsk(0315);
-  std::uniform_int_distribution<int> uu(-100, 100);
-  size_t n0 = 10;
-  size_t n1 = 21;
-  for (size_t i = 0; i < n0; ++i) {
-    mh0.push(uu(rsk));
-    fprintf(stderr, "%d\n", mh0.top());
-    mh0.inspect();
-  }
-  for (size_t j = 0; j < n1; ++j) {
-    mh1.push(uu(rsk));
-    fprintf(stderr, "%d\n", mh1.top());
-    mh1.inspect();
-  }
-
-  mh0.meld(mh1);
-  mh0.inspect();
-  mh1.inspect();
-  mh0.force_coalesce();
-  mh0.inspect();
-
-  while (!mh0.empty()) {
-    printf("%d\n", mh0.top());
-    mh0.pop();
-  }
-
-  meldable_heap<int> mh2;
-  size_t n2 = 100000;
-  for (size_t i = 0; i < n2; ++i)
-    mh2.push(1);
-
-  while (!mh2.empty())
-    mh2.pop();
+  meldable_heap<int> mh0 = hoge(20);
+  printf("%zu\n", mh0.size());
 }
