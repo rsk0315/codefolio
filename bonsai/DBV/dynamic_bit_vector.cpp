@@ -4,6 +4,7 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
+#include <tuple>
 
 class bit_vector {
   class node {
@@ -48,7 +49,7 @@ class bit_vector {
     node* successor() { return neighbor(1); }
     const node* successor() const { return neighbor(1); }
     node* predecessor() { return neighbor(0); }
-    const node* return() const { return neighbor(0); }
+    const node* predecessor() const { return neighbor(0); }
 
     const node* root() const {
       const node* cur = this;
@@ -65,12 +66,14 @@ public:
     node* nd;
 
   public:
+    iterator(): nd(nullptr) {}
     iterator(node* nd): nd(nd) {}
 
     using value_type = uintmax_t;
 
     const value_type& operator *() const { return nd->value; }
     value_type& operator *() { return nd->value; }
+    node* operator ->() const { return nd; }
     iterator operator ++() { return nd = nd->successor(); }
     iterator operator ++(int) {
       node* tmp = nd;
@@ -89,7 +92,7 @@ public:
 
     bool operator [](size_t i) const {
       assert(i < nd->size);
-      return (*nd) >> i & 1;
+      return (nd->value) >> i & 1;
     }
   };
 
@@ -100,6 +103,8 @@ private:
 
   bool is_red(node* nd) const { return nd && (nd->color == node::RED); }
 
+  size_t popcount(value_type x) const { return __builtin_popcountll(x); }
+
   void rotate(node* cur, size_t dir) {
     node* child = cur->children[!dir];
     cur->children[!dir] = child->children[dir];
@@ -109,7 +114,7 @@ private:
     child->parent = cur->parent;
     if (!cur->parent) {
       root = child;
-    } else if (cur == cur->parent->chlidren[dir]) {
+    } else if (cur == cur->parent->children[dir]) {
       cur->parent->children[dir] = child;
     } else {
       cur->parent->children[!dir] = child;
@@ -119,8 +124,10 @@ private:
 
     if (dir == 0) {
       cur->parent->left_size += cur->left_size + cur->size;
+      cur->parent->left_one += cur->left_one + popcount(cur->value);
     } else {
       cur->left_size -= cur->parent->left_size + cur->size;
+      cur->left_one -= cur->parent->left_one + popcount(cur->value);
     }
   }
 
@@ -189,17 +196,6 @@ private:
     if (cur) cur->color = node::BLACK;
   }
 
-  void reset_size() { size_ = calc_size(root); }
-
-  size_t calc_size(const node* nd) const {
-    size_t res = 0;
-    while (nd) {
-      res += nd->left_size + nd->size;
-      nd = nd->children[1];
-    }
-    return res;
-  }
-
   void propagate_left_size(node* cur, size_t diff) {
     while (cur->parent) {
       if (cur == cur->parent->children[0])
@@ -208,17 +204,34 @@ private:
     }
   }
 
+  void propagate_left_one(node* cur, size_t diff) {
+    while (cur->parent) {
+      if (cur == cur->parent->children[0])
+        cur->parent->left_one += diff;
+      cur = cur->parent;
+    }
+  }
+
   node* insert(node* before_of, node* nd) {
     assert(nd);
+    fprintf(stderr, "nd: %jx\n", nd->value);
 
     nd->children[0] = nd->children[1] = nullptr;
     nd->left_size = 0;
+    nd->left_one = 0;
     nd->color = node::RED;
 
     if (!before_of) {
       before_of = root;
-      if (before_of)
-        while (before_of->children[1]) before_of = before_of->children[1];
+      if (!before_of) {
+        // empty
+        nd->color = node::BLACK;
+        nd->parent = nullptr;
+        size_ += nd->size;
+        root = first = nd;
+        return nd;
+      }
+      while (before_of->children[1]) before_of = before_of->children[1];
       before_of->children[1] = nd;
     } else if (before_of->children[0]) {
       before_of = before_of->predecessor();
@@ -231,10 +244,12 @@ private:
     nd->parent = before_of;
     size_ += nd->size;
     propagate_left_size(nd, nd->size);
+    propagate_left_one(nd, popcount(nd->value));
     insert_fixup(nd);
     return nd;
   }
 
+  node* erase(iterator it) { return erase(it.nd); }
   node* erase(node* nd) {
     assert(nd);
 
@@ -251,6 +266,7 @@ private:
       root = x;
     } else {
       propagate_left_size(y, -nd->size);  // CHECKME
+      propagate_left_one(y, -popcount(nd->value));  // CHECKME
       size_t ydir = (y == y->parent->children[1]);
       y->parent->children[ydir] = x;
     }
@@ -262,6 +278,7 @@ private:
       y->children[1] = nd->children[1];
       y->color = nd->color;
       y->left_size = nd->left_size;
+      y->left_one = popcount(nd->value);
 
       if (y->children[0]) y->children[0]->parent = y;
       if (y->children[1]) y->children[1]->parent = y;
@@ -280,16 +297,17 @@ private:
     nd->color = node::RED;
     nd->children[0] = nd->children[1] = nd->parent = nullptr;
     nd->left_size = 0;
+    nd->left_one = 0;
 
     if (nd == first) first = after;
     return after;
   }
 
-  std::pair<iteartor, size_t> nth(size_t pos) const {
-    if (pos == 0) return first;
+  std::pair<iterator, size_t> nth(size_t pos) const {
+    if (pos == 0) return {first, 0};
     node* res = root;
     while (!(res->left_size <= pos && pos < res->left_size + res->size)) {
-      if (res->left_size < pos) {
+      if (res->left_size + res->size <= pos) {
         pos -= res->left_size + res->size;
         res = res->children[1];
       } else {
@@ -304,7 +322,25 @@ public:
   bit_vector() = default;
 
   bit_vector(const std::vector<bool>& bv) {
-    //
+    for (size_t i = 0; i+63 < bv.size(); i += 64) {
+      value_type cur = 0;
+      for (size_t j = 0; j < 64; ++j)
+        if (bv[i+j]) cur |= static_cast<value_type>(1) << j;
+
+      node* newnode = new node(cur, 64);
+      insert(nullptr, newnode);
+    }
+
+    size_t rem = bv.size() % 64;
+    if (rem > 0) {
+      size_t i = bv.size() / 64 * 64;
+      value_type cur = 0;
+      for (size_t j = 0; j < rem; ++j)
+        if (bv[i+j]) cur |= static_cast<value_type>(1) << j;
+
+      node* newnode = new node(cur, rem);
+      insert(nullptr, newnode);
+    }
   }
 
   size_t size() const { return size_; }
@@ -324,6 +360,7 @@ public:
     // *it の [64] を [32:33] に分割
     // *it を [33] にし，before_of = *it として [32] を insert
     // left_{size,one} を更新
+    return;
   }
 
   void erase(size_t t) {
@@ -352,3 +389,30 @@ public:
   }
 };
 
+#include <random>
+
+std::mt19937 rsk(0315);
+std::uniform_int_distribution<int> nya(0, 1);
+
+int main() {
+  size_t n = 64+64+30;
+  std::vector<bool> base(n);
+  for (size_t i = 0; i < n; ++i)
+    base[i] = nya(rsk);
+
+  bit_vector bv(base);
+
+  printf("b0:");
+  for (size_t i = 0; i < n; ++i) {
+    printf(" %d", !!base[i]);
+    if (i % 32 == 31 && i+1 != n) printf("\n  :");
+  }
+  puts("");
+
+  printf("b1:");
+  for (size_t i = 0; i < n; ++i) {
+    printf(" %d", !!bv[i]);
+    if (i % 32 == 31 && i+1 != n) printf("\n  :");
+  }
+  puts("");
+}
