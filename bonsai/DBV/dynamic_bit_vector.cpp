@@ -214,7 +214,6 @@ private:
 
   node* insert(node* before_of, node* nd) {
     assert(nd);
-    fprintf(stderr, "nd: %jx\n", nd->value);
 
     nd->children[0] = nd->children[1] = nullptr;
     nd->left_size = 0;
@@ -349,18 +348,40 @@ public:
   size_t select(int x, size_t t) const;
 
   void insert(size_t t, int x) {
+    if (!root) {
+      assert(t == 0);
+      insert(nullptr, new node((x == 1), 1));
+      return;
+    }
+
     iterator it;
     size_t ind;
     std::tie(it, ind) = nth(t);
     if (it->size < 64) {
-      // *it に追加
-      // left_{size,one} を更新
+      value_type tmp = *it;
+      value_type hi = tmp >> ind << (ind+1);
+      value_type lo = tmp & ((static_cast<value_type>(1) << ind) - 1);
+      value_type cur = hi | lo;
+      if (x) {
+        cur |= static_cast<value_type>(1) << ind;
+        ++it->size;
+        propagate_left_one(it.nd, 1);
+      }
+      propagate_left_size(it.nd, 1);
       return;
     }
-    // *it の [64] を [32:33] に分割
-    // *it を [33] にし，before_of = *it として [32] を insert
-    // left_{size,one} を更新
-    return;
+    value_type tmp = *it;
+    value_type hi = tmp >> 32;
+    it->size = 32;
+    *it = hi;
+    value_type lo = tmp & ((static_cast<value_type>(1) << 32) - 1);
+    propagate_left_size(it.nd, -32);
+    propagate_left_one(it.nd, -popcount(lo));
+
+    // なんで ind == 32 みたいなコード書いてるの？
+    if (x) lo |= static_cast<value_type>(1) << 32;
+    node* newnode = new node(lo, 33);
+    insert(it.nd, newnode);
   }
 
   void erase(size_t t) {
@@ -409,9 +430,13 @@ int main() {
   }
   puts("");
 
+  size_t k = 60;
+  bv.insert(k, 1);
   printf("b1:");
-  for (size_t i = 0; i < n; ++i) {
+  for (size_t i = 0; i <= n; ++i) {
+    if (i == k) printf("\x1b[1;91m");
     printf(" %d", !!bv[i]);
+    if (i == k) printf("\x1b[0m");
     if (i % 32 == 31 && i+1 != n) printf("\n  :");
   }
   puts("");
