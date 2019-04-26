@@ -1,0 +1,354 @@
+#include <cstdio>
+#include <cstdint>
+#include <cassert>
+#include <vector>
+#include <utility>
+#include <algorithm>
+
+class bit_vector {
+  class node {
+    using value_type = uintmax_t;
+    const node* neighbor(size_t dir) const {
+      const node* cur = this;
+      if (children[dir]) {
+        cur = cur->children[dir];
+        while (cur->children[!dir]) cur = cur->children[!dir];
+        return cur;
+      }
+      while (true) {
+        if (!cur->parent) return nullptr;
+        if (cur == cur->parent->children[!dir]) return cur->parent;
+        cur = cur->parent;
+      }
+    }
+    node* neighbor(size_t dir) {
+      node* cur = this;
+      if (children[dir]) {
+        cur = cur->children[dir];
+        while (cur->children[!dir]) cur = cur->children[!dir];
+        return cur;
+      }
+      while (true) {
+        if (!cur->parent) return nullptr;
+        if (cur == cur->parent->children[!dir]) return cur->parent;
+        cur = cur->parent;
+      }
+    }
+
+  public:
+    node* children[2] = {nullptr, nullptr};
+    node* parent = nullptr;
+    value_type value;
+    size_t size = 0;
+    size_t left_size = 0;
+    size_t left_one = 0;  // !!!
+    enum Color {RED, BLACK} color = RED;
+    node(const value_type& x, size_t size): value(x), size(size) {}
+
+    node* successor() { return neighbor(1); }
+    const node* successor() const { return neighbor(1); }
+    node* predecessor() { return neighbor(0); }
+    const node* return() const { return neighbor(0); }
+
+    const node* root() const {
+      const node* cur = this;
+      while (cur->parent) cur = cur->parent;
+      return cur;
+    }
+  };
+
+public:
+  using value_type = uintmax_t;
+
+  class iterator {
+    friend bit_vector;
+    node* nd;
+
+  public:
+    iterator(node* nd): nd(nd) {}
+
+    using value_type = uintmax_t;
+
+    const value_type& operator *() const { return nd->value; }
+    value_type& operator *() { return nd->value; }
+    iterator operator ++() { return nd = nd->successor(); }
+    iterator operator ++(int) {
+      node* tmp = nd;
+      ++(*this);
+      return tmp;
+    }
+    iterator operator --() { return nd = nd->predecessor(); }
+    iterator operator --(int) {
+      node* tmp = nd;
+      --(*this);
+      return tmp;
+    }
+
+    bool operator ==(const iterator other) const { return nd == other.nd; }
+    bool operator !=(const iterator other) const { return nd != other.nd; }
+
+    bool operator [](size_t i) const {
+      assert(i < nd->size);
+      return (*nd) >> i & 1;
+    }
+  };
+
+private:
+  node* root = nullptr;
+  node* first = nullptr;
+  size_t size_ = 0;
+
+  bool is_red(node* nd) const { return nd && (nd->color == node::RED); }
+
+  void rotate(node* cur, size_t dir) {
+    node* child = cur->children[!dir];
+    cur->children[!dir] = child->children[dir];
+    if (child->children[dir])
+      child->children[dir]->parent = cur;
+
+    child->parent = cur->parent;
+    if (!cur->parent) {
+      root = child;
+    } else if (cur == cur->parent->chlidren[dir]) {
+      cur->parent->children[dir] = child;
+    } else {
+      cur->parent->children[!dir] = child;
+    }
+    child->children[dir] = cur;
+    cur->parent = child;
+
+    if (dir == 0) {
+      cur->parent->left_size += cur->left_size + cur->size;
+    } else {
+      cur->left_size -= cur->parent->left_size + cur->size;
+    }
+  }
+
+  void insert_fixup(node* cur) {
+    while (is_red(cur->parent)) {
+      node* gparent = cur->parent->parent;
+
+      size_t uncle_dir = (cur->parent != gparent->children[1]);
+      node* uncle = gparent->children[uncle_dir];
+
+      if (is_red(uncle)) {
+        cur->parent->color = uncle->color = node::BLACK;
+        gparent->color = node::RED;
+        cur = gparent;
+        continue;
+      }
+      if (cur == cur->parent->children[uncle_dir]) {
+        cur = cur->parent;
+        rotate(cur, !uncle_dir);
+      }
+      cur->parent->color = node::BLACK;
+      cur->parent->parent->color = node::RED;
+      rotate(gparent, uncle_dir);
+    }
+    root->color = node::BLACK;
+  }
+
+  void erase_fixup(node* cur, node* parent) {
+    while (cur != root && !is_red(cur)) {
+      size_t sibling_dir = (cur == parent->children[0]);
+      node* sibling = parent->children[sibling_dir];
+
+      if (is_red(sibling)) {
+        sibling->color = node::BLACK;
+        parent->color = node::RED;
+        rotate(parent, !sibling_dir);
+        sibling = parent->children[sibling_dir];
+      }
+
+      if (sibling) {
+        if (!is_red(sibling->children[0]) && !is_red(sibling->children[1])) {
+          sibling->color = node::RED;
+          cur = parent;
+          parent = cur->parent;
+          continue;
+        }
+
+        if (!is_red(sibling->children[sibling_dir])) {
+          if (sibling->children[!sibling_dir])
+            sibling->children[!sibling_dir]->color = node::BLACK;
+
+          sibling->color = node::RED;
+          rotate(sibling, sibling_dir);
+          sibling = parent->children[sibling_dir];
+        }
+
+        sibling->color = parent->color;
+        sibling->children[sibling_dir]->color = node::BLACK;
+      }
+
+      parent->color = node::BLACK;
+      rotate(parent, !sibling_dir);
+      cur = root;
+      parent = nullptr;
+    }
+    if (cur) cur->color = node::BLACK;
+  }
+
+  void reset_size() { size_ = calc_size(root); }
+
+  size_t calc_size(const node* nd) const {
+    size_t res = 0;
+    while (nd) {
+      res += nd->left_size + nd->size;
+      nd = nd->children[1];
+    }
+    return res;
+  }
+
+  void propagate_left_size(node* cur, size_t diff) {
+    while (cur->parent) {
+      if (cur == cur->parent->children[0])
+        cur->parent->left_size += diff;
+      cur = cur->parent;
+    }
+  }
+
+  node* insert(node* before_of, node* nd) {
+    assert(nd);
+
+    nd->children[0] = nd->children[1] = nullptr;
+    nd->left_size = 0;
+    nd->color = node::RED;
+
+    if (!before_of) {
+      before_of = root;
+      if (before_of)
+        while (before_of->children[1]) before_of = before_of->children[1];
+      before_of->children[1] = nd;
+    } else if (before_of->children[0]) {
+      before_of = before_of->predecessor();
+      before_of->children[1] = nd;
+    } else {
+      before_of->children[0] = nd;
+      if (before_of == first) first = nd;
+    }
+
+    nd->parent = before_of;
+    size_ += nd->size;
+    propagate_left_size(nd, nd->size);
+    insert_fixup(nd);
+    return nd;
+  }
+
+  node* erase(node* nd) {
+    assert(nd);
+
+    node* after = nd->successor();
+
+    size_ -= nd->size;
+    node* y = nd;
+    if (nd->children[0] && nd->children[1]) y = y->successor();
+
+    node* x = y->children[0];
+    if (!x) x = y->children[1];
+    if (x) x->parent = y->parent;
+    if (!y->parent) {
+      root = x;
+    } else {
+      propagate_left_size(y, -nd->size);  // CHECKME
+      size_t ydir = (y == y->parent->children[1]);
+      y->parent->children[ydir] = x;
+    }
+    node* xparent = y->parent;  // x may be nil
+    bool fix_needed = (y->color == node::BLACK);
+    if (y != nd) {
+      y->parent = nd->parent;
+      y->children[0] = nd->children[0];
+      y->children[1] = nd->children[1];
+      y->color = nd->color;
+      y->left_size = nd->left_size;
+
+      if (y->children[0]) y->children[0]->parent = y;
+      if (y->children[1]) y->children[1]->parent = y;
+      if (y->parent) {
+        y->parent->children[nd == nd->parent->children[1]] = y;
+      } else {
+        root = y;
+      }
+      if (xparent == nd) {
+        xparent = y;
+        if (x) x->parent = y;
+      }
+    }
+    if (fix_needed) erase_fixup(x, xparent);
+
+    nd->color = node::RED;
+    nd->children[0] = nd->children[1] = nd->parent = nullptr;
+    nd->left_size = 0;
+
+    if (nd == first) first = after;
+    return after;
+  }
+
+  std::pair<iteartor, size_t> nth(size_t pos) const {
+    if (pos == 0) return first;
+    node* res = root;
+    while (!(res->left_size <= pos && pos < res->left_size + res->size)) {
+      if (res->left_size < pos) {
+        pos -= res->left_size + res->size;
+        res = res->children[1];
+      } else {
+        res = res->children[0];
+      }
+    }
+    pos -= res->left_size;
+    return {res, pos};
+  }
+
+public:
+  bit_vector() = default;
+
+  bit_vector(const std::vector<bool>& bv) {
+    //
+  }
+
+  size_t size() const { return size_; }
+
+  size_t rank(int x, size_t t) const;
+  size_t select(int x, size_t t) const;
+
+  void insert(size_t t, int x) {
+    iterator it;
+    size_t ind;
+    std::tie(it, ind) = nth(t);
+    if (it->size < 64) {
+      // *it に追加
+      // left_{size,one} を更新
+      return;
+    }
+    // *it の [64] を [32:33] に分割
+    // *it を [33] にし，before_of = *it として [32] を insert
+    // left_{size,one} を更新
+  }
+
+  void erase(size_t t) {
+    // これ iterator 返すべき？
+    iterator it;
+    size_t ind;
+    std::tie(it, ind) = nth(t);
+    if (it->size == 1) {
+      erase(it);
+      return;
+    }
+
+    // *it を更新して left_{size,one} を更新
+    if (it->successor() && it->size + it->successor()->size <= 64) {
+      // くっつけて left_{size,one} を更新
+    } else if (it->predecessor() && it->size + it->predecessor()->size <= 64) {
+      // くっつけて同じく更新
+    }
+  }
+
+  bool operator [](size_t t) const {
+    iterator it;
+    size_t ind;
+    std::tie(it, ind) = nth(t);
+    return it[ind];
+  }
+};
+
