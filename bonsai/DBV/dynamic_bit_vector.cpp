@@ -427,6 +427,7 @@ public:
   }
 
   size_t size() const { return size_; }
+  bool empty() const { return size_ == 0; }
   size_t rank(int x, size_t t) const { return x? rank1(t) : rank0(t); }
   size_t select(int x, size_t t) const { return x? select1(t) : select0(t); }
 
@@ -696,7 +697,7 @@ void naive_erase_check(const bit_vector& v, const std::vector<bool>& p, size_t t
 }
 
 void test2() {
-  size_t n = 64;
+  size_t n = 1024;
 
   std::vector<bool> base(n);
   std::mt19937 rsk(0315);
@@ -709,7 +710,7 @@ void test2() {
   size_t times = 0;
   while (true) {
     fprintf(stderr, "loop: %zu\n", ++times);
-    bool do_insert = nya(rsk);
+    bool do_insert = (nya(rsk) || bv.empty());
 
     size_t m = bv.size();
     fprintf(stderr, "size: %zu\n", m);
