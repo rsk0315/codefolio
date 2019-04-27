@@ -319,6 +319,10 @@ private:
   std::pair<iterator, size_t> nth(size_t pos) const {
     if (pos == 0) return {begin(), 0};
     node* res = root;
+    if (pos == size_) {
+      while (res->children[1]) res = res->children[1];
+      return {iterator(res, root), res->size-1};
+    }
     while (!(res->left_size <= pos && pos < res->left_size + res->size)) {
       if (res->left_size + res->size <= pos) {
         pos -= res->left_size + res->size;
@@ -329,6 +333,64 @@ private:
     }
     pos -= res->left_size;
     return {iterator(res, root), pos};
+  }
+
+  size_t rank0(size_t t) const { return t - rank1(t); }
+  size_t rank1(size_t t) const {
+    if (t == 0) return 0;
+
+    node* cur = root;
+    size_t res = 0;
+    if (t == size_) {
+      while (cur) {
+        res += cur->left_one + popcount(cur->value);
+        cur = cur->children[1];
+      }
+      return res;
+    }
+
+    while (!(cur->left_size <= t && t < cur->left_size + cur->size)) {
+      if (cur->left_size + cur->size <= t) {
+        t -= cur->left_size + cur->size;
+        res += cur->left_one + popcount(cur->value);
+        cur = cur->children[1];
+      } else {
+        cur = cur->children[0];
+      }
+    }
+    t -= cur->left_size;
+    res += cur->left_one;
+    res += popcount(cur->value & ((static_cast<value_type>(1) << t) - 1));
+    return res;
+  }
+
+  size_t select0(size_t t) const {
+    if (t == 0) return 0;
+    if (t > rank1(size_)) return -1;
+    return -1;
+  }
+  size_t select1(size_t t) const {
+    if (t == 0) return 0;
+    if (t > rank1(size_)) return -1;
+
+    node* cur = root;
+    size_t res = 0;
+    while (!(cur->left_one < t && t <= cur->left_one + popcount(cur->value))) {
+      if (cur->left_one + popcount(cur->value) < t) {
+        t -= cur->left_one + popcount(cur->value);
+        res += cur->left_size + cur->size;
+        cur = cur->children[1];
+      } else {
+        cur = cur->children[0];
+      }
+    }
+    t -= cur->left_one;
+    res += cur->left_size;
+    for (size_t i = 0; t; ++i) {
+      if (cur->value >> i & 1) --t;
+      ++res;
+    }
+    return res;
   }
 
 public:
@@ -357,9 +419,8 @@ public:
   }
 
   size_t size() const { return size_; }
-
-  size_t rank(int x, size_t t) const;
-  size_t select(int x, size_t t) const;
+  size_t rank(int x, size_t t) const { return x? rank1(t) : rank0(t); }
+  size_t select(int x, size_t t) const { return x? select1(t) : select0(t); }
 
   void insert(size_t t, int x) {
     if (!root) {
@@ -383,6 +444,7 @@ public:
       value_type hi = tmp >> 32;
       value_type lo = tmp & ((static_cast<value_type>(1) << 32) - 1);
       it->size = 32;
+      size_ -= 32;
       *it = hi;
       propagate_left_size(it.nd, -32);
       propagate_left_one(it.nd, -popcount(lo));
@@ -406,6 +468,7 @@ public:
     }
     *it = cur;
     ++it->size;
+    ++size_;
     propagate_left_size(it.nd, 1);
   }
 
@@ -427,25 +490,26 @@ public:
     }
     *it = cur;
     --it->size;
+    --size_;
     propagate_left_size(it.nd, -1);
+    return;
 
-    // *it を更新して left_{size,one} を更新
     if (it->successor() && it->size + it->successor()->size <= 64) {
       iterator succ(it->successor(), root);
       *it |= (*succ << (it->size));
       it->size += succ->size;
+      size_ += succ->size;
       propagate_left_size(it.nd, succ->size);
       propagate_left_one(it.nd, popcount(*succ));
       erase(succ);
-      // くっつけて left_{size,one} を更新
     } else if (it->predecessor() && it->size + it->predecessor()->size <= 64) {
       iterator pred(it->predecessor(), root);
       *pred |= (*it << (pred->size));
       pred->size += it->size;
-      propagate_left_size(it.nd, it->size);
-      propagate_left_one(it.nd, popcount(*it));
+      size_ += it->size;
+      propagate_left_size(pred.nd, pred->size);
+      propagate_left_one(pred.nd, popcount(*pred));
       erase(it);
-      // くっつけて同じく更新
     }
   }
 
@@ -469,6 +533,7 @@ std::uniform_int_distribution<int> nya(0, 1);
 
 int main() {
   size_t n = 64+64+30;
+  n = 64+30;
   std::vector<bool> base(n);
   for (size_t i = 0; i < n; ++i)
     base[i] = nya(rsk);
@@ -483,8 +548,10 @@ int main() {
   puts("");
 
   size_t k = 30;
+  fprintf(stderr, "size: %zu\n", bv.size());
   bv.inspect();
   bv.insert(k, 1);
+
   printf("b1:");
   for (size_t i = 0; i <= n; ++i) {
     if (i == k) printf("\x1b[1;91m");
@@ -494,6 +561,8 @@ int main() {
   }
   puts("");
   bv.inspect();
+  ++n;
+  fprintf(stderr, "size: %zu\n", bv.size());
 
   bv.erase(k);
   printf("b2:");
@@ -503,4 +572,25 @@ int main() {
   }
   puts("");
   bv.inspect();
+  --n;
+  fprintf(stderr, "size: %zu\n", bv.size());
+
+  size_t acc = 0;
+  for (size_t i = 1; i <= n; ++i) {
+    if (bv[i-1]) ++acc;
+    size_t rank = bv.rank(1, i);
+    fprintf(stderr, "rank1(%zu): %zu (%zu)\n", i, rank, acc);
+    assert(rank == acc);
+  }
+  std::vector<size_t> selects(n+1, -1);
+  for (size_t i = 0, j = 0; i < n; ++i) {
+    if (bv[i]) selects[++j] = i+1;
+  }
+  for (size_t i = 1; i <= n; ++i) {
+    size_t select = bv.select(1, i);
+    if (select != selects[i]) fprintf(stderr, "\x1b[1;91m");
+    fprintf(stderr, "select1(%zu): %zu (%zu)\n", i, select, selects[i]);
+    if (select != selects[i]) fprintf(stderr, "\x1b[0m");
+    assert(select == selects[i]);
+  }
 }
