@@ -42,7 +42,7 @@ class bit_vector {
     value_type value;
     size_t size = 0;
     size_t left_size = 0;
-    size_t left_one = 0;  // !!!
+    size_t left_one = 0;
     enum Color {RED, BLACK} color = RED;
     node(const value_type& x, size_t size): value(x), size(size) {}
 
@@ -140,8 +140,8 @@ private:
       cur->parent->left_size += cur->left_size + cur->size;
       cur->parent->left_one += cur->left_one + popcount(cur->value);
     } else {
-      cur->left_size -= cur->parent->left_size + cur->size;
-      cur->left_one -= cur->parent->left_one + popcount(cur->value);
+      cur->left_size -= cur->parent->left_size + cur->parent->size;
+      cur->left_one -= cur->parent->left_one + popcount(cur->parent->value);
     }
   }
 
@@ -272,14 +272,17 @@ private:
     node* y = nd;
     if (nd->children[0] && nd->children[1]) y = y->successor();
 
+    size_t left_size = nd->left_size;
+    size_t left_one = nd->left_one;
+
     node* x = y->children[0];
     if (!x) x = y->children[1];
     if (x) x->parent = y->parent;
     if (!y->parent) {
       root = x;
     } else {
-      propagate_left_size(y, -nd->size);  // CHECKME
-      propagate_left_one(y, -popcount(nd->value));  // CHECKME
+      propagate_left_size(y, -y->size);  // CHECKME
+      propagate_left_one(y, -popcount(y->value));  // CHECKME
       size_t ydir = (y == y->parent->children[1]);
       y->parent->children[ydir] = x;
     }
@@ -290,8 +293,6 @@ private:
       y->children[0] = nd->children[0];
       y->children[1] = nd->children[1];
       y->color = nd->color;
-      y->left_size = nd->left_size;
-      y->left_one = popcount(nd->value);
 
       if (y->children[0]) y->children[0]->parent = y;
       if (y->children[1]) y->children[1]->parent = y;
@@ -304,7 +305,13 @@ private:
         xparent = y;
         if (x) x->parent = y;
       }
+
+      propagate_left_size(y, y->size-nd->size);
+      y->left_size = left_size;
+      propagate_left_one(y, popcount(y->value)-popcount(nd->value));
+      y->left_one = left_one;
     }
+    inspect();
     if (fix_needed) erase_fixup(x, xparent);
 
     nd->color = node::RED;
@@ -313,6 +320,7 @@ private:
     nd->left_one = 0;
 
     if (nd == first) first = after;
+    delete nd;
     return after;
   }
 
@@ -439,6 +447,7 @@ public:
     } else {
       std::tie(it, ind) = nth(t);
     }
+    bool appended = false;
     if (it->size == 64) {
       value_type tmp = *it;
       value_type hi = tmp >> 32;
@@ -450,6 +459,7 @@ public:
       propagate_left_one(it.nd, -popcount(lo));
       node* newnode = new node(lo, 32);
       insert(it.nd, newnode);
+      appended = true;
 
       if (ind < 32) {
         --it;
@@ -470,6 +480,9 @@ public:
     ++it->size;
     ++size_;
     propagate_left_size(it.nd, 1);
+    if (appended) {
+      inspect();
+    }
   }
 
   void erase(size_t t) {
@@ -482,8 +495,9 @@ public:
     }
 
     value_type tmp = *it;
-    value_type hi = tmp >> (ind+1) << ind;
+    value_type hi = (ind < 63)? (tmp >> (ind+1) << ind) : 0;
     value_type lo = tmp & ((static_cast<value_type>(1) << ind) - 1);
+
     value_type cur = (hi | lo);
     if (*it >> ind & 1) {
       propagate_left_one(it.nd, -1);
@@ -492,7 +506,7 @@ public:
     --it->size;
     --size_;
     propagate_left_size(it.nd, -1);
-    return;
+    // return;
 
     if (it->successor() && it->size + it->successor()->size <= 64) {
       iterator succ(it->successor(), root);
@@ -507,8 +521,8 @@ public:
       *pred |= (*it << (pred->size));
       pred->size += it->size;
       size_ += it->size;
-      propagate_left_size(pred.nd, pred->size);
-      propagate_left_one(pred.nd, popcount(*pred));
+      propagate_left_size(pred.nd, it->size);
+      propagate_left_one(pred.nd, popcount(*it));
       erase(it);
     }
   }
@@ -521,8 +535,19 @@ public:
   }
 
   void inspect() const {
-    for (iterator it(first, root); it.nd != nullptr; ++it)
-      printf("%jx\n", *it);
+    for (iterator it(first, root); it.nd != nullptr; ++it) {
+      fprintf(stderr,
+              "%016jx (size: %zu, left size: %zu, left one: %zu)",
+              *it, it->size, it->left_size, it->left_one);
+
+      if (it->children[0])
+        fprintf(stderr, " L: %zu", it->children[0]->size);
+
+      if (it->children[1])
+        fprintf(stderr, " R: %zu", it->children[1]->size);
+
+      fprintf(stderr, "\n");
+    }
   }
 };
 
@@ -531,7 +556,7 @@ public:
 std::mt19937 rsk(0315);
 std::uniform_int_distribution<int> nya(0, 1);
 
-int main() {
+int test1() {
   size_t n = 64+64+30;
   n = 64+30;
   std::vector<bool> base(n);
@@ -540,10 +565,10 @@ int main() {
 
   bit_vector bv(base);
 
-  printf("b0:");
+  fprintf(stderr, "b0:");
   for (size_t i = 0; i < n; ++i) {
-    printf(" %d", !!base[i]);
-    if (i % 32 == 31 && i+1 != n) printf("\n  :");
+    fprintf(stderr, " %d", !!base[i]);
+    if (i % 32 == 31 && i+1 != n) fprintf(stderr, "\n  :");
   }
   puts("");
 
@@ -552,12 +577,12 @@ int main() {
   bv.inspect();
   bv.insert(k, 1);
 
-  printf("b1:");
+  fprintf(stderr, "b1:");
   for (size_t i = 0; i <= n; ++i) {
-    if (i == k) printf("\x1b[1;91m");
-    printf(" %d", !!bv[i]);
-    if (i == k) printf("\x1b[0m");
-    if (i % 32 == 31 && i+1 != n) printf("\n  :");
+    if (i == k) fprintf(stderr, "\x1b[1;91m");
+    fprintf(stderr, " %d", !!bv[i]);
+    if (i == k) fprintf(stderr, "\x1b[0m");
+    if (i % 32 == 31 && i+1 != n) fprintf(stderr, "\n  :");
   }
   puts("");
   bv.inspect();
@@ -565,10 +590,10 @@ int main() {
   fprintf(stderr, "size: %zu\n", bv.size());
 
   bv.erase(k);
-  printf("b2:");
+  fprintf(stderr, "b2:");
   for (size_t i = 0; i < n; ++i) {
-    printf(" %d", !!bv[i]);
-    if (i % 32 == 31 && i+1 != n) printf("\n  :");
+    fprintf(stderr, " %d", !!bv[i]);
+    if (i % 32 == 31 && i+1 != n) fprintf(stderr, "\n  :");
   }
   puts("");
   bv.inspect();
@@ -593,4 +618,128 @@ int main() {
     if (select != selects[i]) fprintf(stderr, "\x1b[0m");
     assert(select == selects[i]);
   }
+
+  return 0;
+}
+
+std::vector<size_t> naive_rank(const bit_vector& v) {
+  size_t n = v.size();
+  std::vector<size_t> rank(n+1);
+  for (size_t i = 1; i <= n; ++i) {
+    rank[i] = rank[i-1];
+    if (v[i-1]) ++rank[i];
+  }
+  return rank;
+}
+
+std::vector<size_t> naive_select(const bit_vector& v) {
+  size_t n = v.size();
+  std::vector<size_t> select(n+1, -1);
+  select[0] = 0;
+  for (size_t i = 0, j = 0; i < n; ++i)
+    if (v[i]) select[++j] = i+1;
+
+  return select;
+}
+
+void out(const bit_vector& v, size_t k, size_t h) {
+  size_t n = v.size();
+  for (size_t i = 0; i < n; ++i) {
+    if (i == h) fprintf(stderr, "\x1b[1;91m");
+    fprintf(stderr, " %d", !!v[i]);
+    if (i == h) fprintf(stderr, "\x1b[0m");
+    if (i % k == k-1 || i+1 == n) fprintf(stderr, "\n");
+  }
+}
+
+void naive_check(const bit_vector& bv) {
+  size_t n = bv.size();
+
+  auto nr = naive_rank(bv);
+  auto ns = naive_select(bv);
+
+  for (size_t i = 0; i <= n; ++i) {
+    size_t r = bv.rank(1, i);
+    size_t s = bv.select(1, i);
+    if (r != nr[i]) {
+      fprintf(stderr, "rank(%zu): expected: %zu, got: \x1b[1;91m%zu\x1b[0m\n",
+              i, nr[i], r);
+      assert(r == nr[i]);
+    }
+    if (s != ns[i]) {
+      fprintf(stderr, "select(%zu): expected: %zu, got: \x1b[1;91m%zu\x1b[0m\n",
+              i, ns[i], s);
+      assert(s == ns[i]);
+    }
+  }
+}
+
+void naive_insert_check(const bit_vector& v, const std::vector<bool>& p, size_t t, bool x) {
+  for (size_t i = 0; i < t; ++i)
+    assert(v[i] == p[i]);
+
+  assert(v[t] == x);
+  for (size_t i = t; i < p.size(); ++i)
+    assert(v[i+1] == p[i]);
+
+  out(v, 32, t);
+}
+
+void naive_erase_check(const bit_vector& v, const std::vector<bool>& p, size_t t) {
+  for (size_t i = 0; i < t; ++i)
+    assert(v[i] == p[i]);
+
+  for (size_t i = t+1; i < p.size(); ++i)
+    assert(v[i-1] == p[i]);
+
+  out(v, 32, t);
+}
+
+void test2() {
+  size_t n = 64;
+
+  std::vector<bool> base(n);
+  std::mt19937 rsk(0315);
+  std::uniform_int_distribution<int> nya(0, 1);
+  for (size_t i = 0; i < n; ++i)
+    base[i] = nya(rsk);
+
+  bit_vector bv(base);
+
+  size_t times = 0;
+  while (true) {
+    fprintf(stderr, "loop: %zu\n", ++times);
+    bool do_insert = nya(rsk);
+
+    size_t m = bv.size();
+    fprintf(stderr, "size: %zu\n", m);
+
+    assert(m == n);
+    std::vector<bool> prev(m);
+    for (size_t i = 0; i < m; ++i) prev[i] = bv[i];
+
+    if (do_insert) {
+      std::uniform_int_distribution<size_t> meow(0, m);
+      size_t t = meow(rsk);
+      bool x = nya(rsk);
+      fprintf(stderr, "insert(%zu, %d)\n", t, !!x);
+      bv.insert(t, x);
+      bv.inspect();
+      naive_insert_check(bv, prev, t, x);
+      ++n;
+    } else /* do erase */ {
+      std::uniform_int_distribution<size_t> meow(0, m-1);
+      size_t t = meow(rsk);
+      fprintf(stderr, "erase(%zu)\n", t);
+      bv.erase(t);
+      bv.inspect();
+      naive_erase_check(bv, prev, t);
+      --n;
+    }
+    naive_check(bv);
+  }
+}
+
+int main() {
+  test2();
 }
