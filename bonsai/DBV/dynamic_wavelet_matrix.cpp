@@ -598,6 +598,8 @@ private:
   }
 
 public:
+  wavelet_matrix(): zeros(bitlen), n(0) {}
+
   template <class ForwardIt>
   wavelet_matrix(ForwardIt first, ForwardIt last): zeros(bitlen) {
     std::vector<value_type> c(first, last);
@@ -875,6 +877,7 @@ public:
         ++zeros[j];
       }
     }
+    ++n;
   }
 
   void erase(size_t t) {
@@ -893,6 +896,12 @@ public:
       }
       a[j].erase(u);
     }
+    --n;
+  }
+
+  void update(size_t t, value_type x) {
+    erase(t);
+    insert(t, x);
   }
 
   void inspect() const {
@@ -1076,6 +1085,10 @@ void test_erase() {
 }
 
 int main() {
-  test_insert();
-  test_erase();
+  // test_insert();
+  // test_erase();
+
+  wavelet_matrix<int, 4> wm;
+  wm.insert(0, 3);
+  wm.inspect();
 }
