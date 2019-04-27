@@ -620,6 +620,7 @@ public:
   }
 
   size_t size() const { return a[0].size(); }
+  bool empty() const { return a[0].empty(); }
 
   size_t rank(value_type x, size_t t) const {
     if (t == 0) return 0;
@@ -876,6 +877,24 @@ public:
     }
   }
 
+  void erase(size_t t) {
+    size_t s = 0;
+    for (size_t i = bitlen; i--;) {
+      size_t j = bitlen-i-1;
+      size_t u = s+t;
+      int x = a[j][u];
+      if (x) {
+        t = a[j].rank(1, u+1) - 1;
+        s = zeros[j];
+      } else {
+        t = a[j].rank(0, u+1) - 1;
+        s = 0;
+        --zeros[j];
+      }
+      a[j].erase(u);
+    }
+  }
+
   void inspect() const {
     for (size_t i = 0; i < bitlen; ++i) {
       fprintf(stderr, "%zu (%zu): ", i, zeros[i]);
@@ -990,6 +1009,73 @@ void test_insert() {
   }
 }
 
+void test_erase() {
+  std::vector<int> a{
+    11,  0, 15,  6,
+     5,  2,  7, 12,
+    11,  0, 12, 12,
+    13,  4,  6, 13,
+     1, 11,  6,  1,
+     7, 10,  2,  7,
+    14, 11,  1,  7,
+     5,  4, 14,  6
+  };
+
+  wavelet_matrix<int, 5> wm(a.begin(), a.end());
+  std::list<int> list(a.begin(), a.end());
+
+  for (size_t i = 0; i < wm.size(); ++i) {
+    fprintf(stderr, "%d%c", wm[i], i+1<wm.size()? ' ':'\n');
+  }
+
+  size_t num_insert = 20;
+  std::mt19937 rsk(0315);
+  for (size_t i = 0; i < num_insert; ++i) {
+    std::uniform_int_distribution<int> nya(0, list.size());
+    size_t k = nya(rsk);
+    auto it = std::next(list.begin(), k);
+
+    std::uniform_int_distribution<int> meow(0, 31);
+    int x = meow(rsk);
+    list.insert(it, x);
+    wm.insert(k, x);
+
+    fprintf(stderr, "insert(%zu, %d)\n", k, x);
+
+    it = list.begin();
+    for (size_t i = 0; i < wm.size(); ++i) {
+      fprintf(stderr, "%d%c", wm[i], i+1<wm.size()? ' ':'\n');
+    }
+    for (auto it = list.begin(); it != list.end(); ++it) {
+      fprintf(stderr, "%d%c", *it, std::next(it)!=list.end()? ' ':'\n');
+    }
+    for (size_t i = 0; i < list.size(); ++i) {
+      assert(*it++ == wm[i]);
+    }
+  }
+
+  while (!wm.empty()) {
+    std::uniform_int_distribution<int> nya(0, wm.size()-1);
+    size_t k = nya(rsk);
+    auto it = std::next(list.begin(), k);
+
+    list.erase(it);
+    wm.erase(k);
+
+    it = list.begin();
+    for (size_t i = 0; i < wm.size(); ++i) {
+      fprintf(stderr, "%d%c", wm[i], i+1<wm.size()? ' ':'\n');
+    }
+    for (auto it = list.begin(); it != list.end(); ++it) {
+      fprintf(stderr, "%d%c", *it, std::next(it)!=list.end()? ' ':'\n');
+    }
+    for (size_t i = 0; i < list.size(); ++i) {
+      assert(*it++ == wm[i]);
+    }    
+  }
+}
+
 int main() {
   test_insert();
+  test_erase();
 }
