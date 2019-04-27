@@ -63,26 +63,38 @@ public:
 
   class iterator {
     friend bit_vector;
-    node* nd;
+    node* nd = nullptr;
+    node* root = nullptr;
 
+    iterator(node* nd, node* root): nd(nd), root(root) {}
   public:
-    iterator(): nd(nullptr) {}
-    iterator(node* nd): nd(nd) {}
+    iterator() {}
 
     using value_type = uintmax_t;
 
     const value_type& operator *() const { return nd->value; }
     value_type& operator *() { return nd->value; }
     node* operator ->() const { return nd; }
-    iterator operator ++() { return nd = nd->successor(); }
+    iterator& operator ++() {
+      nd = nd->successor();
+      return *this;
+    }
     iterator operator ++(int) {
-      node* tmp = nd;
+      iterator tmp = *this;
       ++(*this);
       return tmp;
     }
-    iterator operator --() { return nd = nd->predecessor(); }
+    iterator& operator --() {
+      if (nd == nullptr) {
+        nd = root;
+        while (nd->children[1]) nd = nd->children[1];
+      } else {
+        nd = nd->predecessor();
+      }
+      return *this;
+    }
     iterator operator --(int) {
-      node* tmp = nd;
+      iterator tmp = *this;
       --(*this);
       return tmp;
     }
@@ -102,8 +114,10 @@ private:
   size_t size_ = 0;
 
   bool is_red(node* nd) const { return nd && (nd->color == node::RED); }
-
   size_t popcount(value_type x) const { return __builtin_popcountll(x); }
+
+  iterator begin() const { return iterator(first, root); }
+  iterator end() const { return iterator(nullptr, root); }
 
   void rotate(node* cur, size_t dir) {
     node* child = cur->children[!dir];
@@ -303,7 +317,7 @@ private:
   }
 
   std::pair<iterator, size_t> nth(size_t pos) const {
-    if (pos == 0) return {first, 0};
+    if (pos == 0) return {begin(), 0};
     node* res = root;
     while (!(res->left_size <= pos && pos < res->left_size + res->size)) {
       if (res->left_size + res->size <= pos) {
@@ -314,7 +328,7 @@ private:
       }
     }
     pos -= res->left_size;
-    return {res, pos};
+    return {iterator(res, root), pos};
   }
 
 public:
@@ -356,36 +370,46 @@ public:
 
     iterator it;
     size_t ind;
-    std::tie(it, ind) = nth(t);
-    if (it->size < 64) {
-      value_type tmp = *it;
-      value_type hi = tmp >> ind << (ind+1);
-      value_type lo = tmp & ((static_cast<value_type>(1) << ind) - 1);
-      value_type cur = hi | lo;
-      if (x) {
-        cur |= static_cast<value_type>(1) << ind;
-        ++it->size;
-        propagate_left_one(it.nd, 1);
-      }
-      propagate_left_size(it.nd, 1);
-      return;
+    if (t == size_) {
+      node* cur = root;
+      while (cur->children[1]) cur = cur->children[1];
+      it = iterator(cur, root);
+      ind = cur->size;
+    } else {
+      std::tie(it, ind) = nth(t);
     }
-    value_type tmp = *it;
-    value_type hi = tmp >> 32;
-    it->size = 32;
-    *it = hi;
-    value_type lo = tmp & ((static_cast<value_type>(1) << 32) - 1);
-    propagate_left_size(it.nd, -32);
-    propagate_left_one(it.nd, -popcount(lo));
+    if (it->size == 64) {
+      value_type tmp = *it;
+      value_type hi = tmp >> 32;
+      value_type lo = tmp & ((static_cast<value_type>(1) << 32) - 1);
+      it->size = 32;
+      *it = hi;
+      propagate_left_size(it.nd, -32);
+      propagate_left_one(it.nd, -popcount(lo));
+      node* newnode = new node(lo, 32);
+      insert(it.nd, newnode);
 
-    // なんで ind == 32 みたいなコード書いてるの？
-    if (x) lo |= static_cast<value_type>(1) << 32;
-    node* newnode = new node(lo, 33);
-    insert(it.nd, newnode);
+      if (ind < 32) {
+        --it;
+      } else {
+        ind -= 32;
+      }
+    }
+
+    value_type tmp = *it;
+    value_type hi = tmp >> ind << (ind+1);
+    value_type lo = tmp & ((static_cast<value_type>(1) << ind) - 1);
+    value_type cur = (hi | lo);
+    if (x) {
+      cur |= static_cast<value_type>(1) << ind;
+      propagate_left_one(it.nd, 1);
+    }
+    *it = cur;
+    ++it->size;
+    propagate_left_size(it.nd, 1);
   }
 
   void erase(size_t t) {
-    // これ iterator 返すべき？
     iterator it;
     size_t ind;
     std::tie(it, ind) = nth(t);
@@ -394,10 +418,33 @@ public:
       return;
     }
 
+    value_type tmp = *it;
+    value_type hi = tmp >> (ind+1) << ind;
+    value_type lo = tmp & ((static_cast<value_type>(1) << ind) - 1);
+    value_type cur = (hi | lo);
+    if (*it >> ind & 1) {
+      propagate_left_one(it.nd, -1);
+    }
+    *it = cur;
+    --it->size;
+    propagate_left_size(it.nd, -1);
+
     // *it を更新して left_{size,one} を更新
     if (it->successor() && it->size + it->successor()->size <= 64) {
+      iterator succ(it->successor(), root);
+      *it |= (*succ << (it->size));
+      it->size += succ->size;
+      propagate_left_size(it.nd, succ->size);
+      propagate_left_one(it.nd, popcount(*succ));
+      erase(succ);
       // くっつけて left_{size,one} を更新
     } else if (it->predecessor() && it->size + it->predecessor()->size <= 64) {
+      iterator pred(it->predecessor(), root);
+      *pred |= (*it << (pred->size));
+      pred->size += it->size;
+      propagate_left_size(it.nd, it->size);
+      propagate_left_one(it.nd, popcount(*it));
+      erase(it);
       // くっつけて同じく更新
     }
   }
@@ -407,6 +454,11 @@ public:
     size_t ind;
     std::tie(it, ind) = nth(t);
     return it[ind];
+  }
+
+  void inspect() const {
+    for (iterator it(first, root); it.nd != nullptr; ++it)
+      printf("%jx\n", *it);
   }
 };
 
@@ -430,7 +482,8 @@ int main() {
   }
   puts("");
 
-  size_t k = 60;
+  size_t k = 30;
+  bv.inspect();
   bv.insert(k, 1);
   printf("b1:");
   for (size_t i = 0; i <= n; ++i) {
@@ -440,4 +493,14 @@ int main() {
     if (i % 32 == 31 && i+1 != n) printf("\n  :");
   }
   puts("");
+  bv.inspect();
+
+  bv.erase(k);
+  printf("b2:");
+  for (size_t i = 0; i < n; ++i) {
+    printf(" %d", !!bv[i]);
+    if (i % 32 == 31 && i+1 != n) printf("\n  :");
+  }
+  puts("");
+  bv.inspect();
 }
