@@ -77,8 +77,12 @@ class matching_automaton {
     for (size_t i = 0; i < s.length(); ++i) {
       char_type c = s[i];
       std::shared_ptr<node> next(cur->find(c));
-      while (!(next || cur == root)) cur = cur->suffix_link;
-      if (next) cur = next;
+      if (next) {
+        cur = next;
+      } else {
+        while (cur != root && !cur->find(c)) cur = cur->suffix_link;
+        if (cur->find(c)) cur = cur->find(c);
+      }
       if (cur->accepting) fn(i+1-cur->length, cur->length);
       std::shared_ptr<node> out(cur->output_link);
       while (out) {
