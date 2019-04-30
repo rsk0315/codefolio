@@ -75,7 +75,7 @@ public:
 template <class Tp, size_t bitlen = 8 * sizeof(Tp)>
 class wavelet_matrix {
 public:
-  using value_type = std::make_unsigned<Tp>;
+  using value_type = typename std::make_unsigned<Tp>::type;
 
 private:
   std::vector<value_type> c;
