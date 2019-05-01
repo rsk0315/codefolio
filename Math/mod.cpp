@@ -53,3 +53,13 @@ Tp modmul(const std::initializer_list<Tp>& muls, Tp mod) {
   for (const auto& mul: muls) (res *= mul) %= mod;
   return res;
 }
+
+template <class Tp>
+Tp modpow(Tp base, intmax_t iexp, Tp mod) {
+  Tp res = 1;
+  for (Tp dbl = base; iexp; iexp >>= 1) {
+    if (iexp & 1) res = res * dbl % mod;
+    dbl = dbl * dbl % mod;
+  }
+  return res;
+}
