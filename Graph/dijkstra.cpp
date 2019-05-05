@@ -1,5 +1,5 @@
 template <class Weight>
-std::vector<Weight> shortest(const graph<Weight> &g, size_t s) {
+std::vector<Weight> shortest(const graph<Weight>& g, size_t s) {
   // based on Dijkstra algorithm
   std::vector<Weight> res(g.size(), inf<Weight>);
   priority_queue<std::pair<Weight, size_t>, std::greater<>> q;
