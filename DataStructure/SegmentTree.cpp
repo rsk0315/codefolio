@@ -1,6 +1,4 @@
-template <class Tp,
-          class BinaryOperation1 = std::plus<Tp>,
-          class BinaryOperation2 = std::plus<Tp>>
+template <class Tp, class BinaryOperation1, class BinaryOperation2>
 class segment_tree {
 public:
   using binary_operation1 = BinaryOperation1;
@@ -24,14 +22,28 @@ private:
   }
 
 public:
-  segment_tree(size_t n, const value_type& e) {
+  segment_tree(size_t n,
+               BinaryOperation1 op1 = BinaryOperation1(),
+               BinaryOperation2 op2 = BinaryOperation2()): op1(op1), op2(op2) {
+
+    init_resize(n);
+    c.assign(m, op1.identity);
+  }
+
+  segment_tree(size_t n, const Tp& e,
+               BinaryOperation1 op1 = BinaryOperation1(),
+               BinaryOperation2 op2 = BinaryOperation2()): op1(op1), op2(op2) {
+
     init_resize(n);
     for (size_t i = m/2; i < m; ++i) c[i] = e;
     init_aggregate();
   }
 
   template <class ForwardIt>
-  segment_tree(ForwardIt first, ForwardIt last) {
+  segment_tree(ForwardIt first, ForwardIt last,
+               BinaryOperation1 op1 = BinaryOperation1(),
+               BinaryOperation2 op2 = BinaryOperation2()): op1(op1), op2(op2) {
+
     static_assert(std::is_same<Tp, typename ForwardIt::value_type>::value, "");
     init_resize(std::distance(first, last));
     for (size_t i = m/2; first != last; ++i) c[i] = *first++;
@@ -61,4 +73,6 @@ public:
     }
     return op1(resl, resr);
   }
+
+  value_type operator [](size_t k) const { return c[k+m/2]; }
 };
