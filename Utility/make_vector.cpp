@@ -1,3 +1,7 @@
+std::vector<size_t> make_vector(size_t n, size_t x) {
+  return std::vector<size_t>(n, x);
+}
+
 template <class Tp>
 std::vector<Tp> make_vector(size_t n, const Tp& x) {
   return std::vector<Tp>(n, x);
