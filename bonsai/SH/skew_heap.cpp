@@ -25,6 +25,8 @@ private:
     std::unique_ptr<M_node> left{nullptr}, right{nullptr};
     Tp value;
     M_node(const Tp& x): value(x) {}
+    template <class... Ts>
+    M_node(const Ts&... xs): value(xs...) {}
     ~M_node() = default;
   };
   Compare M_comp;
@@ -101,7 +103,7 @@ public:
   void push(const Tp& x) { M_meld(std::unique_ptr<M_node>(new M_node(x))); }
   template <class... Ts>
   void emplace(const Ts&... xs) {
-    meld(std::unique_ptr<M_node>(new M_node(xs...)));
+    M_meld(std::unique_ptr<M_node>(new M_node(xs...)));
   }
 
   void pop() {
