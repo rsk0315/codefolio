@@ -24,4 +24,8 @@ struct graph: public std::vector<std::vector<edge<Weight>>> {
     (*this)[src].emplace_back(src, dst, cost);
     (*this)[dst].emplace_back(dst, src, cost);
   }
+
+  void connect_to(size_t src, size_t dst, value_type cost=1) {
+    (*this)[src].emplace_back(src, dst, cost);
+  }
 };
