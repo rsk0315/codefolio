@@ -34,3 +34,6 @@
 # Backup files
 *~
 .*.swp
+
+# Mac files
+*.dSYM
