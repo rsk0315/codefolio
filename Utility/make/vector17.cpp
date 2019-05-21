@@ -1,5 +1,5 @@
 template <typename Tp, size_t N>
-auto make_vector_detail(std::vector<size_t> sizes, const Tp& x) {
+auto make_vector_detail(std::vector<size_t>& sizes, const Tp& x) {
   size_t size = sizes[N-1];
   if constexpr (N > 1) {
     sizes.pop_back();
