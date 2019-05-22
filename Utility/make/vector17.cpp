@@ -3,7 +3,7 @@ auto make_vector_detail(std::vector<size_t>& sizes, const Tp& x) {
   size_t size = sizes[N-1];
   if constexpr (N > 1) {
     sizes.pop_back();
-    return std::vector<decltype(make_vector_detail<Tp, N-1>(sizes, x))>(size, make_vector_detail<Tp, N-1>(sizes, x));
+    return std::vector(size, make_vector_detail<Tp, N-1>(sizes, x));
   } else {
     return std::vector<Tp>(size, x);
   }
