@@ -1,4 +1,4 @@
-template <class RandomIt, class OutputIt>
+template <typename RandomIt, typename OutputIt>
 OutputIt slide_min(RandomIt first, RandomIt last, ptrdiff_t width, OutputIt d_first) {
   std::deque<RandomIt> st;
   for (auto it = first; it < last; ++it) {
