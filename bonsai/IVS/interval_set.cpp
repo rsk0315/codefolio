@@ -1,3 +1,10 @@
+#include <cstdio>
+#include <cstdint>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <utility>
+
 template <typename Tp>
 class interval_set {
 public:
@@ -79,3 +86,21 @@ public:
 
   bool contains(Tp x) const { return (suprange(x).second != x); }
 };
+
+int main() {
+  size_t N;
+  int H, W;
+  scanf("%zu %d %d", &N, &W, &H);
+
+  interval_set<int> ws, hs;
+  for (size_t i = 0; i < N; ++i) {
+    int x, y, w;
+    scanf("%d %d %d", &x, &y, &w);
+    ws.insert(x-w, x+w);
+    hs.insert(y-w, y+w);
+  }
+
+  if (ws.suprange(0) == ws.suprange(W-1)) return puts("Yes"), 0;
+  if (hs.suprange(0) == hs.suprange(H-1)) return puts("Yes"), 0;
+  puts("No");
+}
