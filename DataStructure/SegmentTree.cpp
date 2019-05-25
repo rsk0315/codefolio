@@ -44,7 +44,7 @@ public:
                BinaryOperation1 op1 = BinaryOperation1(),
                BinaryOperation2 op2 = BinaryOperation2()): op1(op1), op2(op2) {
 
-    static_assert(std::is_same<Tp, typename ForwardIt::value_type>::value, "");
+    static_assert(std::is_convertible<typename ForwardIt::value_type, Tp>::value, "");
     init_resize(std::distance(first, last));
     for (size_t i = m/2; first != last; ++i) c[i] = *first++;
     init_aggregate();
