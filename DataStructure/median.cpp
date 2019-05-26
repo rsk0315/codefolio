@@ -30,26 +30,18 @@ public:
     }
     M_c.insert(x);
     if (M_comp(x, *M_it)) {
+      M_lower_sum += x;
       if (M_size % 2 == 0) {
-        // x ? ! ?
         M_lower_sum -= *M_it;
         M_upper_sum += *M_it;
         --M_it;
-        M_lower_sum += x;
-      } else {
-        // x ? ! ? ?
-        M_lower_sum += x;
       }
     } else {
-      if (M_size % 2 == 0) {
-        // ? ! ? x
-        M_upper_sum += x;
-      } else {
-        // ? ! ? ? x
+      M_upper_sum += x;
+      if (M_size % 2 != 0) {
         ++M_it;
         M_lower_sum += *M_it;
         M_upper_sum -= *M_it;
-        M_upper_sum += x;
       }
     }
   }
@@ -58,23 +50,15 @@ public:
     auto it = M_c.find(x);
     if (it == M_c.end()) return;
     if (M_comp(x, *M_it)) {
+      M_lower_sum -= x;
       if (M_size % 2 == 0) {
-        // x ? ! ?
-        M_lower_sum -= x;
         M_lower_sum += *M_it;
         M_upper_sum -= *M_it;
         --M_it;
-      } else {
-        // x ? ! ? ?
-        M_lower_sum -= x;
       }
     } else {
-      if (M_size % 2 == 0) {
-        // ? ! ? x
-        M_upper_sum -= x;
-      } else {
-        // ? ? ! ? x
-        M_upper_sum -= x;
+      M_upper_sum -= x;
+      if (M_size % 2 != 0) {
         M_lower_sum -= *M_it;
         M_upper_sum += *M_it;
         --M_it;
