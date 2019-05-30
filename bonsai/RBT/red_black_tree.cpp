@@ -6,8 +6,8 @@
 template <class Tp>
 class red_black_tree {
   class node {
-    const node* neighbor(size_t dir) const {
-      const node* cur = this;
+    node const* neighbor(size_t dir) const {
+      node const* cur = this;
       if (children[dir]) {
         cur = cur->children[dir];
         while (cur->children[!dir]) cur = cur->children[!dir];
@@ -39,7 +39,7 @@ class red_black_tree {
     Tp value;
     size_t left_size = 0;
     enum Color {RED, BLACK} color = RED;
-    node(const Tp& x): value(x) {}
+    node(Tp const& x): value(x) {}
 
     ~node() {
       if (children[0]) {
@@ -53,12 +53,12 @@ class red_black_tree {
     }
 
     node* successor() { return neighbor(1); }
-    const node* successor() const { return neighbor(1); }
+    node const* successor() const { return neighbor(1); }
     node* predecessor() { return neighbor(0); }
-    const node* predecessor() const { return neighbor(0); }
+    node const* predecessor() const { return neighbor(0); }
 
-    const node* root() const {
-      const node* cur = this;
+    node const* root() const {
+      node const* cur = this;
       while (cur->parent) cur = cur->parent;
       return cur;
     }
@@ -76,23 +76,29 @@ public:
 
     using value_type = Tp;
 
-    const value_type& operator *() const { return nd->value; }
+    value_type const& operator *() const { return nd->value; }
     value_type& operator *() { return nd->value; }
-    iterator operator ++() { return nd = nd->successor(); }
+    iterator& operator ++() {
+      nd = nd->successor();
+      return *this;
+    }
     iterator operator ++(int) {
-      node* tmp = nd;
-      ++(*this);
+      iterator tmp = *this;
+      ++*this;
       return tmp;
     }
-    iterator operator --() { return nd = nd->predecessor(); }
+    iterator& operator --() {
+      nd = nd->predecessor();
+      return *this;
+    }
     iterator operator --(int) {
-      node* tmp = nd;
-      --(*this);
+      iterator tmp = *this;
+      --*this;
       return tmp;
     }
 
-    bool operator ==(const iterator other) const { return nd == other.nd; }
-    bool operator !=(const iterator other) const { return nd != other.nd; }
+    bool operator ==(iterator const& other) const { return nd == other.nd; }
+    bool operator !=(iterator const& other) const { return nd != other.nd; }
   };
 
 private:
@@ -151,7 +157,6 @@ private:
   void insert_fixup(node* cur) {
     while (is_red(cur->parent)) {
       node* gparent = cur->parent->parent;
-
       size_t uncle_dir = (cur->parent != gparent->children[1]);
       node* uncle = gparent->children[uncle_dir];
 
@@ -213,11 +218,9 @@ private:
     if (cur) cur->color = node::BLACK;
   }
 
-  void reset_size() {
-    size_ = calc_size(root);
-  }
+  void reset_size() { size_ = calc_size(root); }
 
-  size_t calc_size(const node* nd) const {
+  size_t calc_size(node const* nd) const {
     size_t res = 0;
     while (nd) {
       res += nd->left_size + 1;
@@ -263,7 +266,6 @@ private:
 
   node* erase(node* nd) {
     assert(nd);
-
     node* after = nd->successor();
 
     --size_;
@@ -311,7 +313,7 @@ private:
     return after;
   }
 
-  size_t size(const node* nd) const {
+  size_t size(node const* nd) const {
     if (nd == root) return size_;
     if (nd == nd->parent->children[0]) return nd->parent->left_size;
     return calc_size(nd);
@@ -392,8 +394,8 @@ private:
 public:
   red_black_tree() = default;
 
-  template <class ForwardIt>
-  red_black_tree(ForwardIt first, ForwardIt last) {
+  template <class InputIt>
+  red_black_tree(InputIt first, InputIt last) {
     this->first = root = new node(*first);
     root->color = node::BLACK;
     node* prev = root;
@@ -468,8 +470,8 @@ public:
     insert(first, new node(x));
   }
   void insert(iterator it, const Tp& x) { insert(it.nd, new node(x)); }
-  template <class ForwardIt>
-  void insert(iterator it, ForwardIt first, ForwardIt last) {
+  template <class InputIt>
+  void insert(iterator it, InputIt first, InputIt last) {
     while (first != last) {
       insert(it.nd, new node(*first));
       ++first;
@@ -524,10 +526,10 @@ public:
     return med;
   }
 
-  red_black_tree split(iterator crit_) {
-    if (crit_ == end()) return {};
+  red_black_tree split(iterator crit_it) {
+    if (crit_it == end()) return {};
 
-    node* crit = crit_.nd;
+    node* crit = crit_it.nd;
     if (crit == first) {
       red_black_tree tmp;
       std::swap(tmp, *this);
