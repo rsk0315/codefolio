@@ -31,6 +31,11 @@ private:
   void M_calculate_size(const_iterator subroot) const;
   void M_fix_left_subtree_size(const_iterator descendant, difference_type diff);
 
+  const_iterator M_begin, M_end, M_root;
+  size_type M_size = 0;
+
+  enum rb_tree_color { S_red = false, S_black = true };
+
 public:
   rb_tree() = default;
   rb_tree(rb_tree&&) = default;
@@ -55,24 +60,27 @@ public:
   iterator insert(const_iterator pos, std::initializer_list<value_type> ilist);
   template <typename... Args>
   iterator emplace(Args&&... args);
-  iterator push_back(value_type const& value);
-  iterator push_back(value_type&& value);
-  iterator push_front(value_type const& value);
-  iterator push_front(value_type&& value);
+  iterator push_back(value_type const& value) { insert(end(), value); }
+  iterator push_back(value_type&& value) { insert(end(), value); }
+  iterator push_front(value_type const& value) { insert(++begin(), value); }
+  iterator push_front(value_type&& value) { insert(++begin(), value); }
 
   // erasures
   iterator erase(iterator pos);
   iterator erase(const_iterator pos);
-  iterator erase(const_iterator first, const_iterator last);
-  iterator pop_front();
-  iterator pop_back();
+  iterator erase(const_iterator first, const_iterator last) {
+    while (first != last) first = erase(first);
+    return first;
+  }
+  iterator pop_front() { erase(begin()); }
+  iterator pop_back() { erase(--end()); }
 
   // merge and split
   iterator merge(rb_tree&& other);
   rb_tree split(iterator pos);
 
   // other modifier(s)
-  void clear();
+  void clear() { M_clear(); }
 
   // boundaries
   template <typename Comparator>
@@ -95,8 +103,8 @@ public:
   const_reverse_iterator crend() const;
 
   // capacities
-  bool empty() const;
-  size_type size() const;
+  bool empty() const { return (M_size == 0); }
+  size_type size() const { return M_size; }
 
   // accessors
   size_type index(const_iterator pos) const;
@@ -105,8 +113,8 @@ public:
   reference at(size_type pos);
   const_reference at(size_type pos) const;
   // the i-th iterator should be obtained via begin()+i
-  reference front();
-  const_reference front() const;
-  reference back();
-  const_reference back() const;
+  reference front() { return *begin(); }
+  const_reference front() const { return *begin(); }
+  reference back() { return *rbegin(); }
+  const_reference back() const { return *rbegin(); }
 };
