@@ -113,7 +113,6 @@ public:
   first_type operator [](size_t i) {
     i += M_base_size;
     M_resolve(i);
-    i >>= __builtin_ctzll(i);
     return M_c[i];
   }
 };
