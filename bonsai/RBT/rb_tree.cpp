@@ -158,7 +158,7 @@ private:
     M_size = src.M_size;
     if (!src.empty()) M_deep_copy_dfs(M_root, src.M_root);
   }
-  // void M_release();
+
   void M_clear_dfs(pointer& dst) {
     for (size_t i = 0; i <= 1; ++i) {
       if (dst->children[i])
@@ -359,6 +359,7 @@ private:
   }
 
   pointer M_erase(iterator pos_it) {
+    inspect();
     pointer pos = pos_it.M_node;
     pointer res = std::next(pos_it).M_node;
     if (pos == M_begin) M_begin = res;
@@ -366,12 +367,19 @@ private:
     --M_size;
     pointer y = pos;
     if (pos->children[0] && pos->children[1]) {
-      pos->value = std::move(res->value);
       S_increment(y);
-      if (res != M_end) S_increment(res);
+      pos->value = std::move(y->value);
+      // if (res != M_end) S_increment(res);
+      if (y == M_end) {
+        res = M_end = pos;
+      } else {
+        S_increment(res);  // ???
+      }
+    } else if (pos == M_begin) {
+      M_begin = res;
     }
-    // XXX y were M_end-1 and the tree were certain shape,
-    //     then M_end should be modified ???
+    // XXX y were M_end and the tree were certain shape,
+    //     then M_end should be modified
 
     pointer x = y->children[0];
     if (!x) x = y->children[1];
@@ -386,8 +394,9 @@ private:
     pointer xparent = y->parent;  // x may be nil
     bool fix_needed = (y->color == S_black);
     if (fix_needed) M_erase_fix(x, xparent);
-    fprintf(stderr, "erasing %p\n", y.get());
-    delete x.get();
+    inspect();
+    fprintf(stderr, "deleting %p\n", y.get());
+    fprintf(stderr, "x: %p, y: %p\n", x.get(), y.get());
     return res;
   }
   void M_erase_fix(pointer pos, pointer parent) {
@@ -503,7 +512,12 @@ private:
     return res;
   }
 
-  // M_split();
+  pointer M_split(const_iterator pos) { return M_split(iterator(pos)); }
+  pointer M_split(iterator pos_it) {
+    pointer pos = pos_it.M_node;
+
+    // 
+  }
 
   void M_calculate_size(const_iterator subroot) const;
   void M_fix_left_subtree_size(pointer cur, difference_type diff) {
@@ -737,10 +751,15 @@ int main() {
   }
 
   if (true) {
-    rb_tree<int> left{31, 41, 59, 26, 53, 58}, right{97, 93, 23};
+    rb_tree<int> left{0, 1, 2, 3, 4, 5, 6}, right{7, 8, 9, 10};
     rb_tree<int> right_save(right);
     left.merge(std::move(right));
     left.inspect();
     right_save.inspect();
+
+    left.erase(left.begin()+3);
+    left.inspect();
+    left.erase(left.end()-1);
+    left.inspect();
   }
 }
