@@ -71,8 +71,8 @@ public:
     const_reference operator [](size_t i) const { return *(*this + i); }
 
     bool operator ==(iterator const& other) const { return M_node == other.M_node; }
-    bool operator !=(iterator const& other) const { return !(*this != other); }
-    bool operator <(iterator const& other) const { return M_node < other.M_node; }
+    bool operator !=(iterator const& other) const { return !(*this == other); }
+    bool operator <(iterator const& other) const { return S_index(M_node) < S_index(other.M_node); }
     // TODO comparison operations
   };
 
@@ -121,7 +121,7 @@ public:
 
     bool operator ==(const_iterator const& other) const { return M_node == other.M_node; }
     bool operator !=(const_iterator const& other) const { return !(*this == other); }
-    bool operator <(const_iterator const& other) const { return M_node < other.M_node; }
+    bool operator <(const_iterator const& other) const { return S_index(M_node) < S_index(other.M_node); }
     // TODO comparison operations
   };
 
@@ -175,7 +175,7 @@ private:
     }
   }
   static void S_increment(pointer& pos, size_type dir = 1) {
-    fprintf(stderr, "%scrementing %zu-th iterator\n", dir? "in":"de", S_index(pos));
+    // fprintf(stderr, "%scrementing %zu-th iterator\n", dir? "in":"de", S_index(pos));
     if (pos->children[dir]) {
       pos = pos->children[dir];
       while (pos->children[!dir]) pos = pos->children[!dir];
@@ -413,15 +413,14 @@ private:
 
   static size_type S_index(iterator const& pos) { return S_index(const_iterator(pos)); }
   static size_type S_index(const_iterator const& pos) {
-    // if (pos == cbegin()) return 0;
-    // if (pos == cend()) return M_size;
-    size_type res = 0;
     const_pointer cur = pos.M_node;
+    size_type res = cur->left_size;
     while (cur->parent) {
       if (cur == cur->parent->children[1])
         res += cur->parent->left_size + 1;
       cur = cur->parent;
     }
+    fprintf(stderr, "pos %p's index: %zu\n", pos.M_node.get(), res);
     return res;
   }
 
@@ -453,7 +452,7 @@ public:
     for (size_t i = 0; i < n; ++i) push_back(x);
   }
   rb_tree(std::initializer_list<value_type> const& ilist): rb_tree() {
-    for (auto& x: ilist) push_back(x);
+    for (auto& x: ilist) inspect(), push_back(x);
   }
   template <typename InputIt>
   rb_tree(InputIt first, InputIt last): rb_tree() {
@@ -607,6 +606,10 @@ int main() {
       assert(rbt[i] == i);
     }
 
+    rbt.inspect();
+    for (auto it = rbt.begin(); it != rbt.end(); ++it)
+      fprintf(stderr, "%zu\n", rbt.index(it));
+
     std::mt19937 rsk(0315);
     std::shuffle(rbt.begin(), rbt.end(), rsk);
     fprintf(stderr, "shuffled\n");
@@ -614,7 +617,7 @@ int main() {
 
     std::sort(rbt.begin(), rbt.end());
     fprintf(stderr, "sorted\n");
-    for (int i = 0; i < n; ++i) fprintf(stderr, "%d\n", rbt[i]);
+    for (int i = 0; i < n; ++i) fprintf(stderr, "%d%c", rbt[i], i+1<n? ' ':'\n');
 
     fprintf(stderr, ".begin(): %zu\n", rbt.index(rbt.begin()));
     fprintf(stderr, ".end(): %zu\n", rbt.index(rbt.end()));
