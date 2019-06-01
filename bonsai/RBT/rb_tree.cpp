@@ -33,7 +33,7 @@ public:
     using reference = typename rb_tree::reference;
     using const_reference = typename rb_tree::const_reference;
     using pointer = typename rb_tree::pointer;
-    using iterator_category = std::bidirectional_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
 
   private:
     pointer M_node;
@@ -41,7 +41,7 @@ public:
   public:
     iterator() = default;
     iterator(iterator const&) = default;
-    iterator(iterator &&) = default;
+    iterator(iterator&&) = default;
     iterator(pointer ptr): M_node(ptr) {}
     explicit iterator(const_iterator const& other): M_node(std::const_pointer_cast<node_type>(other.M_node)) {}
     iterator& operator =(iterator const&) = default;
@@ -63,12 +63,16 @@ public:
     iterator operator +(difference_type i) const { return iterator(*this) += i; }
     iterator& operator -=(difference_type i) { S_advance(M_node, -i); return *this; }
     iterator operator -(difference_type i) const { return iterator(*this) -= i; }
+    difference_type operator -(iterator const& other) const { return S_index(*this) - S_index(other); }
 
     reference operator *() { return M_node->value; }
     const_reference operator *() const { return M_node->value; }
+    reference operator [](size_t i) { return *(*this + i); }
+    const_reference operator [](size_t i) const { return *(*this + i); }
 
     bool operator ==(iterator const& other) const { return M_node == other.M_node; }
-    bool operator !=(iterator const& other) const { return !(M_node != other.M_node); }
+    bool operator !=(iterator const& other) const { return !(*this != other); }
+    bool operator <(iterator const& other) const { return M_node < other.M_node; }
     // TODO comparison operations
   };
 
@@ -77,11 +81,11 @@ public:
     friend iterator;
   public:
     using difference_type = typename rb_tree::difference_type;
-    using value_type = typename rb_tree::value_type;
+    using value_type = typename rb_tree::value_type const;
     using reference = typename rb_tree::const_reference;
     using const_reference = typename rb_tree::const_reference;
     using pointer = typename rb_tree::const_pointer;
-    using iterator_category = std::bidirectional_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
 
   private:
     pointer M_node;
@@ -95,26 +99,29 @@ public:
     const_iterator& operator =(const_iterator&&) = default;
 
     const_iterator& operator ++() { S_increment(M_node); return *this; }
-    const_iterator& operator ++(int) {
-      iterator tmp = *this;
+    const_iterator operator ++(int) {
+      const_iterator tmp = *this;
       ++*this;
       return tmp;
     }
     const_iterator& operator --() { S_decrement(M_node); return *this; }
-    const_iterator& operator --(int) {
+    const_iterator operator --(int) {
       const_iterator tmp = *this;
       --*this;
       return tmp;
     }
     const_iterator& operator +=(difference_type i) { S_advance(M_node, i); return *this; }
-    const_iterator operator +(difference_type i) const { return iterator(*this) += i; }
+    const_iterator operator +(difference_type i) const { return const_iterator(*this) += i; }
     const_iterator& operator -=(difference_type i) { S_advance(M_node, -i); return *this; }
-    const_iterator operator -(difference_type i) const { return iterator(*this) -= i; }
+    const_iterator operator -(difference_type i) const { return const_iterator(*this) -= i; }
+    difference_type operator -(const_iterator const& other) const { return S_index(*this) - S_index(other); }
 
     const_reference operator *() const { return M_node->value; }
+    const_reference operator [](size_t i) const { return *(*this + i); }
 
     bool operator ==(const_iterator const& other) const { return M_node == other.M_node; }
-    bool operator !=(const_iterator const& other) const { return !(M_node == other.M_node); }
+    bool operator !=(const_iterator const& other) const { return !(*this == other); }
+    bool operator <(const_iterator const& other) const { return M_node < other.M_node; }
     // TODO comparison operations
   };
 
@@ -138,6 +145,9 @@ private:
   void M_release();
   void M_clear();
 
+  static difference_type S_index_diff_to_parent(const_pointer const& pos) {
+    return S_index_diff_to_parent(std::const_pointer_cast<node_type>(pos));
+  }
   static difference_type S_index_diff_to_parent(pointer const& pos) {
     if (pos == pos->parent->children[0]) {
       return -static_cast<difference_type>(pos->parent->left_size - pos->left_size);
@@ -146,7 +156,7 @@ private:
     }
   }
 
-  static void S_increment(pointer& pos, size_type dir = 1) {
+  static void S_increment(const_pointer& pos, size_type dir = 1) {
     if (pos->children[dir]) {
       pos = pos->children[dir];
       while (pos->children[!dir]) pos = pos->children[!dir];
@@ -164,13 +174,57 @@ private:
       pos = pos->parent;
     }
   }
+  static void S_increment(pointer& pos, size_type dir = 1) {
+    fprintf(stderr, "%scrementing %zu-th iterator\n", dir? "in":"de", S_index(pos));
+    if (pos->children[dir]) {
+      pos = pos->children[dir];
+      while (pos->children[!dir]) pos = pos->children[!dir];
+      return;
+    }
+    while (true) {
+      if (!pos->parent) {
+        if (dir) throw std::out_of_range("attempt to increment a past-the-end iterator");
+        throw std::out_of_range("attempt to decrement start-of-sequence iterator");
+      }
+      if (pos == pos->parent->children[!dir]) {
+        pos = pos->parent;
+        return;
+      }
+      pos = pos->parent;
+    }
+  }
+
+  static void S_decrement(const_pointer& pos) { S_increment(pos, 0); }
   static void S_decrement(pointer& pos) { S_increment(pos, 0); }
 
   static void S_advance(pointer& pos, difference_type i = +1) {
-    // if (i == 0) return;
-    // if (i == +1) return S_increment(pos);
-    // if (i == -1) return S_decrement(pos);
+    if (i > 0) {
+      while (pos->parent) {
+        intmax_t j = i + S_index_diff_to_parent(pos);
+        if (j < 0) break;
+        i = j;
+        pos = pos->parent;
+      }
+    } else /* if (i < 0) */ {
+      while (pos->parent) {
+        intmax_t j = i + S_index_diff_to_parent(pos);
+        if (j > 0) break;
+        i = j;
+        pos = pos->parent;
+      }
+    }
 
+    while (i != 0) {
+      if (i > 0) {
+        pos = pos->children[1];
+        i -= pos->left_size + 1;
+      } else /* if (i < 0) */ {
+        pos = pos->children[0];
+        i += pos->parent->left_size - pos->left_size;
+      }
+    }
+  }
+  static void S_advance(const_pointer& pos, difference_type i = +1) {
     if (i > 0) {
       while (pos->parent) {
         intmax_t j = i + S_index_diff_to_parent(pos);
@@ -357,9 +411,10 @@ private:
     }
   }
 
-  size_type M_index(const_iterator pos) const {
-    if (pos == cbegin()) return 0;
-    if (pos == cend()) return M_size;
+  static size_type S_index(iterator const& pos) { return S_index(const_iterator(pos)); }
+  static size_type S_index(const_iterator const& pos) {
+    // if (pos == cbegin()) return 0;
+    // if (pos == cend()) return M_size;
     size_type res = 0;
     const_pointer cur = pos.M_node;
     while (cur->parent) {
@@ -396,6 +451,9 @@ public:
   rb_tree(rb_tree const& other) { M_deep_copy(*this, other); }
   rb_tree(size_type n, value_type const& x = value_type{}): rb_tree() {
     for (size_t i = 0; i < n; ++i) push_back(x);
+  }
+  rb_tree(std::initializer_list<value_type> const& ilist): rb_tree() {
+    for (auto& x: ilist) push_back(x);
   }
   template <typename InputIt>
   rb_tree(InputIt first, InputIt last): rb_tree() {
@@ -472,7 +530,7 @@ public:
   const_iterator end() const { return const_iterator(M_end); }
   const_iterator cend() const { return const_iterator(M_end); }
   reverse_iterator rbegin() { return reverse_iterator(M_end); }
-  const_reverse_iterator rbegin() const { return const_reverse_iterator(M_end); }
+  const_reverse_iterator rbegin() const { return reverse_iterator(M_end); }
   const_reverse_iterator crbegin() const { return const_reverse_iterator(M_end); }
   reverse_iterator rend() { return reverse_iterator(M_begin); }
   const_reverse_iterator rend() const { return const_reverse_iterator(M_begin); }
@@ -483,8 +541,8 @@ public:
   size_type size() const { return M_size; }
 
   // accessors
-  size_type index(iterator pos) const { return M_index(const_iterator(pos)); }
-  size_type index(const_iterator pos) const { return M_index(pos); }
+  size_type index(iterator pos) const { return S_index(const_iterator(pos)); }
+  size_type index(const_iterator pos) const { return S_index(pos); }
   reference operator [](size_type pos) { return begin()[pos]; }
   const_reference operator [](size_type pos) const { return cbegin()[pos]; }
   // the i-th iterator should be obtained via begin()+i
@@ -509,6 +567,7 @@ public:
 };
 
 #include <numeric>
+#include <random>
 
 int main() {
   {
@@ -525,22 +584,48 @@ int main() {
     printf("%zu\n", rbt.index(rbt.end()));
   }
 
-  {
-    int n = 1024;
+  if (true) {
+    int n = 16;
     std::vector<int> test(n);
     std::iota(test.begin(), test.end(), 0);
     rb_tree<int> rbt(test.begin(), test.end());
     // rbt.inspect();
 
-    auto it = rbt.begin();
+    // auto it = rbt.begin();
+    // for (int i = 0; i < n; ++i) {
+    //   for (int j = 0; j < n; ++j) {
+    //     int x = *(it+(j-i));
+    //     int y = *(it-(i-j));
+    //     fprintf(stderr, "(%d, %d): %d, %d\n", i, j, x, y);
+    //     assert(x == j && y == j);
+    //   }
+    //   ++it;
+    // }
+
     for (int i = 0; i < n; ++i) {
-      for (int j = 0; j < n; ++j) {
-        int x = *(it+(j-i));
-        int y = *(it-(i-j));
-        fprintf(stderr, "(%d, %d): %d, %d\n", i, j, x, y);
-        assert(x == j && y == j);
-      }
-      ++it;
+      fprintf(stderr, "%d\n", rbt[i]);
+      assert(rbt[i] == i);
     }
+
+    std::mt19937 rsk(0315);
+    std::shuffle(rbt.begin(), rbt.end(), rsk);
+    fprintf(stderr, "shuffled\n");
+    for (int i = 0; i < n; ++i) fprintf(stderr, "%d\n", rbt[i]);
+
+    std::sort(rbt.begin(), rbt.end());
+    fprintf(stderr, "sorted\n");
+    for (int i = 0; i < n; ++i) fprintf(stderr, "%d\n", rbt[i]);
+
+    fprintf(stderr, ".begin(): %zu\n", rbt.index(rbt.begin()));
+    fprintf(stderr, ".end(): %zu\n", rbt.index(rbt.end()));
+  }
+
+  if (true) {
+    rb_tree<int> rbt{1, 2, 3};
+    for (size_t i = 0; i < 3; ++i) printf("%d\n", rbt[i]);
+    rbt[1] = 4;
+    (rbt.begin()[1]) = 3;
+    *(rbt.begin()+1) = 2;
+    for (size_t i = 0; i < 3; ++i) printf("%d\n", rbt[i]);
   }
 }
