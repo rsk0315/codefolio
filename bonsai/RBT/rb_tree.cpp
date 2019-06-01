@@ -141,9 +141,36 @@ private:
     node_type(value_type&& x): value(x) {}
   };
 
-  void M_deep_copy(rb_tree& dst, rb_tree const& src);
-  void M_release();
-  void M_clear();
+  void M_deep_copy_dfs(pointer& dst, const_pointer const& src) {
+    dst = pointer(new node_type(*src));
+    dst->color = src->color;
+    dst->left_size = src->left_size;
+    dst->parent = src->parent;
+    for (size_t i = 0; i <= 1; ++i) {
+      if (src->children[i])
+        M_deep_copy_dfs(dst->children[i], src->children[i]);
+    }
+  }
+  void M_deep_copy(rb_tree const& src) {
+    clear();
+    M_begin = src.M_begin;
+    M_end = src.M_end;
+    M_size = src.M_size;
+    if (!src.empty()) M_deep_copy_dfs(M_root, src.M_root);
+  }
+  // void M_release();
+  void M_clear_dfs(pointer& dst) {
+    for (size_t i = 0; i <= 1; ++i) {
+      if (dst->children[i])
+        M_clear_dfs(dst->children[i]);
+    }
+    delete dst.get();
+  }
+  void M_clear() {
+    M_size = 0;
+    if (M_root) M_clear_dfs(M_root);
+    M_begin = M_end = M_root = pointer(new node_type);
+  }
 
   static difference_type S_index_diff_to_parent(const_pointer const& pos) {
     return S_index_diff_to_parent(std::const_pointer_cast<node_type>(pos));
@@ -341,8 +368,10 @@ private:
     if (pos->children[0] && pos->children[1]) {
       pos->value = std::move(res->value);
       S_increment(y);
-      S_increment(res);
+      if (res != M_end) S_increment(res);
     }
+    // XXX y were M_end-1 and the tree were certain shape,
+    //     then M_end should be modified ???
 
     pointer x = y->children[0];
     if (!x) x = y->children[1];
@@ -357,6 +386,8 @@ private:
     pointer xparent = y->parent;  // x may be nil
     bool fix_needed = (y->color == S_black);
     if (fix_needed) M_erase_fix(x, xparent);
+    fprintf(stderr, "erasing %p\n", y.get());
+    delete x.get();
     return res;
   }
   void M_erase_fix(pointer pos, pointer parent) {
@@ -399,7 +430,79 @@ private:
     if (pos) pos->color = S_black;
   }
 
-  // M_merge();
+  pointer M_merge(rb_tree&& other) {
+    if (other.empty()) return M_end;
+    if (empty()) {
+      *this = other;
+      return M_begin;
+    }
+
+    pointer left = M_root;
+    pointer right = other.M_root;
+    size_type left_black = 1;
+    size_t right_black = 1;
+    pointer res = other.M_begin;
+    while (left->children[1]) {
+      left = left->children[1];
+      if (left->color == S_black) ++left_black;
+    }
+    while (right->children[0]) {
+      right = right->children[0];
+      if (right->color == S_black) ++right_black;
+    }
+
+    pointer tmp(new node_type);
+    if (left_black < right_black) {
+      left = M_root;
+      do {
+        if (right->color == S_black && --left_black) break;
+        right = right->parent;
+      } while (true);
+      tmp->color = S_red;
+      tmp->children[0] = left;
+      tmp->children[1] = right;
+      tmp->parent = right->parent;
+      left->parent = tmp;
+      right->parent->children[0] = tmp;
+      right->parent = tmp;
+      tmp->left_size = M_size;
+      M_fix_left_subtree_size(tmp, M_size+1);
+      M_insert_fix(tmp);
+      M_root = left;
+      while (M_root->parent) M_root = M_root->parent;
+    } else if (left_black > right_black) {
+      right = other.M_root;
+      do {
+        if (left->color == S_black && --right_black) break;
+        left = left->parent;
+      } while (true);
+      tmp->color = S_red;
+      tmp->children[0] = left;
+      tmp->children[1] = right;
+      tmp->parent = left->parent;
+      left->parent->children[1] = tmp;
+      left->parent = tmp;
+      right->parent = tmp;
+      tmp->left_size = 0;
+      for (pointer cur = left; cur; cur = cur->children[1])
+        tmp->left_size += cur->left_size + 1;
+      M_insert_fix(tmp);
+    } else {
+      left = M_root;
+      right = other.M_root;
+      tmp->children[0] = left;
+      tmp->children[1] = right;
+      left->parent = right->parent = tmp;
+      tmp->left_size = M_size+1; // +1 for M_end
+      M_root = tmp;
+    }
+
+    M_size += other.M_size+2;  // +2 for M_end and tmp
+    M_erase(M_end);
+    M_erase(tmp);
+    return res;
+  }
+
   // M_split();
 
   void M_calculate_size(const_iterator subroot) const;
@@ -427,12 +530,13 @@ private:
   void M_inspect_dfs(const const_pointer& root, size_type depth = 0) const {
     auto child = root->children[1];
       if (child) M_inspect_dfs(child, depth+1);
-    fprintf(stderr, "%*s-(%s%p%s) (%zu)\n",
+    fprintf(stderr, "%*s-(%s%p%s) (%zu): %d\n",
             static_cast<int>(depth), "",
             S_is_red(root)? "\x1b[1;31m":"\x1b[1m",
             root.get(),
             "\x1b[m",
-            root->left_size
+            root->left_size,
+            root->value
             );
     child = root->children[0];
       if (child) M_inspect_dfs(child, depth+1);
@@ -447,7 +551,7 @@ public:
     M_root->color = S_black;
   }
   rb_tree(rb_tree&&) = default;
-  rb_tree(rb_tree const& other) { M_deep_copy(*this, other); }
+  rb_tree(rb_tree const& other) { M_deep_copy(other); }
   rb_tree(size_type n, value_type const& x = value_type{}): rb_tree() {
     for (size_t i = 0; i < n; ++i) push_back(x);
   }
@@ -460,7 +564,7 @@ public:
   }
 
   rb_tree& operator =(rb_tree&&) = default;
-  rb_tree& operator =(rb_tree const& other) { M_deep_copy(*this, other); }
+  rb_tree& operator =(rb_tree const& other) { M_deep_copy(other); return *this; }
 
   // insertions and an emplacement
   iterator insert(const_iterator pos, value_type const& value) {
@@ -508,7 +612,7 @@ public:
   iterator pop_back() { return erase(--end()); }
 
   // merge and split
-  iterator merge(rb_tree&& other) { return M_merge(other); }
+  iterator merge(rb_tree&& other) { return M_merge(std::move(other)); }
   rb_tree split(iterator pos) { return M_split(pos); }
   rb_tree split(const_iterator pos) { return M_split(pos); }
 
@@ -615,7 +719,7 @@ int main() {
     fprintf(stderr, "shuffled\n");
     for (int i = 0; i < n; ++i) fprintf(stderr, "%d\n", rbt[i]);
 
-    std::sort(rbt.begin(), rbt.end());
+    std::sort(rbt.rbegin(), rbt.rend());
     fprintf(stderr, "sorted\n");
     for (int i = 0; i < n; ++i) fprintf(stderr, "%d%c", rbt[i], i+1<n? ' ':'\n');
 
@@ -630,5 +734,13 @@ int main() {
     (rbt.begin()[1]) = 3;
     *(rbt.begin()+1) = 2;
     for (size_t i = 0; i < 3; ++i) printf("%d\n", rbt[i]);
+  }
+
+  if (true) {
+    rb_tree<int> left{31, 41, 59, 26, 53, 58}, right{97, 93, 23};
+    rb_tree<int> right_save(right);
+    left.merge(std::move(right));
+    left.inspect();
+    right_save.inspect();
   }
 }
