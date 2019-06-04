@@ -24,7 +24,7 @@ private:
   }
 
 public:
-  prefix_sum() = default;
+  prefix_sum(): M_c(1) {}
   prefix_sum(prefix_sum const&) = default;
   prefix_sum(prefix_sum&&) = default;
   prefix_sum(size_t n, value_type const& x = value_type{}): M_c(n+1, x) {
@@ -57,20 +57,44 @@ public:
     return res;
   }
 
+  void push_back(value_type const& x) {
+    size_t n = M_c.size();
+    M_c.push_back(x);
+    size_t i = 1;
+    size_t j = n-i;
+    while (j & i) {
+      M_c[n] += M_c[j];
+      j ^= i;
+      i <<= 1;
+    }
+  }
+
   void inspect() const {
     for (size_t i = 1; i < M_c.size(); ++i)
       fprintf(stderr, "%d%c", M_c[i], i+1<M_c.size()? ' ':'\n');
   }
 };
 
+// class bit_vector {
+//   using value_type = uintmax_t;
+
+//   std::vector<std::
+// }
+
 int main() {
-  size_t n = 10;
+  size_t n = 30;
   std::vector<int> base(n);
   for (size_t i = 0; i < n; ++i) base[i] = 1 << i;
   for (size_t i = 0; i < n; ++i)
     fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
-  prefix_sum<int> ps(base.begin(), base.end());
-  ps.inspect();
+  // prefix_sum<int> ps(base.begin(), base.end()-2);
+  // ps.push_back(1 << 10);
+  // // ++n;
+  // ps.push_back(1 << 11);
+  // // ++n;
+  // ps.inspect();
+  prefix_sum<int> ps;
+  for (size_t i = 0; i <= n; ++i) ps.push_back(1 << i);
   for (size_t i = 1; i <= n; ++i)
     fprintf(stderr, "%d%c", ps.accumulate(i), i<n? ' ':'\n');
 }
