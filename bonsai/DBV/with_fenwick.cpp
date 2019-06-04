@@ -69,17 +69,47 @@ public:
     }
   }
 
+  // minimum i such that x <= accumulate(i)
+  size_t lower_bound(value_type const& x) const;
+  // minimum i such that x < accumulate(i)
+  size_t upper_bound(value_type const& x) const;
+
   void inspect() const {
     for (size_t i = 1; i < M_c.size(); ++i)
       fprintf(stderr, "%d%c", M_c[i], i+1<M_c.size()? ' ':'\n');
   }
 };
 
-// class bit_vector {
-//   using value_type = uintmax_t;
+class bit_vector {
+  using value_type = uintmax_t;
 
-//   std::vector<std::
-// }
+  std::vector<value_type> M_c;
+  prefix_sum<size_t> M_offset;
+
+public:
+  bit_vector() = default;
+  bit_vector(bit_vector const&) = default;
+  bit_vector(bit_vector&&) = default;
+
+  void insert(size_t i, bool b) {
+    size_t j = M_offset.lower_bound(i);
+    size_t k = i - M_offset.accumulate(j-1);
+    // ...
+    // if size[j] == 64, break it into two pieces
+    M_offset.add(i, 1);
+  }
+  void erase(size_t i) {
+    size_t j = M_offset.lower_bound(i);
+    size_t k = i - M_offset.accumulate(j-1);
+    // ...
+    // if size[j] == 16, try to merge with adjacent one
+    M_offset.add(i, -1);
+  }
+  bool operator [](size_t i) const;
+
+  size_t rank(size_t i, bool b) const;
+  size_t select(size_t i, bool b) const;
+}
 
 int main() {
   size_t n = 30;
