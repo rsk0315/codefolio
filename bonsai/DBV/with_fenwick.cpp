@@ -61,7 +61,7 @@ public:
     size_t n = M_c.size();
     M_c.push_back(x);
     size_t i = 1;
-    size_t j = n-i;
+    size_t j = n-1;
     while (j & i) {
       M_c[n] += M_c[j];
       j ^= i;
