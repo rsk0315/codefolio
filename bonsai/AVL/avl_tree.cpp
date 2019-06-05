@@ -18,6 +18,8 @@ public:
   using size_type = size_t;
   class iterator;
   class const_iterator;
+  using reverse_iterator = std::reverse_iterator<iterator>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 private:
   struct M_node {
@@ -70,6 +72,13 @@ public:
     iterator operator --(int) { iterator tmp = *this; --tmp; return *this; }
 
     reference operator *() { return node->value; }
+
+    bool operator <(const_iterator const& other) const { return S_index(*this) < S_index(other); }
+    bool operator ==(const_iterator const& other) const { return node == other.node; }
+    bool operator <=(const_iterator const& other) const { return !(other < *this); }
+    bool operator >(const_iterator const& other) const { return (other < *this); }
+    bool operator >=(const_iterator const& other) const { return !(*this < other); }
+    bool operator !=(const_iterator const& other) const { return !(*this == other); }
   };
 
   class const_iterator {
@@ -101,26 +110,15 @@ public:
     const_iterator operator --(int) { const_iterator tmp = *this; --tmp; return *this; }
 
     reference operator *() const { return node->value; }
+
+    bool operator <(const_iterator const& other) const { return S_index(*this) < S_index(other); }
+    bool operator ==(const_iterator const& other) const { return node == other.node; }
+    bool operator <=(const_iterator const& other) const { return !(other < *this); }
+    bool operator >(const_iterator const& other) const { return (other < *this); }
+    bool operator >=(const_iterator const& other) const { return !(*this < other); }
+    bool operator !=(const_iterator const& other) const { return !(*this == other); }
   };
 
-  bool operator <(const_iterator const& lhs, const_iterator const& rhs) const {
-    return S_index(lhs) < S_index(rhs);
-  }
-  bool operator ==(const_iterator const& lhs, const_iterator const& rhs) const {
-    return lhs.node == rhs.node;
-  }
-  bool operator <=(const_iterator const& lhs, const_iterator const& rhs) const {
-    return !(rhs < lhs);
-  }
-  bool operator >(const_iterator const& lhs, const_iterator const& rhs) const {
-    return (rhs < lhs);
-  }
-  bool operator >=(const_iterator const& lhs, const_iterator const& rhs) const {
-    return !(lhs < rhs);
-  }
-  bool operator !=(const_iterator const& lhs, const_iterator const& rhs) const {
-    return !(lhs == rhs);
-  }
 
 private:
   static difference_type S_balance_factor(base_ptr node) {
@@ -137,13 +135,125 @@ private:
     M_root = M_begin = M_end = base_ptr(new M_node);
   }
 
-  static void S_increment(const_base_ptr pos);
-  static void S_decrement(const_base_ptr pos);
-  static void S_advance(const_base_ptr pos, size_type count);
-  static size_type S_index(const_base_ptr pos);
+  void S_clear_dfs(base_ptr root) {
+    for (auto child: root->children[0]) S_clear_dfs(child);
+    delete root;
+  }
 
-  static const_base_ptr S_rotate(const_base_ptr pos, size_t dir);
-  void M_rotate(const_base_ptr pos, size_t dir) { M_root = S_rotate(pos, dir); }
+  void M_clear() {
+    M_size = 0;
+    S_clear_dfs(M_root);
+    M_begin = M_end = nullptr;
+    M_prepare_sentinel();
+  }
+
+  static void S_increment(const_base_ptr& pos) { S_neighbor(pos, 1); }
+  static void S_increment(base_ptr& pos) {
+    const_base_ptr tmp = std::const_pointer_cast<M_node const>(pos);
+    S_increment(tmp);
+    pos = std::const_pointer_cast<M_node>(tmp);
+  }
+  static void S_decrement(const_base_ptr& pos) { S_neighbor(pos, 0); }
+  static void S_decrement(base_ptr& pos) {
+    const_base_ptr tmp = std::const_pointer_cast<M_node const>(pos);
+    S_decrement(tmp);
+    pos = std::const_pointer_cast<M_node>(tmp);
+  }
+  static void S_neighbor(const_base_ptr& pos, size_t dir) {
+    if (pos->children[dir]) {
+      pos = pos->children[dir];
+      while (pos->children[!dir]) pos = pos->children[!dir];
+      return;
+    }
+    while (true) {
+      if (pos == pos->parent->chidlren[!dir]) {
+        pos = pos->parent;
+        return;
+      }
+      pos = pos->parent;
+    }
+  }
+
+  static void S_advance(const_base_ptr& pos, difference_type count = +1) {
+    if (i > 0) {
+      while (pos->parent) {
+        difference_type j = i + S_index_diff_to_parent(pos);
+        if (j < 0) break;
+        i = j;
+        pos = pos->parent;
+      }
+    } else /* if (i < 0) */ {
+      while (pos->parent) {
+        difference_type j = i + S_index_diff_to_parent(pos);
+        if (j > 0) break;
+        i = j;
+        pos = pos->parent;
+      }
+    }
+
+    while (i != 0) {
+      if (i > 0) {
+        pos = pos->children[1];
+        i -= pos->left_size + 1;
+      } else /* if (i < 0) */ {
+        pos = pos->children[0];
+        i += pos->parent->left_size - pos->left_size;
+      }
+    }
+  }
+  static void S_advance(base_ptr& pos, difference_type count = +1) {
+    const_base_ptr tmp = std::const_pointer_cast<M_node const>(pos);
+    S_advance(tmp, count);
+    pos = std::const_pointer_cast<M_node>(tmp);
+  }
+
+  static size_type S_index(const_iterator pos) { return S_index(pos.node); }
+  static size_type S_index(base_ptr pos) { return S_index(std::const_pointer_cast<M_node const>(pos)); }
+  static size_type S_index(const_base_ptr pos) {
+    size_type res = pos->left_size;
+    while (pos->parent) {
+      if (pos == pos->parent->children[1])
+        res += pos->parent->left_size + 1;
+      pos = pos->parent;
+    }
+    return res;
+  }
+
+  static difference_type S_index_diff_to_parent(base_ptr const& pos) {
+    return S_index_diff_to_parent(std::const_base_ptr<M_node const>(pos));
+  }
+  static difference_type S_index_diff_to_parent(const_base_ptr const& pos) {
+    if (pos == pos->parent->children[0]) {
+      return -static_cast<difference_type>(pos->parent->left_size - pos->left_size);
+    } else {
+      return pos->left_size + 1;
+    }
+  }
+
+  static const_base_ptr S_rotate(const_base_ptr pos, size_t dir, base_ptr& root) {
+    base_ptr child = pos->children[!dir];
+    pos->children[!dir] = child->children[dir];
+    if (child->children[dir])
+      child->children[dir]->parent = pos;
+
+    child->parent = pos->parent;
+    if (!pos->parent) {
+      root = child;
+    } else if (pos == pos->parent->children[dir]) {
+      pos->parent->children[dir] = child;
+    } else {
+      pos->parent->children[!dir] = child;
+    }
+    child->children[dir] = pos;
+    pos->parent = child;
+
+    if (dir == 0) {
+      pos->parent->left_size += pos->left_size + 1;
+    } else {
+      pos->left_size -= pos->parent->left_size + 1;
+    }
+  }
+  void M_rotate(const_base_ptr pos, size_t dir) { S_rotate(pos, dir, M_root); }
 
   const_base_ptr M_insert(const_base_ptr pos, const_base_ptr newnode) {
     if (pos->children[0]) {
@@ -155,10 +265,8 @@ private:
     }
     newnode->parent = pos;
     ++M_size;
-    // XXX maintain *.left_size
-
-    // ascend from newnode to M_root
-    // rotate appropriately if unbalanced node is found
+    M_fix_left_subtree_size(newnode, +1);
+    M_insert_fix(newnode);
   }
   const_base_ptr M_erase(const_base_ptr pos) {
     if (pos->children[0] && pos->children[1]) {
