@@ -266,15 +266,34 @@ private:
     newnode->parent = pos;
     ++M_size;
     M_fix_left_subtree_size(newnode, +1);
-    M_insert_fix(newnode);
+    M_postprocess_insert(newnode);
   }
   const_base_ptr M_erase(const_base_ptr pos) {
+    // const? mutable? which is better?
+    const_base_ptr res = pos;
+    S_advance(res);  // XXX
     if (pos->children[0] && pos->children[1]) {
       const_base_ptr tmp = pos;
       S_advance(tmp);
       pos->value = std::move(tmp->value);
-      pos = tmp;
+      pos = tmp;  // pos may have right child
+      // XXX M_end should be taken care of
     }
+
+    // XXX M_begin should be taken care of
+
+    base_ptr child = pos->children[0];
+    if (!child) child = pos->children[1];
+    if (child) child->parent = pos->parent;
+
+    if (!pos->parent) {
+      M_root = child;
+    } else {
+      M_fix_left_subtree_size(pos, -1);
+      size_type dir = (pos == pos->parent->children[1]);
+      pos->parent->children[dir] = child;
+    }
+
     // maintain parent-child links appropriately
     // note that left sizes are also fixed
 
