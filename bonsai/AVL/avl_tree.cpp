@@ -265,6 +265,7 @@ private:
     }
     newnode->parent = pos;
     ++M_size;
+    // do not forget height
     M_fix_left_subtree_size(newnode, +1);
     M_postprocess_insert(newnode);
   }
