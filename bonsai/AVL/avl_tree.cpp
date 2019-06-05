@@ -26,12 +26,14 @@ private:
     using link_type = std::shared_ptr<M_node>;
     link_type parent = parent;
     std::array<link_type, 2> children = {nullptr, nullptr};
+    size_type left_size = 0;
   };
 
   using link_type = typename M_node::link_type;
   using base_ptr = std::shared_ptr<M_node>;
   using const_base_ptr = std::shared_ptr<M_node const>;
 
+  size_type M_size = 0;
   base_ptr M_root = nullptr;
   base_ptr M_begin = nullptr;
   base_ptr M_end = nullptr;
@@ -57,6 +59,17 @@ public:
     iterator(const_iterator&& other): node(other.node) {}
     iterator& operator =(iterator const&) = default;
     iterator& operator =(iterator&&) = default;
+
+    iterator& operator +=(difference_type count) { S_advance(node); return *this; }
+    iterator& operator -=(difference_type count) { S_advance(-node); return *this; }
+    iterator& operator ++() { S_increment(node); return *this; }
+    iterator& operator --() { S_decrement(node); return *this; }
+    iterator operator +(difference_type count) const { return iterator(*this) += count; }
+    iterator operator -(difference_type count) const { return iterator(*this) -= count; }
+    iterator operator ++(int) { iterator tmp = *this; ++tmp; return *this; }
+    iterator operator --(int) { iterator tmp = *this; --tmp; return *this; }
+
+    reference operator *() { return node->value; }
   };
 
   class const_iterator {
@@ -77,11 +90,25 @@ public:
     const_iterator(const_iterator&&) = default;
     const_iterator& operator =(const_iterator const&) = default;
     const_iterator& operator =(const_iterator&&) = default;
+
+    const_iterator& operator +=(difference_type count) { S_advance(node); return *this; }
+    const_iterator& operator -=(difference_type count) { S_advance(-node); return *this; }
+    const_iterator& operator ++() { S_increment(node); return *this; }
+    const_iterator& operator --() { S_decrement(node); return *this; }
+    const_iterator operator +(difference_type count) const { return const_iterator(*this) += count; }
+    const_iterator operator -(difference_type count) const { return const_iterator(*this) -= count; }
+    const_iterator operator ++(int) { const_iterator tmp = *this; ++tmp; return *this; }
+    const_iterator operator --(int) { const_iterator tmp = *this; --tmp; return *this; }
+
+    reference operator *() const { return node->value; }
   };
 
-  bool operator <(const_iterator const& lhs, const_iterator const& rhs) const;
-  bool operator ==(const_iterator const& lhs, const_iterator const& rhs) const;
-
+  bool operator <(const_iterator const& lhs, const_iterator const& rhs) const {
+    return S_index(lhs) < S_index(rhs);
+  }
+  bool operator ==(const_iterator const& lhs, const_iterator const& rhs) const {
+    return lhs.node == rhs.node;
+  }
   bool operator <=(const_iterator const& lhs, const_iterator const& rhs) const {
     return !(rhs < lhs);
   }
@@ -95,17 +122,9 @@ public:
     return !(lhs == rhs);
   }
 
-  // const_iterator += difference_type
-  // const_iterator -= difference_type
-  // const_iterator + difference_type
-  // const_iterator - difference_type
-  // ++const_iterator
-  // --const_iterator
-  // *const_iterator
-
 private:
   static difference_type S_balance_factor(base_ptr node) {
-    return S_balance_factor(std::const_cast_pointer<const_base_ptr>(node));
+    return S_balance_factor(std::const_pointer_cast<M_node const>(node));
   }
   static difference_type S_balance_factor(const_base_ptr node) {
     difference_type left = node->children[0]->height;
@@ -113,19 +132,55 @@ private:
     return left - right;
   }
 
+  void M_prepare_sentinel() {
+    assert(!M_root && !M_begin && !M_end);
+    M_root = M_begin = M_end = base_ptr(new M_node);
+  }
+
+  static void S_increment(const_base_ptr pos);
+  static void S_decrement(const_base_ptr pos);
+  static void S_advance(const_base_ptr pos, size_type count);
+  static size_type S_index(const_base_ptr pos);
+
   static const_base_ptr S_rotate(const_base_ptr pos, size_t dir);
   void M_rotate(const_base_ptr pos, size_t dir) { M_root = S_rotate(pos, dir); }
 
-  const_base_ptr M_insert(const_base_ptr pos, const_base_ptr newnode);
-  const_base_ptr M_erase(const_base_ptr pos);
+  const_base_ptr M_insert(const_base_ptr pos, const_base_ptr newnode) {
+    if (pos->children[0]) {
+      S_decrement(pos);
+      pos->children[1] = newnode;
+    } else {
+      pos->children[0] = newnode;
+      if (pos == M_begin) M_begin = std::const_pointer_cast<M_node>(pos);
+    }
+    newnode->parent = pos;
+    ++M_size;
+    // XXX maintain *.left_size
+
+    // ascend from newnode to M_root
+    // rotate appropriately if unbalanced node is found
+  }
+  const_base_ptr M_erase(const_base_ptr pos) {
+    if (pos->children[0] && pos->children[1]) {
+      const_base_ptr tmp = pos;
+      S_advance(tmp);
+      pos->value = std::move(tmp->value);
+      pos = tmp;
+    }
+    // maintain parent-child links appropriately
+    // note that left sizes are also fixed
+
+    // ascend from newnode to M_root
+    // rotate appropriately if unbalanced node is found
+  }
 
   const_base_ptr M_merge(const_base_ptr left, const_base_ptr right);
+  // static const_base_ptr S_merge(const_base_ptr left, const_base_ptr right)
   const_base_ptr M_split(const_base_ptr pos);
+  // static const_base_ptr S_split(const_base_ptr root, const_base_ptr pos)
 
 public:
-  avl_tree() {
-    M_prepare_sentinel();
-  }
+  avl_tree() { M_prepare_sentinel(); }
   avl_tree(avl_tree const&) = default;
   avl_tree(avl_tree&&) = default;
   template <typename InputIt>
