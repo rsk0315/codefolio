@@ -142,7 +142,7 @@ private:
       if (node->children[i])
         height[i] = node->children[i]->height;
 
-    return height[0] - height[1];
+    return height[1] - height[0];
   }
 
   static void S_fix_height(base_ptr pos) {
@@ -322,45 +322,60 @@ private:
     }
     if (!pos) return;
 
-    if (child == pos->children[0]) {
-      if (gchild == child->children[0]) {
-        // R
-        S_rotate(pos, 1, root);
-      } else {
-        // LR
-        S_rotate(child, 0, root);
-        S_rotate(pos, 1, root);
-      }
+    size_t cdir = (child == pos->children[1]);
+    size_t gdir = (gchild == child->children[1]);
+
+    if (cdir == gdir) {
+      S_rotate(pos, !cdir, root);
     } else {
-      if (gchild == child->children[0]) {
-        // RL
-        S_rotate(child, 1, root);
-        S_rotate(pos, 0, root);
-      } else {
-        // L
-        S_rotate(pos, 0, root);
-      }
+      S_rotate(child, cdir, root);
+      S_rotate(pos, gdir, root);
     }
+
+    // if (child == pos->children[0]) {
+    //   if (gchild == child->children[0]) {
+    //     // R
+    //     S_rotate(pos, 1, root);
+    //   } else {
+    //     // LR
+    //     S_rotate(child, 0, root);
+    //     S_rotate(pos, 1, root);
+    //   }
+    // } else {
+    //   if (gchild == child->children[0]) {
+    //     // RL
+    //     S_rotate(child, 1, root);
+    //     S_rotate(pos, 0, root);
+    //   } else {
+    //     // L
+    //     S_rotate(pos, 0, root);
+    //   }
+    // }
   }
 
   base_ptr M_erase(base_ptr pos) {
     if (pos->children[0] && pos->children[1]) {
-      const_base_ptr tmp = pos;
+      base_ptr tmp = pos;
       S_advance(tmp);
       pos->value = std::move(tmp->value);
       pos = tmp;  // pos may have right child
     }
 
+    base_ptr next = pos;
+    S_increment(next);
+
     base_ptr child = pos->children[0];
     if (!child) {
       child = pos->children[1];
-      if (pos == M_begin) M_begin = child;
+      if (child && pos == M_begin) {
+        M_begin = child;
+      }
     }
 
     if (child) {
       child->parent = pos->parent;
     } else if (pos == M_end) {
-      M_end = pos->parent;
+      next = M_end = pos->parent;
     }
 
     if (!pos->parent) {
@@ -371,6 +386,29 @@ private:
       pos->parent->children[dir] = child;
       S_fix_height(pos->parent);
       M_postprocess_erase(pos->parent);
+    }
+    return next;
+  }
+
+  void M_postprocess_erase(base_ptr pos) { S_postprocess_erase(pos, M_root); }
+  static void S_postprocess_erase(base_ptr pos, base_ptr& root) {
+    while (pos) {
+      int bf = S_balance_factor(pos);
+      if (!(-1 <= bf && bf <= +1)) break;
+      pos = pos->parent;
+    }
+    if (!pos) return;
+
+    size_t cdir = (S_balance_factor(pos) > 0);
+    base_ptr child = pos->children[cdir];
+    size_t gdir = (S_balance_factor(child) > 0);
+    base_ptr gchild = child->children[gdir];
+
+    if (cdir == gdir) {
+      S_rotate(pos, !cdir, root);
+    } else {
+      S_rotate(child, cdir, root);
+      S_rotate(pos, gdir, root);
     }
   }
 
