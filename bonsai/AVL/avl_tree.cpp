@@ -75,6 +75,9 @@ public:
     iterator operator -(difference_type count) const { return iterator(*this) -= count; }
     iterator operator ++(int) { iterator tmp = *this; ++*this; return tmp; }
     iterator operator --(int) { iterator tmp = *this; --*this; return tmp; }
+    difference_type operator -(const_iterator const& other) const {
+      return S_index(*this) - S_index(other);
+    }
 
     reference operator *() { return node->value; }
 
@@ -120,6 +123,9 @@ public:
     const_iterator operator -(difference_type count) const { return const_iterator(*this) -= count; }
     const_iterator operator ++(int) { const_iterator tmp = *this; ++*this; return tmp; }
     const_iterator operator --(int) { const_iterator tmp = *this; --*this; return tmp; }
+    difference_type operator -(const_iterator const& other) const {
+      return S_index(*this) - S_index(other);
+    }
 
     reference operator *() const { return node->value; }
 
@@ -446,13 +452,13 @@ public:
   const_iterator end() const { return M_end; }
   const_iterator cend() const { return M_end; }
   // ## rbegin
-  reverse_iterator rbegin() { return M_end; }
-  const_reverse_iterator rbegin() const { return M_end; }
-  const_reverse_iterator crbegin() const { return M_end; }
+  reverse_iterator rbegin() { return reverse_iterator(M_end); }
+  const_reverse_iterator rbegin() const { return const_reverse_iterator(M_end); }
+  const_reverse_iterator crbegin() const { return const_reverse_iterator(M_end); }
   // ## rend
-  reverse_iterator rend() { return M_begin; }
-  const_reverse_iterator rend() const { return M_begin; }
-  const_reverse_iterator crend() const { return M_begin; }
+  reverse_iterator rend() { return reverse_iterator(M_begin); }
+  const_reverse_iterator rend() const { return const_reverse_iterator(M_begin); }
+  const_reverse_iterator crend() const { return const_reverse_iterator(M_begin); }
   // ## lower_bound
   template <typename Comparator>
   iterator lower_bound(value_type const& value, Comparator comp) {
@@ -525,7 +531,7 @@ public:
   void push_back(value_type const& value) { insert(cend(), value); }
   void push_back(value_type&& value) { insert(cend(), std::move(value)); }
   void push_front(value_type const& value) { insert(cbegin(), value); }
-  void push_front(value_type&& value) const { insert(cbegin(), std::move(value)); }
+  void push_front(value_type&& value) { insert(cbegin(), std::move(value)); }
   template <typename... Args>
   void emplace_back(Args&&... args) {
     M_insert(M_end, const_base_ptr(new M_node(std::forward<Args>(args)...)));
@@ -571,7 +577,7 @@ public:
   }
 };
 
-int main() {
+int ITP2_7_C() {
   size_t q;
   scanf("%zu", &q);
 
@@ -600,4 +606,29 @@ int main() {
     // bst.inspect();
     // bst.verify();
   }
+  return 0;
+}
+
+#include <random>
+
+int main() {
+  size_t n = 32;
+  int m = 1023;
+  avl_tree<int> bst;
+  std::mt19937 rsk(0315);
+  std::uniform_int_distribution<int> nya(0, m);
+  for (size_t i = 0; i < n; ++i)
+    bst.push_front(nya(rsk));
+
+  bst.inspect();
+  bst.verify();
+
+  std::sort(bst.begin(), bst.end());
+  bst.inspect();
+
+  std::sort(bst.rbegin(), bst.rend());
+  bst.inspect();
+
+  for (size_t i = 0; i < n; ++i)
+    printf("%d\n", bst[i]);
 }
