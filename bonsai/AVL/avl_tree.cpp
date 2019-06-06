@@ -302,11 +302,11 @@ private:
     }
     if (!pos) return;
 
-    size_t cdir = (S_balance_factor(pos) > 0);
+    int bf0 = S_balance_factor(pos);
+    size_t cdir = (bf0 > 0);
     base_ptr child = pos->children[cdir];
     int bf = S_balance_factor(child);
-    // size_t gdir = (S_balance_factor(child) > 0);
-    size_t gdir = ((cdir == 0)? (bf > 0) : (bf >= 0));
+    size_t gdir = ((cdir == 0)? (bf >= 0) : (bf > 0));
     base_ptr gchild = child->children[gdir];
 
     if (cdir == gdir) {
@@ -315,6 +315,8 @@ private:
       S_rotate(child, cdir, root);
       S_rotate(pos, gdir, root);
     }
+
+    S_rebalance(pos, root);
   }
 
   base_ptr M_insert(base_ptr pos, base_ptr newnode) {
@@ -342,7 +344,7 @@ private:
     }
 
     base_ptr next = pos;
-    S_increment(next);
+    if (next != M_end) S_increment(next);
     if (pos == M_begin) M_begin = next;
 
     base_ptr child = pos->children[0];
@@ -367,6 +369,18 @@ private:
     }
     --M_size;
     return next;
+  }
+
+  static void S_check(base_ptr pos) {
+    if (!pos) {
+      fprintf(stderr, "(nil)\n");
+    } else {
+      size_t h[2] = {};
+      for (size_t i = 0; i <= 1; ++i)
+        if (pos->children[i]) h[i] = pos->children[i]->height;
+      fprintf(stderr, "node at %p, height[%zu, %zu], value{%d}\n",
+              pos.get(), h[0], h[1], pos->value);
+    }
   }
 
   void M_inspect_dfs(const const_base_ptr& root, size_type depth = 0) const {
@@ -541,15 +555,20 @@ public:
   void verify() const {
     fprintf(stderr, "begin: %p\n", M_begin.get());
     fprintf(stderr, "end: %p\n", M_end.get());
+    bool violated = false;
     for (auto it = begin(); it != end(); ++it) {
       const_base_ptr node = it.node;
       // fprintf(stderr, "%p\n", node.get());
       // fprintf(stderr, "%d\n", node->value);
       int bf = S_balance_factor(node);
-      if (!(-1 <= bf && bf <= +1))
-        fprintf(stderr, "%p (%d) violates AVL-ity\n", node.get(), node->value);
-      assert(-1 <= bf && bf <= +1);
+      if (!(-1 <= bf && bf <= +1)) {
+        fprintf(stderr, "balance factor of %p (%d): %d\n",
+                node.get(), node->value, bf);
+        // assert(-1 <= bf && bf <= +1);
+        violated = true;
+      }
     }
+    if (violated) inspect();
   }
 };
 
@@ -562,7 +581,6 @@ int main() {
     int t;
     int x;
     scanf("%d %d", &t, &x);
-    fprintf(stderr, "processing %zu-th query: %d %d\n", i, t, x);
 
     auto it = bst.lower_bound(x);
     if (t == 0) {
@@ -577,7 +595,7 @@ int main() {
       if (it != bst.end() && *it == x) bst.erase(it);
     }
 
-    bst.inspect();
-    bst.verify();
+    // bst.inspect();
+    // bst.verify();
   }
 }
