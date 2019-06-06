@@ -149,7 +149,7 @@ private:
     while (pos) {
       pos->height = 0;
       for (auto child: pos->children)
-        if (child) pos->height = std::max(pos->height, 1 + child->height);
+        if (child) pos->height = std::max(pos->height, child->height+1);
 
       pos = pos->parent;
     }
@@ -304,7 +304,9 @@ private:
 
     size_t cdir = (S_balance_factor(pos) > 0);
     base_ptr child = pos->children[cdir];
-    size_t gdir = (S_balance_factor(child) > 0);
+    int bf = S_balance_factor(child);
+    // size_t gdir = (S_balance_factor(child) > 0);
+    size_t gdir = ((cdir == 0)? (bf > 0) : (bf >= 0));
     base_ptr gchild = child->children[gdir];
 
     if (cdir == gdir) {
@@ -363,17 +365,20 @@ private:
       S_fix_height(pos->parent);
       M_rebalance(pos->parent);
     }
+    --M_size;
     return next;
   }
 
   void M_inspect_dfs(const const_base_ptr& root, size_type depth = 0) const {
     auto child = root->children[1];
     if (child) M_inspect_dfs(child, depth+1);
-    fprintf(stderr, "%*s-(%p) (%zu): %d\n",
+    fprintf(stderr, "%*s-(%p) (%zu): %d (H: %zu)\n",
             static_cast<int>(depth), "",
             root.get(),
             root->left_size,
-            root->value);
+            root->value,
+            root->height
+            );
     child = root->children[0];
     if (child) M_inspect_dfs(child, depth+1);
   }
@@ -541,6 +546,8 @@ public:
       // fprintf(stderr, "%p\n", node.get());
       // fprintf(stderr, "%d\n", node->value);
       int bf = S_balance_factor(node);
+      if (!(-1 <= bf && bf <= +1))
+        fprintf(stderr, "%p (%d) violates AVL-ity\n", node.get(), node->value);
       assert(-1 <= bf && bf <= +1);
     }
   }
@@ -555,6 +562,7 @@ int main() {
     int t;
     int x;
     scanf("%d %d", &t, &x);
+    fprintf(stderr, "processing %zu-th query: %d %d\n", i, t, x);
 
     auto it = bst.lower_bound(x);
     if (t == 0) {
@@ -563,10 +571,13 @@ int main() {
       printf("%zu\n", bst.size());
     } else if (t == 1) {
       // find(x)
-      printf("%d\n", (*it == x));
+      printf("%d\n", (it != bst.end() && *it == x));
+    } else if (t == 2) {
+      // delete(x)
+      if (it != bst.end() && *it == x) bst.erase(it);
     }
 
-    // bst.inspect();
-    // bst.verify();
+    bst.inspect();
+    bst.verify();
   }
 }
