@@ -149,7 +149,7 @@ private:
     while (pos) {
       pos->height = 0;
       for (auto child: pos->children)
-        if (child) pos->height = 1 + child->height;
+        if (child) pos->height = std::max(pos->height, 1 + child->height);
 
       pos = pos->parent;
     }
@@ -269,7 +269,6 @@ private:
 
   static void S_rotate(base_ptr pos, size_t dir, base_ptr& root) {
     base_ptr child = pos->children[!dir];
-    fprintf(stderr, "pos: %p, child: %p\n", pos.get(), child.get());
     pos->children[!dir] = child->children[dir];
     if (child->children[dir])
       child->children[dir]->parent = pos;
@@ -292,9 +291,31 @@ private:
     }
     S_fix_height(pos);
   }
-  void M_rotate(const_base_ptr pos, size_t dir) { S_rotate(pos, dir, M_root); }
+  void M_rotate(base_ptr pos, size_t dir) { S_rotate(pos, dir, M_root); }
 
-  const_base_ptr M_insert(base_ptr pos, base_ptr newnode) {
+  void M_rebalance(base_ptr pos) { S_rebalance(pos, M_root); }
+  static void S_rebalance(base_ptr pos, base_ptr& root) {
+    while (pos) {
+      int bf = S_balance_factor(pos);
+      if (!(-1 <= bf && bf <= +1)) break;
+      pos = pos->parent;
+    }
+    if (!pos) return;
+
+    size_t cdir = (S_balance_factor(pos) > 0);
+    base_ptr child = pos->children[cdir];
+    size_t gdir = (S_balance_factor(child) > 0);
+    base_ptr gchild = child->children[gdir];
+
+    if (cdir == gdir) {
+      S_rotate(pos, !cdir, root);
+    } else {
+      S_rotate(child, cdir, root);
+      S_rotate(pos, gdir, root);
+    }
+  }
+
+  base_ptr M_insert(base_ptr pos, base_ptr newnode) {
     if (pos->children[0]) {
       S_decrement(pos);
       pos->children[1] = newnode;
@@ -306,32 +327,8 @@ private:
     ++M_size;
     S_fix_height(pos);
     S_fix_left_subtree_size(newnode, +1);
-    M_postprocess_insert(newnode);
+    M_rebalance(newnode);
     return newnode;
-  }
-
-  void M_postprocess_insert(base_ptr pos) { S_postprocess_insert(pos, M_root); }
-  static void S_postprocess_insert(base_ptr pos, base_ptr& root) {
-    base_ptr gchild = pos;
-    base_ptr child = pos;
-    while (pos) {
-      int bf = S_balance_factor(pos);
-      if (!(-1 <= bf && bf <= +1)) break;
-      gchild = child;
-      child = pos;
-      pos = pos->parent;
-    }
-    if (!pos) return;
-
-    size_t cdir = (child == pos->children[1]);
-    size_t gdir = (gchild == child->children[1]);
-
-    if (cdir == gdir) {
-      S_rotate(pos, !cdir, root);
-    } else {
-      S_rotate(child, cdir, root);
-      S_rotate(pos, gdir, root);
-    }
   }
 
   base_ptr M_erase(base_ptr pos) {
@@ -364,46 +361,21 @@ private:
       size_type dir = (pos == pos->parent->children[1]);
       pos->parent->children[dir] = child;
       S_fix_height(pos->parent);
-      M_postprocess_erase(pos->parent);
+      M_rebalance(pos->parent);
     }
     return next;
   }
 
-  void M_postprocess_erase(base_ptr pos) { S_postprocess_erase(pos, M_root); }
-  static void S_postprocess_erase(base_ptr pos, base_ptr& root) {
-    while (pos) {
-      int bf = S_balance_factor(pos);
-      if (!(-1 <= bf && bf <= +1)) break;
-      pos = pos->parent;
-    }
-    if (!pos) return;
-
-    size_t cdir = (S_balance_factor(pos) > 0);
-    base_ptr child = pos->children[cdir];
-    size_t gdir = (S_balance_factor(child) > 0);
-    base_ptr gchild = child->children[gdir];
-
-    if (cdir == gdir) {
-      S_rotate(pos, !cdir, root);
-    } else {
-      S_rotate(child, cdir, root);
-      S_rotate(pos, gdir, root);
-    }
-  }
-
   void M_inspect_dfs(const const_base_ptr& root, size_type depth = 0) const {
     auto child = root->children[1];
-      if (child) M_inspect_dfs(child, depth+1);
+    if (child) M_inspect_dfs(child, depth+1);
     fprintf(stderr, "%*s-(%p) (%zu): %d\n",
             static_cast<int>(depth), "",
-            // S_is_red(root)? "\x1b[1;31m":"\x1b[1m",
             root.get(),
-            // "\x1b[m",
             root->left_size,
-            root->value
-            );
+            root->value);
     child = root->children[0];
-      if (child) M_inspect_dfs(child, depth+1);
+    if (child) M_inspect_dfs(child, depth+1);
   }
 
   const_base_ptr M_merge(base_ptr left, base_ptr right);
@@ -508,13 +480,13 @@ public:
   }
   iterator insert(const_iterator pos, size_t count, value_type const& value) {
     iterator res = pos;
-    while (count--) res = M_insert(pos.node, base_ptr(new M_node(value)));
+    while (count--) res = M_insert(std::const_pointer_cast<M_node>(pos.node), base_ptr(new M_node(value)));
     return res;
   }
   template <typename InputIt>
   iterator insert(const_iterator pos, InputIt first, InputIt last) {
     iterator res = pos;
-    while (first != last) res = M_insert(pos.node, base_ptr(new M_node(*first++)));
+    while (first != last) res = M_insert(std::const_pointer_cast<M_node>(pos.node), base_ptr(new M_node(*first++)));
     return res;
   }
   iterator insert(const_iterator pos, std::initializer_list<value_type> ilist) {
@@ -566,8 +538,8 @@ public:
     fprintf(stderr, "end: %p\n", M_end.get());
     for (auto it = begin(); it != end(); ++it) {
       const_base_ptr node = it.node;
-      fprintf(stderr, "%p\n", node.get());
-      fprintf(stderr, "%d\n", node->value);
+      // fprintf(stderr, "%p\n", node.get());
+      // fprintf(stderr, "%d\n", node->value);
       int bf = S_balance_factor(node);
       assert(-1 <= bf && bf <= +1);
     }
@@ -593,6 +565,8 @@ int main() {
       // find(x)
       printf("%d\n", (*it == x));
     }
-    bst.inspect();
+
+    // bst.inspect();
+    // bst.verify();
   }
 }
