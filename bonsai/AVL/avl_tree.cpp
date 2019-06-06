@@ -169,14 +169,18 @@ private:
   }
 
   void S_clear_dfs(base_ptr root) {
-    for (auto child: root->children[0]) S_clear_dfs(child);
-    delete root;
+    for (auto& child: root->children) {
+      if (child) {
+        S_clear_dfs(child);
+        child = nullptr;
+      }
+    }
   }
 
   void M_clear() {
     M_size = 0;
     S_clear_dfs(M_root);
-    M_begin = M_end = nullptr;
+    M_begin = M_end = M_root = nullptr;
     M_prepare_sentinel();
   }
 
@@ -535,5 +539,13 @@ int main() {
     t.push_back(i);
   t.inspect();
 
+  t.verify();
+
+  t.clear();
+  t.verify();
+
+  t.push_back(1);
+  t.verify();
+  t.pop_back();
   t.verify();
 }
