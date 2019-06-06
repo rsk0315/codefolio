@@ -67,14 +67,14 @@ public:
     iterator& operator =(iterator const&) = default;
     iterator& operator =(iterator&&) = default;
 
-    iterator& operator +=(difference_type count) { S_advance(node, count); return *this; }
-    iterator& operator -=(difference_type count) { S_advance(node, -count); return *this; }
+    iterator& operator +=(difference_type count) { S_advance(node); return *this; }
+    iterator& operator -=(difference_type count) { S_advance(-node); return *this; }
     iterator& operator ++() { S_increment(node); return *this; }
     iterator& operator --() { S_decrement(node); return *this; }
     iterator operator +(difference_type count) const { return iterator(*this) += count; }
     iterator operator -(difference_type count) const { return iterator(*this) -= count; }
-    iterator operator ++(int) { iterator tmp = *this; ++*this; return tmp; }
-    iterator operator --(int) { iterator tmp = *this; --*this; return tmp; }
+    iterator operator ++(int) { iterator tmp = *this; ++tmp; return *this; }
+    iterator operator --(int) { iterator tmp = *this; --tmp; return *this; }
 
     reference operator *() { return node->value; }
 
@@ -112,14 +112,14 @@ public:
     const_iterator& operator =(const_iterator const&) = default;
     const_iterator& operator =(const_iterator&&) = default;
 
-    const_iterator& operator +=(difference_type count) { S_advance(node, count); return *this; }
-    const_iterator& operator -=(difference_type count) { S_advance(node, -count); return *this; }
+    const_iterator& operator +=(difference_type count) { S_advance(node); return *this; }
+    const_iterator& operator -=(difference_type count) { S_advance(-node); return *this; }
     const_iterator& operator ++() { S_increment(node); return *this; }
     const_iterator& operator --() { S_decrement(node); return *this; }
     const_iterator operator +(difference_type count) const { return const_iterator(*this) += count; }
     const_iterator operator -(difference_type count) const { return const_iterator(*this) -= count; }
-    const_iterator operator ++(int) { const_iterator tmp = *this; ++*this; return tmp; }
-    const_iterator operator --(int) { const_iterator tmp = *this; --*this; return tmp; }
+    const_iterator operator ++(int) { const_iterator tmp = *this; ++tmp; return *this; }
+    const_iterator operator --(int) { const_iterator tmp = *this; --tmp; return *this; }
 
     reference operator *() const { return node->value; }
 
@@ -157,8 +157,7 @@ private:
 
   static void S_fix_left_subtree_size(base_ptr pos, difference_type diff) {
     while (pos->parent) {
-      if (pos == pos->parent->children[0])
-        pos->parent->left_size += diff;
+      if (pos == pos->parent->children[0]) pos->parent->left_size += diff;
       pos = pos->parent;
     }
   }
@@ -302,7 +301,8 @@ private:
     }
     if (!pos) return;
 
-    size_t cdir = (S_balance_factor(pos) > 0);
+    int bf0 = S_balance_factor(pos);
+    size_t cdir = (bf0 > 0);
     base_ptr child = pos->children[cdir];
     int bf = S_balance_factor(child);
     size_t gdir = ((cdir == 0)? (bf >= 0) : (bf > 0));
@@ -370,36 +370,10 @@ private:
     return next;
   }
 
-  static void S_check(base_ptr pos) {
-    if (!pos) {
-      fprintf(stderr, "(nil)\n");
-    } else {
-      size_t h[2] = {};
-      for (size_t i = 0; i <= 1; ++i)
-        if (pos->children[i]) h[i] = pos->children[i]->height;
-      fprintf(stderr, "node at %p, height[%zu, %zu], value{%d}\n",
-              pos.get(), h[0], h[1], pos->value);
-    }
-  }
-
-  void M_inspect_dfs(const const_base_ptr& root, size_type depth = 0) const {
-    auto child = root->children[1];
-    if (child) M_inspect_dfs(child, depth+1);
-    fprintf(stderr, "%*s-(%p) (%zu): %d (H: %zu)\n",
-            static_cast<int>(depth), "",
-            root.get(),
-            root->left_size,
-            root->value,
-            root->height
-            );
-    child = root->children[0];
-    if (child) M_inspect_dfs(child, depth+1);
-  }
-
-  const_base_ptr M_merge(base_ptr left, base_ptr right);
-  // static const_base_ptr S_merge(const_base_ptr left, const_base_ptr right)
-  const_base_ptr M_split(base_ptr pos);
-  // static const_base_ptr S_split(const_base_ptr root, const_base_ptr pos)
+  base_ptr M_merge(base_ptr left, base_ptr right);
+  // static base_ptr S_merge(const_base_ptr left, const_base_ptr right)
+  base_ptr M_split(base_ptr pos);
+  // static base_ptr S_split(const_base_ptr root, const_base_ptr pos)
 
 public:
   avl_tree() { M_prepare_sentinel(); }
@@ -540,35 +514,6 @@ public:
   // ## merge and split
   iterator merge(avl_tree&& other);
   avl_tree split(const_iterator pos);
-
-  // # debug
-  // ## inspect
-  void inspect() const {
-    fprintf(stderr, "root: %p\n", M_root.get());
-    fprintf(stderr, "begin: %p\n", M_begin.get());
-    fprintf(stderr, "end: %p\n", M_end.get());
-    fprintf(stderr, "size: %zu\n", M_size);
-    M_inspect_dfs(std::const_pointer_cast<M_node const>(M_root));
-  }
-
-  void verify() const {
-    fprintf(stderr, "begin: %p\n", M_begin.get());
-    fprintf(stderr, "end: %p\n", M_end.get());
-    bool violated = false;
-    for (auto it = begin(); it != end(); ++it) {
-      const_base_ptr node = it.node;
-      // fprintf(stderr, "%p\n", node.get());
-      // fprintf(stderr, "%d\n", node->value);
-      int bf = S_balance_factor(node);
-      if (!(-1 <= bf && bf <= +1)) {
-        fprintf(stderr, "balance factor of %p (%d): %d\n",
-                node.get(), node->value, bf);
-        // assert(-1 <= bf && bf <= +1);
-        violated = true;
-      }
-    }
-    if (violated) inspect();
-  }
 };
 
 int main() {
@@ -577,7 +522,8 @@ int main() {
 
   avl_tree<int> bst;
   for (size_t i = 0; i < q; ++i) {
-    int t, x;
+    int t;
+    int x;
     scanf("%d %d", &t, &x);
 
     auto it = bst.lower_bound(x);
@@ -591,10 +537,6 @@ int main() {
     } else if (t == 2) {
       // delete(x)
       if (it != bst.end() && *it == x) bst.erase(it);
-    } else if (t == 3) {
-      int y;
-      scanf("%d", &y);
-      while (it != bst.end() && *it <= y) printf("%d\n", *it++);
     }
 
     // bst.inspect();
