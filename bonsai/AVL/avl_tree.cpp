@@ -27,7 +27,7 @@ private:
     size_type height = 0;
     using link_type = std::shared_ptr<M_node>;
     link_type parent = nullptr;
-    std::array<link_type, 2> children = {nullptr, nullptr};
+    std::array<link_type, 2> children{{nullptr, nullptr}};
     size_type left_size = 0;
 
     M_node() = default;
@@ -269,6 +269,7 @@ private:
 
   static void S_rotate(base_ptr pos, size_t dir, base_ptr& root) {
     base_ptr child = pos->children[!dir];
+    fprintf(stderr, "pos: %p, child: %p\n", pos.get(), child.get());
     pos->children[!dir] = child->children[dir];
     if (child->children[dir])
       child->children[dir]->parent = pos;
@@ -331,26 +332,6 @@ private:
       S_rotate(child, cdir, root);
       S_rotate(pos, gdir, root);
     }
-
-    // if (child == pos->children[0]) {
-    //   if (gchild == child->children[0]) {
-    //     // R
-    //     S_rotate(pos, 1, root);
-    //   } else {
-    //     // LR
-    //     S_rotate(child, 0, root);
-    //     S_rotate(pos, 1, root);
-    //   }
-    // } else {
-    //   if (gchild == child->children[0]) {
-    //     // RL
-    //     S_rotate(child, 1, root);
-    //     S_rotate(pos, 0, root);
-    //   } else {
-    //     // L
-    //     S_rotate(pos, 0, root);
-    //   }
-    // }
   }
 
   base_ptr M_erase(base_ptr pos) {
@@ -363,13 +344,11 @@ private:
 
     base_ptr next = pos;
     S_increment(next);
+    if (pos == M_begin) M_begin = next;
 
     base_ptr child = pos->children[0];
     if (!child) {
       child = pos->children[1];
-      if (child && pos == M_begin) {
-        M_begin = child;
-      }
     }
 
     if (child) {
@@ -484,6 +463,32 @@ public:
   reverse_iterator rend() { return M_begin; }
   const_reverse_iterator rend() const { return M_begin; }
   const_reverse_iterator crend() const { return M_begin; }
+  // ## lower_bound
+  template <typename Comparator>
+  iterator lower_bound(value_type const& value, Comparator comp) {
+    base_ptr pos = M_root;
+    base_ptr res = pos;
+    while (pos) {
+      size_t dir = (pos != M_end) && comp(pos->value, value);
+      if (dir == 0) res = pos;
+      pos = pos->children[dir];
+    }
+    return res;
+  }
+  iterator lower_bound(value_type const& value) { return lower_bound(value, std::less<value_type>()); }
+  // ## upper_bound
+  template <typename Comparator>
+  iterator upper_bound(value_type const& value, Comparator comp) {
+    base_ptr pos = M_root;
+    base_ptr res = pos;
+    while (pos) {
+      size_t dir = (pos != M_end) && !comp(value, pos->value);
+      if (dir == 0) res = pos;
+      pos = pos->children[dir];
+    }
+    return res;
+  }
+  iterator upper_bound(value_type const& value) { return upper_bound(value, std::less<value_type>()); }
 
   // # capacity
   // ## empty
@@ -550,6 +555,8 @@ public:
   // ## inspect
   void inspect() const {
     fprintf(stderr, "root: %p\n", M_root.get());
+    fprintf(stderr, "begin: %p\n", M_begin.get());
+    fprintf(stderr, "end: %p\n", M_end.get());
     fprintf(stderr, "size: %zu\n", M_size);
     M_inspect_dfs(std::const_pointer_cast<M_node const>(M_root));
   }
@@ -559,31 +566,33 @@ public:
     fprintf(stderr, "end: %p\n", M_end.get());
     for (auto it = begin(); it != end(); ++it) {
       const_base_ptr node = it.node;
+      fprintf(stderr, "%p\n", node.get());
       fprintf(stderr, "%d\n", node->value);
+      int bf = S_balance_factor(node);
+      assert(-1 <= bf && bf <= +1);
     }
   }
 };
 
-#include <vector>
-#include <numeric>
-
 int main() {
-  std::vector<int> v(10);
-  std::iota(v.begin(), v.end(), 0);
-  avl_tree<int> t(v.begin(), v.end());
-  // avl_tree<int> t(1, 1);
-  t.inspect();
-  for (int i = 10; i <= 20; ++i)
-    t.push_back(i);
-  t.inspect();
+  size_t q;
+  scanf("%zu", &q);
 
-  t.verify();
+  avl_tree<int> bst;
+  for (size_t i = 0; i < q; ++i) {
+    int t;
+    int x;
+    scanf("%d %d", &t, &x);
 
-  t.clear();
-  t.verify();
-
-  t.push_back(1);
-  t.verify();
-  t.pop_back();
-  t.verify();
+    auto it = bst.lower_bound(x);
+    if (t == 0) {
+      // insert(x)
+      if (it == bst.end() || *it != x) bst.insert(it, x);
+      printf("%zu\n", bst.size());
+    } else if (t == 1) {
+      // find(x)
+      printf("%d\n", (*it == x));
+    }
+    bst.inspect();
+  }
 }
