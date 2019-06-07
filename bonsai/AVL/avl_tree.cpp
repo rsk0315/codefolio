@@ -301,27 +301,30 @@ private:
 
   void M_rebalance(base_ptr pos) { S_rebalance(pos, M_root); }
   static void S_rebalance(base_ptr pos, base_ptr& root) {
-    while (pos) {
-      int bf = S_balance_factor(pos);
-      if (!(-1 <= bf && bf <= +1)) break;
-      pos = pos->parent;
-    }
-    if (!pos) return;
+    base_ptr start = pos;
+    do {
+      while (pos) {
+        int bf = S_balance_factor(pos);
+        if (!(-1 <= bf && bf <= +1)) break;
+        pos = pos->parent;
+      }
+      if (!pos) return;
 
-    size_t cdir = (S_balance_factor(pos) > 0);
-    base_ptr child = pos->children[cdir];
-    int bf = S_balance_factor(child);
-    size_t gdir = ((cdir == 0)? (bf >= 0) : (bf > 0));
-    base_ptr gchild = child->children[gdir];
+      size_t cdir = (S_balance_factor(pos) > 0);
+      base_ptr child = pos->children[cdir];
+      int bf = S_balance_factor(child);
+      size_t gdir = ((cdir == 0)? (bf >= 0) : (bf > 0));
+      base_ptr gchild = child->children[gdir];
 
-    if (cdir == gdir) {
-      S_rotate(pos, !cdir, root);
-    } else {
-      S_rotate(child, cdir, root);
-      S_rotate(pos, gdir, root);
-    }
-
-    S_rebalance(pos, root);
+      if (cdir == gdir) {
+        S_rotate(pos, !cdir, root);
+        pos = child;
+      } else {
+        S_rotate(child, cdir, root);
+        S_rotate(pos, gdir, root);
+        pos = gchild;
+      }
+    } while (true);
   }
 
   base_ptr M_insert(base_ptr pos, base_ptr newnode) {
@@ -611,7 +614,7 @@ int ITP2_7_C() {
 
 #include <random>
 
-int main() {
+int random_test() {
   size_t n = 32;
   int m = 1023;
   avl_tree<int> bst;
@@ -631,4 +634,10 @@ int main() {
 
   for (size_t i = 0; i < n; ++i)
     printf("%d\n", bst[i]);
+
+  return 0;
+}
+
+int main() {
+  ITP2_7_C();
 }
