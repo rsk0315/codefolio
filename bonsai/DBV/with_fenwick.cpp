@@ -36,6 +36,10 @@ public:
     M_c.insert(M_c.begin(), value_type{});
     M_build();
   }
+  prefix_sum(std::initializer_list<value_type> ilist): prefix_sum(ilist.begin(), ilist.end()) {}
+
+  prefix_sum& operator =(prefix_sum const&) = default;
+  prefix_sum& operator =(prefix_sum&&) = default;
 
   void add(size_t i, value_type const& x) {
     // 1-indexing, internally
@@ -69,10 +73,28 @@ public:
     }
   }
 
-  // minimum i such that x <= accumulate(i)
-  size_t lower_bound(value_type const& x) const;
-  // minimum i such that x < accumulate(i)
-  size_t upper_bound(value_type const& x) const;
+  std::pair<size_t, value_type> upto(value_type value) const {
+    // assuming 0 <= a[i] for 1 <= i <= n
+    // returns {i, x} that satisfy
+    // (1) maximum i such that accumulate(i) < value
+    // (2) accumulate(i, x) = value
+    size_t n = M_c.size()-1;
+    if (n == 0) return {0, 0};  // ???
+    {
+      value_type tmp = accumulate(n);
+      if (tmp < value) return {n, value-tmp};
+    }
+    size_t m = size_t(1) << (63 - __builtin_clzll(n));
+    size_t i = 0;
+    while (m > 0) {
+      if (M_c[i|m] < value) {
+        i |= m;
+        value -= M_c[i];
+      }
+      m >>= 1;
+    }
+    return {i, value};
+  }
 
   void inspect() const {
     for (size_t i = 1; i < M_c.size(); ++i)
@@ -80,51 +102,59 @@ public:
   }
 };
 
-class bit_vector {
-  using value_type = uintmax_t;
+// class bit_vector {
+//   using value_type = uintmax_t;
 
-  std::vector<value_type> M_c;
-  prefix_sum<size_t> M_offset;
+//   std::vector<value_type> M_c;
+//   prefix_sum<size_t> M_offset;
 
-public:
-  bit_vector() = default;
-  bit_vector(bit_vector const&) = default;
-  bit_vector(bit_vector&&) = default;
+// public:
+//   bit_vector() = default;
+//   bit_vector(bit_vector const&) = default;
+//   bit_vector(bit_vector&&) = default;
 
-  void insert(size_t i, bool b) {
-    size_t j = M_offset.lower_bound(i);
-    size_t k = i - M_offset.accumulate(j-1);
-    // ...
-    // if size[j] == 64, break it into two pieces
-    M_offset.add(i, 1);
-  }
-  void erase(size_t i) {
-    size_t j = M_offset.lower_bound(i);
-    size_t k = i - M_offset.accumulate(j-1);
-    // ...
-    // if size[j] == 16, try to merge with adjacent one
-    M_offset.add(i, -1);
-  }
-  bool operator [](size_t i) const;
+//   void insert(size_t i, bool b) {
+//     size_t j = M_offset.lower_bound(i);
+//     size_t k = i - M_offset.accumulate(j-1);
+//     // ...
+//     // if size[j] == 64, break it into two pieces
+//     M_offset.add(i, 1);
+//   }
+//   void erase(size_t i) {
+//     size_t j = M_offset.lower_bound(i);
+//     size_t k = i - M_offset.accumulate(j-1);
+//     // ...
+//     // if size[j] == 16, try to merge with adjacent one
+//     M_offset.add(i, -1);
+//   }
+//   bool operator [](size_t i) const;
 
-  size_t rank(size_t i, bool b) const;
-  size_t select(size_t i, bool b) const;
-}
+//   size_t rank(size_t i, bool b) const;
+//   size_t select(size_t i, bool b) const;
+// }
 
 int main() {
-  size_t n = 30;
-  std::vector<int> base(n);
-  for (size_t i = 0; i < n; ++i) base[i] = 1 << i;
-  for (size_t i = 0; i < n; ++i)
-    fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
-  // prefix_sum<int> ps(base.begin(), base.end()-2);
-  // ps.push_back(1 << 10);
-  // // ++n;
-  // ps.push_back(1 << 11);
-  // // ++n;
-  // ps.inspect();
-  prefix_sum<int> ps;
-  for (size_t i = 0; i <= n; ++i) ps.push_back(1 << i);
-  for (size_t i = 1; i <= n; ++i)
-    fprintf(stderr, "%d%c", ps.accumulate(i), i<n? ' ':'\n');
+  // size_t n = 30;
+  // std::vector<int> base(n);
+  // for (size_t i = 0; i < n; ++i) base[i] = 1 << i;
+  // for (size_t i = 0; i < n; ++i)
+  //   fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
+  // // prefix_sum<int> ps(base.begin(), base.end()-2);
+  // // ps.push_back(1 << 10);
+  // // // ++n;
+  // // ps.push_back(1 << 11);
+  // // // ++n;
+  // // ps.inspect();
+  // prefix_sum<int> ps;
+  // for (size_t i = 0; i <= n; ++i) ps.push_back(1 << i);
+  // for (size_t i = 1; i <= n; ++i)
+  //   fprintf(stderr, "%d%c", ps.accumulate(i), i<n? ' ':'\n');
+
+  prefix_sum<int> ps{1, 4, 6, 2, 9, 3};
+  for (int i = 0; i <= 27; ++i) {
+    size_t j;
+    int k;
+    std::tie(j, k) = ps.upto(i);
+    printf("%d: %zu/%d\n", i, j, k);
+  }
 }
