@@ -138,7 +138,19 @@ class bit_vector {
     }
   }
 
-  static value_type S_mini_erase(value_type& x, size_t i);
+  static void S_mini_erase(value_type& x, size_t i) {
+    size_t j0 = S_unit - 1 - i / 64;
+    size_t j1 = i % 64;
+    {
+      uintmax_t hi = (x[j0] >> j1 >> 1) << j1;
+      uintmax_t lo = x[j0] & S_mini_mask(j1);
+      x[j0] = hi | lo;
+    }
+    while (j0--) {
+      x[j0+1] |= (x[j0] & 1) << 63;
+      x[j0] >>= 1;
+    }
+  }
   static uintmax_t S_mini_access(value_type const& x, size_t i) {
     size_t j0 = S_unit - 1 - i / 64;
     size_t j1 = i % 64;
@@ -271,19 +283,29 @@ int random_test() {
   bit_vector bv;
   std::mt19937 rsk(0315);
   std::uniform_int_distribution<int> rbg(0, 1);
-  size_t n = 10000;
-  std::vector<int> naive;
+  size_t n = 1000000;
+  // std::vector<int> naive;
+  size_t m = 0;
   for (size_t i = 0; i < n; ++i) {
-    // if (i % 10000 == 0) fprintf(stderr, "%zu\n", i);
-    std::uniform_int_distribution<size_t> rng(0, i);
-    size_t pos = rng(rsk);
-    bool bit = rbg(rsk);
-    // fprintf(stderr, "(%zu) insert %d into %zu\n", i, bit, pos);
-    bv.insert(pos, bit);
-    // bv.inspect(pos);
-    naive.insert(naive.begin()+pos, bit);
-    for (size_t j = 0; j <= i; ++j)
-      assert(bv[j] == naive[j]);
+    if (m == 0 || rbg(rsk)) {
+      // insert
+      std::uniform_int_distribution<size_t> rng(0, m);
+      size_t pos = rng(rsk);
+      bool bit = rbg(rsk);
+      // fprintf(stderr, "(%zu) insert %d into %zu\n", i, bit, pos);
+      bv.insert(pos, bit);
+      // naive.insert(naive.begin()+pos, bit);
+      ++m;
+    } else {
+      std::uniform_int_distribution<size_t> rng(0, m-1);
+      size_t pos = rng(rsk);
+      bv.erase(pos);
+      // naive.erase(naive.begin()+pos);
+      --m;
+    }
+    // bv.inspect();
+    // for (size_t j = 0; j < m; ++j)
+    //   assert(bv[j] == naive[j]);
   }
   // bv.inspect();
   return 0;
