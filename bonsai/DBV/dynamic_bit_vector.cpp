@@ -311,7 +311,7 @@ private:
       propagate_left_one(y, popcount(y->value)-popcount(nd->value));
       y->left_one = left_one;
     }
-    inspect();
+    // inspect();
     if (fix_needed) erase_fixup(x, xparent);
 
     nd->color = node::RED;
@@ -482,7 +482,7 @@ public:
     ++size_;
     propagate_left_size(it.nd, 1);
     if (appended) {
-      inspect();
+      // inspect();
     }
   }
 
@@ -707,13 +707,13 @@ void test2() {
 
   bit_vector bv(base);
 
-  size_t times = 0;
-  while (true) {
-    fprintf(stderr, "loop: %zu\n", ++times);
+  size_t times = 100000;
+  while (times--) {
+    // fprintf(stderr, "loop: %zu\n", ++times);
     bool do_insert = (nya(rsk) || bv.empty());
 
     size_t m = bv.size();
-    fprintf(stderr, "size: %zu\n", m);
+    // fprintf(stderr, "size: %zu\n", m);
 
     assert(m == n);
     std::vector<bool> prev(m);
@@ -723,21 +723,21 @@ void test2() {
       std::uniform_int_distribution<size_t> meow(0, m);
       size_t t = meow(rsk);
       bool x = nya(rsk);
-      fprintf(stderr, "insert(%zu, %d)\n", t, !!x);
+      // fprintf(stderr, "insert(%zu, %d)\n", t, !!x);
       bv.insert(t, x);
-      bv.inspect();
-      naive_insert_check(bv, prev, t, x);
+      // bv.inspect();
+      // naive_insert_check(bv, prev, t, x);
       ++n;
     } else /* do erase */ {
       std::uniform_int_distribution<size_t> meow(0, m-1);
       size_t t = meow(rsk);
-      fprintf(stderr, "erase(%zu)\n", t);
+      // fprintf(stderr, "erase(%zu)\n", t);
       bv.erase(t);
-      bv.inspect();
-      naive_erase_check(bv, prev, t);
+      // bv.inspect();
+      // naive_erase_check(bv, prev, t);
       --n;
     }
-    naive_check(bv);
+    // naive_check(bv);
   }
 }
 
