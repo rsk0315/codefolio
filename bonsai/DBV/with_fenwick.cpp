@@ -102,59 +102,65 @@ public:
   }
 };
 
-// class bit_vector {
-//   using value_type = uintmax_t;
+class bit_vector {
+  using value_type = uintmax_t;
+  static size_t constexpr S_word = 64;
 
-//   std::vector<value_type> M_c;
-//   prefix_sum<size_t> M_offset;
+  std::deque<value_type> M_c;
+  std::deque<size_t> M_bits;
+  prefix_sum<size_t> M_bits_sum, M_ones_sum;
 
-// public:
-//   bit_vector() = default;
-//   bit_vector(bit_vector const&) = default;
-//   bit_vector(bit_vector&&) = default;
+  void M_insert(size_t i0, size_t i1, int b) {
+    if (M_bits[i0] == S_word) {
+      M_break(i0);
+      if (i1 > S_word/2) {
+        ++i0;
+        i1 -= S_word/2;
+      }
+    }
+    // ...
 
-//   void insert(size_t i, bool b) {
-//     size_t j = M_offset.lower_bound(i);
-//     size_t k = i - M_offset.accumulate(j-1);
-//     // ...
-//     // if size[j] == 64, break it into two pieces
-//     M_offset.add(i, 1);
-//   }
-//   void erase(size_t i) {
-//     size_t j = M_offset.lower_bound(i);
-//     size_t k = i - M_offset.accumulate(j-1);
-//     // ...
-//     // if size[j] == 16, try to merge with adjacent one
-//     M_offset.add(i, -1);
-//   }
-//   bool operator [](size_t i) const;
+    ++M_bits[i0];
+    M_bits_sum.add(i0, 1);
+    if (b) M_ones_sum.add(i0, 1);
+  }
 
-//   size_t rank(size_t i, bool b) const;
-//   size_t select(size_t i, bool b) const;
-// }
+  void M_erase(size_t i0, size_t i1) {
+    --M_bits[i0];
+    if (M_c[i0] >> i1 & 1) M_ones_sum.add(i0, -1);
+    M_bits_sum.add(i0, -1);
+    // ...
+
+    if (M_bits[i0] < S_word/4) {
+      // try to merge?
+    }
+  }
+
+public:
+  bit_vector() = default;
+  bit_vector(bit_vector const&) = default;
+  bit_vector(bit_vector&&) = default;
+
+  void insert(size_t i, bool b) {
+    size_t j0, j1;
+    std::tie(j0, j1) = M_bits_sum.upto(i);
+    M_insert(j0, j1, b);
+  }
+  void erase(size_t i) {
+    size_t j0, j1;
+    std::tie(j0, j1) = M_bits_sum.upto(i);
+    if (M_bits[j0] == j1) {
+      ++j0;
+      j1 = 0;
+    }
+    M_erase(j0, j1);
+  }
+  bool operator [](size_t i) const;
+
+  size_t rank(size_t i, bool b) const;
+  size_t select(size_t i, bool b) const;
+};
 
 int main() {
-  // size_t n = 30;
-  // std::vector<int> base(n);
-  // for (size_t i = 0; i < n; ++i) base[i] = 1 << i;
-  // for (size_t i = 0; i < n; ++i)
-  //   fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
-  // // prefix_sum<int> ps(base.begin(), base.end()-2);
-  // // ps.push_back(1 << 10);
-  // // // ++n;
-  // // ps.push_back(1 << 11);
-  // // // ++n;
-  // // ps.inspect();
-  // prefix_sum<int> ps;
-  // for (size_t i = 0; i <= n; ++i) ps.push_back(1 << i);
-  // for (size_t i = 1; i <= n; ++i)
-  //   fprintf(stderr, "%d%c", ps.accumulate(i), i<n? ' ':'\n');
-
-  prefix_sum<int> ps{1, 4, 6, 2, 9, 3};
-  for (int i = 0; i <= 27; ++i) {
-    size_t j;
-    int k;
-    std::tie(j, k) = ps.upto(i);
-    printf("%d: %zu/%d\n", i, j, k);
-  }
+  uintmax_t 
 }
