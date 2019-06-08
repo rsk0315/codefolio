@@ -105,8 +105,8 @@ public:
 };
 
 class bit_vector {
-  using value_type = unsigned __int128;
-  static size_t constexpr S_word = 128;
+  using value_type = std::array<uintmax_t, 2>;
+  static size_t constexpr S_word = 64 * 2;
 
   size_t M_size = 0;
   std::deque<value_type> M_c{0};
@@ -114,21 +114,29 @@ class bit_vector {
   prefix_sum<size_t> M_bits_sum{0}, M_ones_sum{0};
 
   static value_type S_mask(size_t k) { return (value_type(1) << k) - 1; }
-  static int S_popcount(value_type x) {
+  static int S_popcount(value_type const& x) {
     int res = 0;
     res += __builtin_popcountll(x & S_mask(64));
-    x >>= 64;
-    res += __builtin_popcountll(x);
+    res += __builtin_popcountll(x >> 64);
     return res;
   }
+  static value_type S_mini_insert(value_type x, size_t i, int b) {
+    
+  }
+  static value_type S_mini_erase(value_type x, size_t i);
+  static value_type S_mini_access(value_type const& x, size_t i);
+  static value_type S_lower(value_type x);
+  static value_type S_upper(value_type x);
 
   void M_break(size_t i) {
     assert(M_bits[i] == S_word);
     M_bits.insert(M_bits.begin()+i, M_bits[i]);
     M_bits[i] = M_bits[i+1] = S_word/2;
     M_c.insert(M_c.begin()+i, M_c[i]);
-    M_c[i] &= S_mask(S_word/2);
-    M_c[i+1] >>= S_word/2;
+    // M_c[i] &= S_mask(S_word/2);
+    // M_c[i+1] >>= S_word/2;
+    M_c[i] = S_lower(M_c[i]);
+    M_c[i+1] = S_upper(M_c[i]);
 
     M_bits_sum = prefix_sum<size_t>(M_bits.begin(), M_bits.end());
     std::vector<size_t> ones(M_c.size());
@@ -146,13 +154,14 @@ class bit_vector {
         i1 -= S_word/2;
       }
     }
-    {
-      value_type prev = M_c[i0];
-      assert(i1 < S_word);
-      value_type hi = ((prev >> i1) << 1 | b) << i1;
-      value_type lo = prev & S_mask(i1);
-      M_c[i0] = hi | lo;
-    }
+    M_c[i0] = S_mini_insert(M_c[i0], i1, b);
+    // {
+    //   value_type prev = M_c[i0];
+    //   assert(i1 < S_word);
+    //   value_type hi = ((prev >> i1) << 1 | b) << i1;
+    //   value_type lo = prev & S_mask(i1);
+    //   M_c[i0] = hi | lo;
+    // }
 
     ++M_bits[i0];
     M_bits_sum.add(i0, 1);
@@ -162,15 +171,17 @@ class bit_vector {
   void M_erase(size_t i0, size_t i1) {
     --M_size;
     --M_bits[i0];
-    if (M_c[i0] >> i1 & 1) M_ones_sum.add(i0, -1);
+    // if (M_c[i0] >> i1 & 1) M_ones_sum.add(i0, -1);
+    if (S_mini_access(M_c[i0], i1) M_ones_sum.add(i0, -1);
     M_bits_sum.add(i0, -1);
-    {
-      value_type prev = M_c[i0];
-      assert(i1 < S_word);
-      value_type hi = (prev >> i1 >> 1) << i1;
-      value_type lo = prev & S_mask(i1);
-      M_c[i0] = hi | lo;
-    }
+    M_c[i0] = S_mini_erase(M_c[i0], i1, b);
+    // {
+    //   value_type prev = M_c[i0];
+    //   assert(i1 < S_word);
+    //   value_type hi = (prev >> i1 >> 1) << i1;
+    //   value_type lo = prev & S_mask(i1);
+    //   M_c[i0] = hi | lo;
+    // }
 
     if (M_bits[i0] < S_word/4) {
       // try to merge?
@@ -205,7 +216,8 @@ public:
       j1 = 0;
     }
     // fprintf(stderr, "[%zu]: %zu/%zu\n", i, j0, j1);
-    return M_c[j0] >> j1 & 1;
+    // return M_c[j0] >> j1 & 1;
+    return S_mini_access(M_c[j0], j1);
   }
 
   size_t rank(size_t i, bool b) const;
