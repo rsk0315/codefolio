@@ -178,7 +178,7 @@ public:
   void insert(size_t i, bool b) {
     size_t j0, j1;
     std::tie(j0, j1) = M_bits_sum.upto(i);
-    fprintf(stderr, "j0/j1: %zu/%zu\n", j0, j1);
+    // fprintf(stderr, "j0/j1: %zu/%zu\n", j0, j1);
     M_insert(j0, j1, b);
   }
   void erase(size_t i) {
@@ -223,55 +223,17 @@ int random_test() {
   bit_vector bv;
   std::mt19937 rsk(0315);
   std::uniform_int_distribution<int> rbg(0, 1);
-  size_t n = 80000;
-  // std::deque<int> naive;
+  size_t n = 100000;
   for (size_t i = 0; i < n; ++i) {
     std::uniform_int_distribution<size_t> rng(0, i);
     size_t pos = rng(rsk);
     bool bit = rbg(rsk);
-    fprintf(stderr, "(%zu) insert %d into %zu\n", i, bit, pos);
     bv.insert(pos, bit);
-    // naive.insert(naive.begin()+pos, bit);
-    // bv.inspect();
-    // bv.inspect(pos);
-    // for (size_t j = 0; j <= i; ++j) {
-      
-    //   // if (j == pos) fprintf(stderr, "\x1b[1;31m");
-    //   // fprintf(stderr, "%d", bv[j]);
-    //   // if (j == pos) fprintf(stderr, "\x1b[m");
-    //   // fprintf(stderr, "%c", (j < i && j % 32 != 31)? ' ':'\n');
-    //   assert(bv[j] == naive[j]);
-    // }
   }
+  bv.inspect();
   return 0;
 }
 
 int main() {
-  
-  // size_t n = 30;
-  // std::vector<int> base(n);
-  // for (size_t i = 0; i < n; ++i) base[i] = 1 << i;
-  // for (size_t i = 0; i < n; ++i)
-  //   fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
-  // // prefix_sum<int> ps(base.begin(), base.end()-2);
-  // // ps.push_back(1 << 10);
-  // // // ++n;
-  // // ps.push_back(1 << 11);
-  // // // ++n;
-  // // ps.inspect();
-  // prefix_sum<int> ps;
-  // for (size_t i = 0; i <= n; ++i) ps.push_back(1 << i);
-  // for (size_t i = 1; i <= n; ++i)
-  //   fprintf(stderr, "%d%c", ps.accumulate(i), i<n? ' ':'\n');
-
-  // prefix_sum<int> ps{1, 4, 6, 2, 9, 3};
-  // prefix_sum<int> ps;
-  // for (int i = 0; i <= 27; ++i) {
-  //   size_t j;
-  //   int k;
-  //   std::tie(j, k) = ps.upto(i);
-  //   printf("%d: %zu/%d\n", i, j, k);
-  // }
-
   random_test();
 }
