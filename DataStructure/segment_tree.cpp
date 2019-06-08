@@ -121,7 +121,7 @@ template <
   typename Monoid,
   typename Container = std::vector<typename Monoid::first_type>
 >
-class simple_segment_tree {
+class basic_segment_tree {
 public:
   using first_type = typename Monoid::first_type;
   using second_type = typename Monoid::second_type;
@@ -136,11 +136,14 @@ private:
   external_binary_operation M_op2;
   container M_c;
 
-  simple_segment_tree() = default;
-  simple_segment_tree(simple_segment_tree const&) = default;
-  simple_segment_tree(simple_segment_tree&&) = default;
+public:
+  basic_segment_tree() = default;
+  basic_segment_tree(basic_segment_tree const&) = default;
+  basic_segment_tree(basic_segment_tree&&) = default;
+  basic_segment_tree(basic_segment_tree const&) = default;
+  basic_segment_tree(basic_segment_tree&&) = default;
 
-  simple_segment_tree(size_t n, first_type const& x = binary_operation().identity):
+  basic_segment_tree(size_t n, first_type const& x = binary_operation().identity):
     M_base_size(n),
     M_op1(binary_operation()),
     M_op2(external_binary_operation()),
@@ -151,7 +154,7 @@ private:
   }
 
   template <typename InputIt>
-  simple_segment_tree(InputIt first, InputIt last):
+  basic_segment_tree(InputIt first, InputIt last):
     M_base_size(std::distance(first, last)),
     M_op1(binary_operation()),
     M_op2(external_binary_operation()),
@@ -163,8 +166,8 @@ private:
       M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
   }
 
-  simple_segment_tree& operator =(simple_segment_tree const&) = default;
-  simple_segment_tree& operator =(simple_segment_tree&&) = default;
+  basic_segment_tree& operator =(basic_segment_tree const&) = default;
+  basic_segment_tree& operator =(basic_segment_tree&&) = default;
 
   void modify(size_t i, second_type const& x) {
     i += M_base_size;
