@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstdint>
+#include <cassert>
 #include <vector>
+#include <deque>
 #include <algorithm>
 #include <utility>
 #include <memory>
@@ -87,7 +89,7 @@ public:
     size_t m = size_t(1) << (63 - __builtin_clzll(n));
     size_t i = 0;
     while (m > 0) {
-      if (M_c[i|m] < value) {
+      if ((i|m) < M_c.size() && M_c[i|m] < value) {
         i |= m;
         value -= M_c[i];
       }
@@ -98,7 +100,7 @@ public:
 
   void inspect() const {
     for (size_t i = 1; i < M_c.size(); ++i)
-      fprintf(stderr, "%d%c", M_c[i], i+1<M_c.size()? ' ':'\n');
+      fprintf(stderr, "%zu%c", M_c[i], i+1<M_c.size()? ' ':'\n');
   }
 };
 
@@ -106,11 +108,30 @@ class bit_vector {
   using value_type = uintmax_t;
   static size_t constexpr S_word = 64;
 
-  std::deque<value_type> M_c;
-  std::deque<size_t> M_bits;
-  prefix_sum<size_t> M_bits_sum, M_ones_sum;
+  size_t M_size = 0;
+  std::deque<value_type> M_c{0};
+  std::deque<size_t> M_bits{0};
+  prefix_sum<size_t> M_bits_sum{0}, M_ones_sum{0};
+
+  static value_type S_mask(size_t k) { return (size_t(1) << k) - 1; }
+
+  void M_break(size_t i) {
+    assert(M_bits[i] == S_word);
+    M_bits.insert(M_bits.begin()+i, M_bits[i]);
+    M_bits[i] = M_bits[i+1] = S_word/2;
+    M_c.insert(M_c.begin()+i, M_c[i]);
+    M_c[i] &= S_mask(S_word/2);
+    M_c[i+1] >>= S_word/2;
+
+    M_bits_sum = prefix_sum<size_t>(M_bits.begin(), M_bits.end());
+    std::vector<size_t> ones(M_c.size());
+    for (size_t i = 0; i < M_c.size(); ++i)
+      ones[i] = __builtin_popcountll(M_c[i]);
+    M_ones_sum = prefix_sum<size_t>(ones.begin(), ones.end());
+  }
 
   void M_insert(size_t i0, size_t i1, int b) {
+    ++M_size;
     if (M_bits[i0] == S_word) {
       M_break(i0);
       if (i1 > S_word/2) {
@@ -118,7 +139,13 @@ class bit_vector {
         i1 -= S_word/2;
       }
     }
-    // ...
+    {
+      value_type prev = M_c[i0];
+      assert(i1 < S_word);
+      value_type hi = ((prev >> i1) << 1 | b) << i1;
+      value_type lo = prev & S_mask(i1);
+      M_c[i0] = hi | lo;
+    }
 
     ++M_bits[i0];
     M_bits_sum.add(i0, 1);
@@ -126,10 +153,17 @@ class bit_vector {
   }
 
   void M_erase(size_t i0, size_t i1) {
+    --M_size;
     --M_bits[i0];
     if (M_c[i0] >> i1 & 1) M_ones_sum.add(i0, -1);
     M_bits_sum.add(i0, -1);
-    // ...
+    {
+      value_type prev = M_c[i0];
+      assert(i1 < S_word);
+      value_type hi = (prev >> i1 >> 1) << i1;
+      value_type lo = prev & S_mask(i1);
+      M_c[i0] = hi | lo;
+    }
 
     if (M_bits[i0] < S_word/4) {
       // try to merge?
@@ -144,6 +178,7 @@ public:
   void insert(size_t i, bool b) {
     size_t j0, j1;
     std::tie(j0, j1) = M_bits_sum.upto(i);
+    fprintf(stderr, "j0/j1: %zu/%zu\n", j0, j1);
     M_insert(j0, j1, b);
   }
   void erase(size_t i) {
@@ -155,12 +190,88 @@ public:
     }
     M_erase(j0, j1);
   }
-  bool operator [](size_t i) const;
+  bool operator [](size_t i) const {
+    size_t j0, j1;
+    std::tie(j0, j1) = M_bits_sum.upto(i);
+    if (M_bits[j0] == j1) {
+      ++j0;
+      j1 = 0;
+    }
+    // fprintf(stderr, "[%zu]: %zu/%zu\n", i, j0, j1);
+    return M_c[j0] >> j1 & 1;
+  }
 
   size_t rank(size_t i, bool b) const;
   size_t select(size_t i, bool b) const;
+
+  void inspect(size_t pos = -1) const {
+    M_bits_sum.inspect();
+    for (size_t i = 0; i < M_bits.size(); ++i)
+      fprintf(stderr, "%zu%c", M_bits[i], i+1<M_bits.size()? ' ':'\n');
+    for (size_t i = 0; i < M_size; ++i) {
+      if (i == pos) fprintf(stderr, "\x1b[1;31m");
+      fprintf(stderr, "%d", (*this)[i]);
+      if (i == pos) fprintf(stderr, "\x1b[m");
+      fprintf(stderr, "%c", (i+1 < M_size && i % (S_word/2) != (S_word/2-1))? ' ':'\n');
+    }
+  }
 };
 
+#include <random>
+
+int random_test() {
+  bit_vector bv;
+  std::mt19937 rsk(0315);
+  std::uniform_int_distribution<int> rbg(0, 1);
+  size_t n = 80000;
+  // std::deque<int> naive;
+  for (size_t i = 0; i < n; ++i) {
+    std::uniform_int_distribution<size_t> rng(0, i);
+    size_t pos = rng(rsk);
+    bool bit = rbg(rsk);
+    fprintf(stderr, "(%zu) insert %d into %zu\n", i, bit, pos);
+    bv.insert(pos, bit);
+    // naive.insert(naive.begin()+pos, bit);
+    // bv.inspect();
+    // bv.inspect(pos);
+    // for (size_t j = 0; j <= i; ++j) {
+      
+    //   // if (j == pos) fprintf(stderr, "\x1b[1;31m");
+    //   // fprintf(stderr, "%d", bv[j]);
+    //   // if (j == pos) fprintf(stderr, "\x1b[m");
+    //   // fprintf(stderr, "%c", (j < i && j % 32 != 31)? ' ':'\n');
+    //   assert(bv[j] == naive[j]);
+    // }
+  }
+  return 0;
+}
+
 int main() {
-  uintmax_t 
+  
+  // size_t n = 30;
+  // std::vector<int> base(n);
+  // for (size_t i = 0; i < n; ++i) base[i] = 1 << i;
+  // for (size_t i = 0; i < n; ++i)
+  //   fprintf(stderr, "%d%c", base[i], i+1<n? ' ':'\n');
+  // // prefix_sum<int> ps(base.begin(), base.end()-2);
+  // // ps.push_back(1 << 10);
+  // // // ++n;
+  // // ps.push_back(1 << 11);
+  // // // ++n;
+  // // ps.inspect();
+  // prefix_sum<int> ps;
+  // for (size_t i = 0; i <= n; ++i) ps.push_back(1 << i);
+  // for (size_t i = 1; i <= n; ++i)
+  //   fprintf(stderr, "%d%c", ps.accumulate(i), i<n? ' ':'\n');
+
+  // prefix_sum<int> ps{1, 4, 6, 2, 9, 3};
+  // prefix_sum<int> ps;
+  // for (int i = 0; i <= 27; ++i) {
+  //   size_t j;
+  //   int k;
+  //   std::tie(j, k) = ps.upto(i);
+  //   printf("%d: %zu/%d\n", i, j, k);
+  // }
+
+  random_test();
 }
