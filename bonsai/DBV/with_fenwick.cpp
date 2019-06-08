@@ -105,28 +105,53 @@ public:
 };
 
 class bit_vector {
-  using value_type = std::array<uintmax_t, 2>;
-  static size_t constexpr S_word = 64 * 2;
+  using value_type = std::array<uintmax_t, 4>;
+  static size_t constexpr S_word = 64 * 4;
 
   size_t M_size = 0;
-  std::deque<value_type> M_c{0};
+  std::deque<value_type> M_c{{}};
   std::deque<size_t> M_bits{0};
   prefix_sum<size_t> M_bits_sum{0}, M_ones_sum{0};
 
-  static value_type S_mask(size_t k) { return (value_type(1) << k) - 1; }
+  // static value_type S_mask(size_t k) { return (value_type(1) << k) - 1; }
   static int S_popcount(value_type const& x) {
     int res = 0;
-    res += __builtin_popcountll(x & S_mask(64));
-    res += __builtin_popcountll(x >> 64);
+    for (auto xi: x) res += __builtin_popcountll(xi);
+    // res += __builtin_popcountll(x & S_mask(64));
+    // res += __builtin_popcountll(x >> 64);
     return res;
   }
-  static value_type S_mini_insert(value_type x, size_t i, int b) {
-    
+  static void S_mini_insert(value_type& x, size_t i, int b) {
+    size_t j0 = 3 - i / 64;
+    size_t j1 = i % 64;
+    int cy = x[j0] >> 63 & 1;
+    {
+      uintmax_t hi = ((x[j0] >> j1) << 1 | b) << j1;
+      uintmax_t lo = x[j0] & S_mini_mask(j1);
+      x[j0] = hi | lo;
+    }
+    while (j0--) {
+      int tmp = x[j0] >> 63 & 1;
+      x[j0] = x[j0] << 1 | cy;
+      cy = tmp;
+    }
   }
-  static value_type S_mini_erase(value_type x, size_t i);
-  static value_type S_mini_access(value_type const& x, size_t i);
-  static value_type S_lower(value_type x);
-  static value_type S_upper(value_type x);
+
+  static value_type S_mini_erase(value_type& x, size_t i);
+  static uintmax_t S_mini_access(value_type const& x, size_t i) {
+    size_t j0 = 3 - i / 64;
+    size_t j1 = i % 64;
+    return x[j0] >> j1 & 1;
+  }
+  static uintmax_t S_mini_mask(size_t i) { return (uintmax_t(1) << i) - 1; }
+  static void S_lower(value_type& x) {
+    x[0] = x[1] = 0;
+  }
+  static void S_upper(value_type& x) {
+    x[2] = x[0];
+    x[3] = x[1];
+    x[0] = x[1] = 0;
+  }
 
   void M_break(size_t i) {
     assert(M_bits[i] == S_word);
@@ -135,8 +160,8 @@ class bit_vector {
     M_c.insert(M_c.begin()+i, M_c[i]);
     // M_c[i] &= S_mask(S_word/2);
     // M_c[i+1] >>= S_word/2;
-    M_c[i] = S_lower(M_c[i]);
-    M_c[i+1] = S_upper(M_c[i]);
+    S_lower(M_c[i]);
+    S_upper(M_c[i+1]);
 
     M_bits_sum = prefix_sum<size_t>(M_bits.begin(), M_bits.end());
     std::vector<size_t> ones(M_c.size());
@@ -154,7 +179,7 @@ class bit_vector {
         i1 -= S_word/2;
       }
     }
-    M_c[i0] = S_mini_insert(M_c[i0], i1, b);
+    S_mini_insert(M_c[i0], i1, b);
     // {
     //   value_type prev = M_c[i0];
     //   assert(i1 < S_word);
@@ -172,9 +197,9 @@ class bit_vector {
     --M_size;
     --M_bits[i0];
     // if (M_c[i0] >> i1 & 1) M_ones_sum.add(i0, -1);
-    if (S_mini_access(M_c[i0], i1) M_ones_sum.add(i0, -1);
+    if (S_mini_access(M_c[i0], i1)) M_ones_sum.add(i0, -1);
     M_bits_sum.add(i0, -1);
-    M_c[i0] = S_mini_erase(M_c[i0], i1, b);
+    S_mini_erase(M_c[i0], i1);
     // {
     //   value_type prev = M_c[i0];
     //   assert(i1 < S_word);
@@ -225,13 +250,14 @@ public:
 
   void inspect(size_t pos = -1) const {
     M_bits_sum.inspect();
+    int const word = 32;
     for (size_t i = 0; i < M_bits.size(); ++i)
       fprintf(stderr, "%zu%c", M_bits[i], i+1<M_bits.size()? ' ':'\n');
     for (size_t i = 0; i < M_size; ++i) {
       if (i == pos) fprintf(stderr, "\x1b[1;31m");
       fprintf(stderr, "%d", (*this)[i]);
       if (i == pos) fprintf(stderr, "\x1b[m");
-      fprintf(stderr, "%c", (i+1 < M_size && i % (S_word/2) != (S_word/2-1))? ' ':'\n');
+      fprintf(stderr, "%c", (i+1 < M_size && i % (word/2) != (word/2-1))? ' ':'\n');
     }
   }
 };
@@ -242,19 +268,21 @@ int random_test() {
   bit_vector bv;
   std::mt19937 rsk(0315);
   std::uniform_int_distribution<int> rbg(0, 1);
-  size_t n = 1000000;
-  // std::vector<int> naive;
+  size_t n = 100000;
+  std::vector<int> naive;
   for (size_t i = 0; i < n; ++i) {
-    if (i % 10000 == 0) fprintf(stderr, "%zu\n", i);
+    // if (i % 10000 == 0) fprintf(stderr, "%zu\n", i);
     std::uniform_int_distribution<size_t> rng(0, i);
     size_t pos = rng(rsk);
     bool bit = rbg(rsk);
+    // fprintf(stderr, "(%zu) insert %d into %zu\n", i, bit, pos);
     bv.insert(pos, bit);
-    // naive.insert(naive.begin()+pos, bit);
-    // for (size_t j = 0; j <= i; ++j)
-    //   assert(bv[j] == naive[j]);
+    bv.inspect(pos);
+    naive.insert(naive.begin()+pos, bit);
+    for (size_t j = 0; j <= i; ++j)
+      assert(bv[j] == naive[j]);
   }
-  bv.inspect();
+  // bv.inspect();
   return 0;
 }
 
