@@ -105,8 +105,9 @@ public:
 };
 
 class bit_vector {
-  using value_type = std::array<uintmax_t, 4>;
-  static size_t constexpr S_word = 64 * 4;
+  static size_t constexpr S_unit = 64;
+  using value_type = std::array<uintmax_t, S_unit>;
+  static size_t constexpr S_word = 64 * S_unit;
 
   size_t M_size = 0;
   std::deque<value_type> M_c{{}};
@@ -122,7 +123,7 @@ class bit_vector {
     return res;
   }
   static void S_mini_insert(value_type& x, size_t i, int b) {
-    size_t j0 = 3 - i / 64;
+    size_t j0 = S_unit - 1 - i / 64;
     size_t j1 = i % 64;
     int cy = x[j0] >> 63 & 1;
     {
@@ -139,18 +140,20 @@ class bit_vector {
 
   static value_type S_mini_erase(value_type& x, size_t i);
   static uintmax_t S_mini_access(value_type const& x, size_t i) {
-    size_t j0 = 3 - i / 64;
+    size_t j0 = S_unit - 1 - i / 64;
     size_t j1 = i % 64;
     return x[j0] >> j1 & 1;
   }
   static uintmax_t S_mini_mask(size_t i) { return (uintmax_t(1) << i) - 1; }
   static void S_lower(value_type& x) {
-    x[0] = x[1] = 0;
+    for (size_t i = 0; i < S_unit/2; ++i)
+      x[i] = 0;
   }
   static void S_upper(value_type& x) {
-    x[2] = x[0];
-    x[3] = x[1];
-    x[0] = x[1] = 0;
+    for (size_t i = 0; i < S_unit/2; ++i) {
+      x[i+S_unit/2] = x[i];
+      x[i] = 0;
+    }
   }
 
   void M_break(size_t i) {
@@ -268,7 +271,7 @@ int random_test() {
   bit_vector bv;
   std::mt19937 rsk(0315);
   std::uniform_int_distribution<int> rbg(0, 1);
-  size_t n = 100000;
+  size_t n = 10000;
   std::vector<int> naive;
   for (size_t i = 0; i < n; ++i) {
     // if (i % 10000 == 0) fprintf(stderr, "%zu\n", i);
@@ -277,7 +280,7 @@ int random_test() {
     bool bit = rbg(rsk);
     // fprintf(stderr, "(%zu) insert %d into %zu\n", i, bit, pos);
     bv.insert(pos, bit);
-    bv.inspect(pos);
+    // bv.inspect(pos);
     naive.insert(naive.begin()+pos, bit);
     for (size_t j = 0; j <= i; ++j)
       assert(bv[j] == naive[j]);
