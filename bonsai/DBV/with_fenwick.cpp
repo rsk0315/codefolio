@@ -105,15 +105,22 @@ public:
 };
 
 class bit_vector {
-  using value_type = uintmax_t;
-  static size_t constexpr S_word = 64;
+  using value_type = unsigned __int128;
+  static size_t constexpr S_word = 128;
 
   size_t M_size = 0;
   std::deque<value_type> M_c{0};
   std::deque<size_t> M_bits{0};
   prefix_sum<size_t> M_bits_sum{0}, M_ones_sum{0};
 
-  static value_type S_mask(size_t k) { return (size_t(1) << k) - 1; }
+  static value_type S_mask(size_t k) { return (value_type(1) << k) - 1; }
+  static int S_popcount(value_type x) {
+    int res = 0;
+    res += __builtin_popcountll(x & S_mask(64));
+    x >>= 64;
+    res += __builtin_popcountll(x);
+    return res;
+  }
 
   void M_break(size_t i) {
     assert(M_bits[i] == S_word);
@@ -126,7 +133,7 @@ class bit_vector {
     M_bits_sum = prefix_sum<size_t>(M_bits.begin(), M_bits.end());
     std::vector<size_t> ones(M_c.size());
     for (size_t i = 0; i < M_c.size(); ++i)
-      ones[i] = __builtin_popcountll(M_c[i]);
+      ones[i] = S_popcount(M_c[i]);
     M_ones_sum = prefix_sum<size_t>(ones.begin(), ones.end());
   }
 
@@ -223,12 +230,17 @@ int random_test() {
   bit_vector bv;
   std::mt19937 rsk(0315);
   std::uniform_int_distribution<int> rbg(0, 1);
-  size_t n = 100000;
+  size_t n = 1000000;
+  // std::vector<int> naive;
   for (size_t i = 0; i < n; ++i) {
+    if (i % 10000 == 0) fprintf(stderr, "%zu\n", i);
     std::uniform_int_distribution<size_t> rng(0, i);
     size_t pos = rng(rsk);
     bool bit = rbg(rsk);
     bv.insert(pos, bit);
+    // naive.insert(naive.begin()+pos, bit);
+    // for (size_t j = 0; j <= i; ++j)
+    //   assert(bv[j] == naive[j]);
   }
   bv.inspect();
   return 0;
