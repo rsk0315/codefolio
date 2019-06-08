@@ -665,14 +665,13 @@ public:
 
 int dp_q() {
   size_t n;
-  // scanf("%zu", &n);
-  n = 10000;
+  scanf("%zu", &n);
 
   std::vector<intmax_t> h(n), a(n);
-  // for (auto& hi: h) scanf("%jd", &hi);
-  // for (auto& ai: a) scanf("%jd", &ai);
+  for (auto& hi: h) scanf("%jd", &hi);
+  for (auto& ai: a) scanf("%jd", &ai);
 
-  wavelet_matrix<intmax_t> wm;
+  wavelet_matrix<intmax_t, 48> wm;
   for (size_t i = 0; i < n; ++i) wm.insert(i, 0);
 
   for (size_t i = 0; i < n; ++i) {
@@ -685,7 +684,7 @@ int dp_q() {
   return 0;
 }
 
-int main() {
+int hack() {
   bit_vector bv;
   for (int i = 0; i < 64*64; ++i) bv.insert(0, 1);
   for (int i = 0; i < 64*64; ++i) bv.insert(0, 1);
@@ -695,4 +694,9 @@ int main() {
   // kore ha dame
   // 0 18446744073709547521 2048 1
   bv.inspect();
+  return 1;
+}
+
+int main() {
+  dp_q();
 }
