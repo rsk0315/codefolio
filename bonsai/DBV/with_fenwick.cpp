@@ -98,6 +98,30 @@ public:
     return {i, value};
   }
 
+  //
+  std::pair<size_t, value_type> upto_inclusive(value_type value) const {
+    // assuming 0 <= a[i] for 1 <= i <= n
+    // returns {i, x} that satisfy
+    // (1) minimum i such that accumulate(i) <= value
+    // (2) accumulate(i, x) = value
+    size_t n = M_c.size()-1;
+    if (n == 0) return {0, 0};  // ???
+    {
+      value_type tmp = accumulate(n);
+      if (tmp < value) return {n, value-tmp};
+    }
+    size_t m = size_t(1) << (63 - __builtin_clzll(n));
+    size_t i = 0;
+    while (m > 0) {
+      if ((i|m) < M_c.size() && M_c[i|m] <= value) {
+        i |= m;
+        value -= M_c[i];
+      }
+      m >>= 1;
+    }
+    return {i, value};
+  }
+
   void inspect() const {
     for (size_t i = 1; i < M_c.size(); ++i)
       fprintf(stderr, "%zu%c", M_c[i], i+1<M_c.size()? ' ':'\n');
@@ -242,20 +266,12 @@ public:
   }
   void erase(size_t i) {
     size_t j0, j1;
-    std::tie(j0, j1) = M_bits_sum.upto(i);
-    if (M_bits[j0] == j1) {
-      ++j0;
-      j1 = 0;
-    }
+    std::tie(j0, j1) = M_bits_sum.upto_inclusive(i);
     M_erase(j0, j1);
   }
   bool operator [](size_t i) const {
     size_t j0, j1;
-    std::tie(j0, j1) = M_bits_sum.upto(i);
-    if (M_bits[j0] == j1) {
-      ++j0;
-      j1 = 0;
-    }
+    std::tie(j0, j1) = M_bits_sum.upto_inclusive(i);
     return S_mini_access(M_c[j0], j1);
   }
 
@@ -671,32 +687,20 @@ int dp_q() {
   for (auto& hi: h) scanf("%jd", &hi);
   for (auto& ai: a) scanf("%jd", &ai);
 
-  wavelet_matrix<intmax_t, 48> wm;
+  wavelet_matrix<intmax_t, 4> wm;
   for (size_t i = 0; i < n; ++i) wm.insert(i, 0);
 
-  for (size_t i = 0; i < n; ++i) {
-    size_t j = h[i];
-    auto qt = wm.quantile(j-1, 0, j);
-    wm.update(j-1, qt + a[i]);
-  }
+  // for (size_t i = 0; i < n; ++i) {
+  //   size_t j = h[i];
+  //   auto qt = wm.quantile(j-1, 0, j);
+  //   wm.update(j-1, qt + a[i]);
+  // }
 
   printf("%jd\n", wm.quantile(n-1, 0, n));
   return 0;
 }
 
-int hack() {
-  bit_vector bv;
-  for (int i = 0; i < 64*64; ++i) bv.insert(0, 1);
-  for (int i = 0; i < 64*64; ++i) bv.insert(0, 1);
-  bv.insert(0, 1);
-  for (int i = 0; i < 64*64; ++i) bv.erase(0);
-  for (int i = 0; i < 64*64; ++i) bv.erase(0);
-  // kore ha dame
-  // 0 18446744073709547521 2048 1
-  bv.inspect();
-  return 1;
-}
-
 int main() {
+  // hack();
   dp_q();
 }
