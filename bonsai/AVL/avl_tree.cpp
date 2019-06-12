@@ -75,9 +75,7 @@ public:
     iterator operator -(difference_type count) const { return iterator(*this) -= count; }
     iterator operator ++(int) { iterator tmp = *this; ++*this; return tmp; }
     iterator operator --(int) { iterator tmp = *this; --*this; return tmp; }
-    difference_type operator -(const_iterator const& other) const {
-      return S_index(*this) - S_index(other);
-    }
+    difference_type operator -(const_iterator const& other) const { return S_index(*this) - S_index(other); }
 
     reference operator *() { return node->value; }
 
@@ -123,9 +121,7 @@ public:
     const_iterator operator -(difference_type count) const { return const_iterator(*this) -= count; }
     const_iterator operator ++(int) { const_iterator tmp = *this; ++*this; return tmp; }
     const_iterator operator --(int) { const_iterator tmp = *this; --*this; return tmp; }
-    difference_type operator -(const_iterator const& other) const {
-      return S_index(*this) - S_index(other);
-    }
+    difference_type operator -(const_iterator const& other) const { return S_index(*this) - S_index(other); }
 
     reference operator *() const { return node->value; }
 
@@ -139,10 +135,10 @@ public:
 
 
 private:
-  static difference_type S_balance_factor(base_ptr node) {
-    return S_balance_factor(std::const_pointer_cast<M_node const>(node));
-  }
   static difference_type S_balance_factor(const_base_ptr node) {
+    return S_balance_factor(std::const_pointer_cast<M_node>(node));
+  }
+  static difference_type S_balance_factor(base_ptr node) {
     std::array<difference_type, 2> height = {};
     for (size_t i = 0; i <= 1; ++i)
       if (node->children[i])
@@ -151,12 +147,15 @@ private:
     return height[1] - height[0];
   }
 
+  static void S_fix_height_one(base_ptr pos) {
+    pos->height = 0;
+    for (auto child: pos->children)
+      if (child) pos->height = std::max(pos->height, child->height+1);
+  }
+
   static void S_fix_height(base_ptr pos) {
     while (pos) {
-      pos->height = 0;
-      for (auto child: pos->children)
-        if (child) pos->height = std::max(pos->height, child->height+1);
-
+      S_fix_height_one(pos);
       pos = pos->parent;
     }
   }
@@ -174,7 +173,7 @@ private:
     M_root = M_begin = M_end = base_ptr(new M_node);
   }
 
-  void S_clear_dfs(base_ptr root) {
+  static void S_clear_dfs(base_ptr root) {
     for (auto& child: root->children) {
       if (child) {
         S_clear_dfs(child);
@@ -188,6 +187,15 @@ private:
     S_clear_dfs(M_root);
     M_begin = M_end = M_root = nullptr;
     M_prepare_sentinel();
+  }
+
+  static base_ptr S_leftmost(base_ptr pos) {
+    while (pos->children[0]) pos = pos->children[0];
+    return pos;
+  }
+  static base_ptr S_rightmost(base_ptr pos) {
+    while (pos->children[1]) pos = pos->children[1];
+    return pos;
   }
 
   static void S_increment(const_base_ptr& pos) { S_neighbor(pos, 1); }
@@ -295,7 +303,9 @@ private:
     } else {
       pos->left_size -= pos->parent->left_size + 1;
     }
-    S_fix_height(pos);
+    // S_rotate() is intended to be called only by S_rebalance(),
+    // which fix height more effectively
+    // S_fix_height(pos);
   }
   void M_rotate(base_ptr pos, size_t dir) { S_rotate(pos, dir, M_root); }
 
@@ -304,6 +314,7 @@ private:
     base_ptr start = pos;
     do {
       while (pos) {
+        S_fix_height_one(pos);
         int bf = S_balance_factor(pos);
         if (!(-1 <= bf && bf <= +1)) break;
         pos = pos->parent;
@@ -318,15 +329,21 @@ private:
 
       if (cdir == gdir) {
         S_rotate(pos, !cdir, root);
+        S_fix_height_one(pos);
         pos = child;
       } else {
         S_rotate(child, cdir, root);
         S_rotate(pos, gdir, root);
+        S_fix_height_one(child);
+        S_fix_height_one(pos);
         pos = gchild;
       }
     } while (true);
   }
 
+  base_ptr M_insert(const_base_ptr pos, base_ptr newnode) {
+    return M_insert(std::const_pointer_cast<M_node>(pos), newnode);
+  }
   base_ptr M_insert(base_ptr pos, base_ptr newnode) {
     if (pos->children[0]) {
       S_decrement(pos);
@@ -343,39 +360,42 @@ private:
     return newnode;
   }
 
+  base_ptr M_erase(const_base_ptr pos) { return M_erase(std::const_pointer_cast<M_node>(pos)); }
   base_ptr M_erase(base_ptr pos) {
+    base_ptr next = S_erase(pos, M_begin, M_end, M_root);
+    --M_size;
+    return next;
+  }
+  static base_ptr S_erase(base_ptr pos, base_ptr& begin, base_ptr& end, base_ptr& root) {
     if (pos->children[0] && pos->children[1]) {
       base_ptr tmp = pos;
       S_advance(tmp);
       pos->value = std::move(tmp->value);
-      pos = tmp;  // pos may have right child
+      pos = tmp;
     }
 
     base_ptr next = pos;
-    if (next != M_end) S_increment(next);
-    if (pos == M_begin) M_begin = next;
+    if (next != end) S_increment(next);
+    if (pos == begin) begin = next;
 
     base_ptr child = pos->children[0];
-    if (!child) {
-      child = pos->children[1];
-    }
+    if (!child) child = pos->children[1];
 
     if (child) {
       child->parent = pos->parent;
-    } else if (pos == M_end) {
-      next = M_end = pos->parent;
+    } else if (pos == end) {
+      next = end = pos->parent;
     }
 
     if (!pos->parent) {
-      M_root = child;
+      root = child;
     } else {
       S_fix_left_subtree_size(pos, -1);
       size_type dir = (pos == pos->parent->children[1]);
       pos->parent->children[dir] = child;
       S_fix_height(pos->parent);
-      M_rebalance(pos->parent);
+      S_rebalance(pos->parent, root);
     }
-    --M_size;
     return next;
   }
 
@@ -405,14 +425,86 @@ private:
     if (child) M_inspect_dfs(child, depth+1);
   }
 
-  const_base_ptr M_merge(base_ptr left, base_ptr right);
-  // static const_base_ptr S_merge(const_base_ptr left, const_base_ptr right)
-  const_base_ptr M_split(base_ptr pos);
-  // static const_base_ptr S_split(const_base_ptr root, const_base_ptr pos)
+  // base_ptr M_merge(base_ptr left, base_ptr right);
+  base_ptr M_merge(avl_tree&& other) {
+    if (other.empty()) return M_end;
+    if (empty()) {
+      *this = std::move(other);
+      return M_begin;
+    }
+    M_size += other.M_size;
+    M_root = S_merge(M_root, other.M_root);
+    M_erase(M_end);
+    M_end = other.M_end;
+    return other.M_begin;
+  }
+  static base_ptr S_merge(base_ptr left, base_ptr right) {
+    base_ptr left_root = left;
+    base_ptr right_root = right;
+    left = S_rightmost(left);
+    right = S_leftmost(right);
+    size_t left_size = left->left_size + 1;
+    while (left->parent && right->parent) {
+      left = left->parent;
+      right = right->parent;
+      left_size += left->left_size + 1;
+    }
+    base_ptr tmp(new M_node);
+    tmp->children[0] = left;
+    tmp->children[1] = right;
+    tmp->left_size = left_size;
+    base_ptr root = tmp;
+    if (left->parent) {
+      tmp->parent = left->parent;
+      left->parent->children[1] = tmp;
+      root = left_root;
+    } else if (right->parent) {
+      tmp->parent = right->parent;
+      right->parent->children[0] = tmp;
+      root = right_root;
+    } else {
+      tmp->parent = nullptr;
+    }
+    left->parent = right->parent = tmp;
+    S_fix_left_subtree_size(tmp, +1);
+    S_fix_height(tmp);
+    S_rebalance(tmp, root);
+
+    base_ptr begin = S_leftmost(left_root);
+    base_ptr end = S_rightmost(right_root);
+    S_erase(tmp, begin, end, root);
+    return root;
+  }
+  base_ptr M_split(const_base_ptr pos);
+  static base_ptr S_split(const_base_ptr root, const_base_ptr pos);
+
+  // private constructor
+  // avl_tree avl_tree(base_ptr root): M_root(root) {
+  //   // size
+  //   // begin
+  //   // end
+  // }
+
+  static void S_deep_copy_dfs(base_ptr& dst, base_ptr const& src) {
+    dst = base_ptr(new M_node(src->value));
+    dst->left_size = src->left_size;
+    for (size_t i = 0; i <= 1; ++i) {
+      if (src->children[i])
+        S_deep_copy_dfs(dst->children[i], src->children[i]);
+    }
+  }
+
+  void M_deep_copy(avl_tree const& other) {
+    fprintf(stderr, "deep-copied\n");
+    M_size = other.M_size;
+    S_deep_copy_dfs(M_root, other.M_root);
+    M_begin = S_leftmost(M_root);
+    M_end = S_rightmost(M_root);
+  }
 
 public:
   avl_tree() { M_prepare_sentinel(); }
-  avl_tree(avl_tree const&) = default;
+  avl_tree(avl_tree const& other) { M_deep_copy(other); }
   avl_tree(avl_tree&&) = default;
   avl_tree(size_type count, value_type const& value = value_type{}): avl_tree() {
     while (count--) push_back(value);
@@ -423,7 +515,7 @@ public:
   }
   avl_tree(std::initializer_list<value_type> ilist): avl_tree(ilist.begin(), ilist.end()) {}
 
-  avl_tree& operator =(avl_tree const&) = default;
+  avl_tree& operator =(avl_tree const& other) { M_deep_copy(other); }
   avl_tree& operator =(avl_tree&&) = default;
 
   // # element access
@@ -500,20 +592,20 @@ public:
   void clear() { M_clear(); }
   // ## insert and emplace
   iterator insert(const_iterator pos, value_type const& value) {
-    return M_insert(std::const_pointer_cast<M_node>(pos.node), base_ptr(new M_node(value)));
+    return M_insert(pos.node, base_ptr(new M_node(value)));
   }
   iterator insert(const_iterator pos, value_type&& value) {
-    return M_insert(std::const_pointer_cast<M_node>(pos.node), base_ptr(new M_node(std::move(value))));
+    return M_insert(pos.node, base_ptr(new M_node(std::move(value))));
   }
   iterator insert(const_iterator pos, size_t count, value_type const& value) {
     iterator res = pos;
-    while (count--) res = M_insert(std::const_pointer_cast<M_node>(pos.node), base_ptr(new M_node(value)));
+    while (count--) res = M_insert(pos.node, base_ptr(new M_node(value)));
     return res;
   }
   template <typename InputIt>
   iterator insert(const_iterator pos, InputIt first, InputIt last) {
     iterator res = pos;
-    while (first != last) res = M_insert(std::const_pointer_cast<M_node>(pos.node), base_ptr(new M_node(*first++)));
+    while (first != last) res = M_insert(pos.node, base_ptr(new M_node(*first++)));
     return res;
   }
   iterator insert(const_iterator pos, std::initializer_list<value_type> ilist) {
@@ -521,7 +613,7 @@ public:
   }
   template <typename... Args>
   iterator emplace(const_iterator pos, Args&&... args) {
-    return M_insert(pos.node, const_base_ptr(new M_node(std::forward<Args>(args)...)));
+    return M_insert(pos.node, base_ptr(new M_node(std::forward<Args>(args)...)));
   }
   // ## erase
   iterator erase(iterator pos) { return M_erase(pos.node); }
@@ -547,8 +639,12 @@ public:
   void pop_back() { erase(--end()); }
   void pop_front() { erase(begin()); }
   // ## merge and split
-  iterator merge(avl_tree&& other);
-  avl_tree split(const_iterator pos);
+  iterator merge(avl_tree&& other) { return M_merge(std::move(other)); }
+  avl_tree split(const_iterator pos) {
+    base_ptr right = M_split(pos);
+    // update M_size, M_root, M_begin, and M_end of this
+    return avl_tree(right);
+  }
 
   // # debug
   // ## inspect
@@ -589,7 +685,7 @@ int ITP2_7_C() {
     int t, x;
     scanf("%d %d", &t, &x);
 
-    auto it = bst.lower_bound(x);
+    typename avl_tree<int>::const_iterator it = bst.lower_bound(x);
     if (t == 0) {
       // insert(x)
       if (it == bst.end() || *it != x) bst.insert(it, x);
@@ -607,7 +703,7 @@ int ITP2_7_C() {
     }
 
     // bst.inspect();
-    // bst.verify();
+    bst.verify();
   }
   return 0;
 }
@@ -639,5 +735,14 @@ int random_test() {
 }
 
 int main() {
-  ITP2_7_C();
+  // ITP2_7_C();
+  avl_tree<int> r{1, 2, 3}, s{4, 5};
+  auto t = s;
+  r.inspect();
+  s.inspect();
+  r.merge(std::move(s));
+  r.inspect();
+  s.clear();
+  t.inspect();
+  s.inspect();
 }
