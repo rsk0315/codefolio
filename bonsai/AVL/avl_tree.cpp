@@ -345,18 +345,21 @@ private:
     return M_insert(std::const_pointer_cast<M_node>(pos), newnode);
   }
   base_ptr M_insert(base_ptr pos, base_ptr newnode) {
+    ++M_size;
+    return S_insert(pos, newnode, M_begin, M_root);
+  }
+  base_ptr S_insert(base_ptr pos, base_ptr newnode, base_ptr& begin, base_ptr& root) {
     if (pos->children[0]) {
       S_decrement(pos);
       pos->children[1] = newnode;
     } else {
       pos->children[0] = newnode;
-      if (pos == M_begin) M_begin = newnode;
+      if (pos == begin) begin = newnode;
     }
     newnode->parent = pos;
-    ++M_size;
     S_fix_height(pos);
     S_fix_left_subtree_size(newnode, +1);
-    M_rebalance(newnode);
+    S_rebalance(newnode, root);
     return newnode;
   }
 
