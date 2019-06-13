@@ -435,58 +435,106 @@ private:
       *this = std::move(other);
       return M_begin;
     }
-    M_size += other.M_size;
-    M_root = S_merge(M_root, other.M_root);
+    size_type left_size = M_size + 1;  // +1 for M_end
+    M_size += other.M_size + 2;  // +1 for dummy, +1 for M_end
+    base_ptr med(new M_node);
+    M_root = S_merge(M_root, other.M_root, med, left_size);
     M_erase(M_end);
+    M_erase(med);
     M_end = other.M_end;
     return other.M_begin;
   }
-  static base_ptr S_merge(base_ptr left, base_ptr right) {
+  // static base_ptr S_merge(base_ptr left, base_ptr right) {
+  //   base_ptr left_root = left;
+  //   base_ptr right_root = right;
+  //   left = S_rightmost(left);
+  //   right = S_leftmost(right);
+  //   size_t left_size = left->left_size + 1;
+  //   while (left->parent && right->parent) {
+  //     left = left->parent;
+  //     right = right->parent;
+  //     left_size += left->left_size + 1;
+  //   }
+  //   base_ptr tmp(new M_node);
+  //   tmp->children[0] = left;
+  //   tmp->children[1] = right;
+  //   tmp->left_size = left_size;
+  //   base_ptr root = tmp;
+  //   if (left->parent) {
+  //     tmp->parent = left->parent;
+  //     left->parent->children[1] = tmp;
+  //     root = left_root;
+  //   } else if (right->parent) {
+  //     tmp->parent = right->parent;
+  //     right->parent->children[0] = tmp;
+  //     root = right_root;
+  //   } else {
+  //     tmp->parent = nullptr;
+  //   }
+  //   left->parent = right->parent = tmp;
+  //   S_fix_left_subtree_size(tmp, +1);
+  //   S_fix_height(tmp);
+  //   S_rebalance(tmp, root);
+
+  //   base_ptr begin = S_leftmost(left_root);
+  //   base_ptr end = S_rightmost(right_root);
+  //   S_erase(tmp, begin, end, root);
+  //   return root;
+  // }
+
+  static base_ptr S_merge(base_ptr left, base_ptr right, base_ptr med, size_type left_size) {
     base_ptr left_root = left;
     base_ptr right_root = right;
-    left = S_rightmost(left);
-    right = S_leftmost(right);
-    size_t left_size = left->left_size + 1;
-    while (left->parent && right->parent) {
-      left = left->parent;
-      right = right->parent;
-      left_size += left->left_size + 1;
-    }
-    base_ptr tmp(new M_node);
-    tmp->children[0] = left;
-    tmp->children[1] = right;
-    tmp->left_size = left_size;
-    base_ptr root = tmp;
-    if (left->parent) {
-      tmp->parent = left->parent;
-      left->parent->children[1] = tmp;
-      root = left_root;
-    } else if (right->parent) {
-      tmp->parent = right->parent;
-      right->parent->children[0] = tmp;
+    base_ptr root = med;
+    if (left->height < right->height) {
+      size_t h = left->height + 1;
+      while (right->height > h) right = right->children[0];  // left spine
+      med->parent = right->parent;
+      right->parent->children[0] = med;
       root = right_root;
-    } else {
-      tmp->parent = nullptr;
+    } else if (left->height > right->height) {
+      size_t h = right->height + 1;
+      while (left->height > h) {
+        left_size -= left->left_size + 1;
+        left = left->children[1];  // right spine
+      }
+      med->parent = left->parent;
+      left->parent->children[1] = med;
+      root = left_root;
     }
-    left->parent = right->parent = tmp;
-    S_fix_left_subtree_size(tmp, +1);
-    S_fix_height(tmp);
-    S_rebalance(tmp, root);
 
-    base_ptr begin = S_leftmost(left_root);
-    base_ptr end = S_rightmost(right_root);
-    S_erase(tmp, begin, end, root);
+    left->parent = right->parent = med;
+    med->children[0] = left;
+    med->children[1] = right;
+    med->left_size = left_size;
+    S_fix_left_subtree_size(med, +1);
+    S_fix_height(med);
+    S_rebalance(med, root);
     return root;
   }
-  base_ptr M_split(const_base_ptr pos);
-  static base_ptr S_split(const_base_ptr root, const_base_ptr pos);
+  avl_tree M_split(base_ptr pos) {
+    avl_tree right;
+    right->root = S_split(M_root, pos);
+    // TODO M_size の管理
+    right->M_begin = S_leftmost(right->root);
+    right->M_end = S_rightmost(right->root);
+    return right;
+  }
+  static base_ptr S_split(base_ptr root, const_base_ptr pos) {
+    base_ptr left_root = pos->children[0];
+    base_ptr right_root = pos->children[1];
+    left->root->parent = right_root->parent = nullptr;
+    pos->children[0] = pos->children[1] = nullptr;
+    base_ptr next = pos->parent;
+    // TODO 根まで登りながら左と右に merge
+    //      size を管理しながらやる
+    //      計算量が O(log n) になるように気をつける
 
-  // private constructor
-  // avl_tree avl_tree(base_ptr root): M_root(root) {
-  //   // size
-  //   // begin
-  //   // end
-  // }
+    // この呼び出しのあと root から辿れる木は，元々の木で pos より真に左側に
+    // あったもの．返り値は残りのノードに辿れる根．
+    // あれれ，分離された木のサイズってどう取得するの？
+    // → M_split 側で pos-M_begin から先に計算しておくとよい
+  }
 
   static void S_deep_copy_dfs(base_ptr& dst, base_ptr const& src) {
     dst = base_ptr(new M_node(src->value));
