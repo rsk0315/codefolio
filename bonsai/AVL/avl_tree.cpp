@@ -341,6 +341,49 @@ private:
     } while (true);
   }
 
+  void M_node_swap(base_ptr lhs, base_ptr rhs) {
+    // swaps the position of two nodes, but corresponding iterators remain valid
+    S_node_swap(lhs, rhs, M_begin, M_end, M_root);
+  }
+  static void S_node_swap(base_ptr lhs, base_ptr rhs, base_ptr& begin, base_ptr& end, base_ptr& root) {
+    if (root == lhs) {
+      root = rhs;
+    } else if (root == rhs) {
+      root = lhs;
+    }
+    if (begin == lhs) {
+      begin = rhs;
+    } else if (begin == rhs) {
+      begin = lhs;
+    }
+    if (end == lhs) {
+      end = rhs;
+    } else if (end == rhs) {
+      end = lhs;
+    }
+
+    for (auto child: lhs->children)
+      if (child) child->parent = rhs;
+    for (auto child: rhs->children)
+      if (child) child->parent = lhs;
+
+    base_ptr lpar = lhs->parent;
+    if (lpar) {
+      size_type ldir = (lhs == lpar->children[1]);
+      lpar->children[ldir] = rhs;
+    }
+    base_ptr rpar = rhs->parent;
+    if (rpar) {
+      size_type rdir = (rhs == rpar->children[1]);
+      rpar->children[rdir] = lhs;
+    }
+
+    std::swap(lhs->children, rhs->children);
+    std::swap(lhs->parent, rhs->parent);
+    std::swap(lhs->left_size, rhs->left_size);
+    std::swap(lhs->height, rhs->height);
+  }
+
   base_ptr M_insert(const_base_ptr pos, base_ptr newnode) {
     return M_insert(std::const_pointer_cast<M_node>(pos), newnode);
   }
@@ -373,8 +416,10 @@ private:
     if (pos->children[0] && pos->children[1]) {
       base_ptr tmp = pos;
       S_advance(tmp);
-      pos->value = std::move(tmp->value);
-      pos = tmp;
+      // pos->value = std::move(tmp->value);
+      // pos = tmp;
+      S_node_swap(pos, tmp, begin, end, root);
+      // S_inspect_dfs(root);
     }
 
     base_ptr next = pos;
@@ -387,7 +432,9 @@ private:
     if (child) {
       child->parent = pos->parent;
     } else if (pos == end) {
-      next = end = pos->parent;
+      // next = end = pos->parent;
+      assert(false);
+      next = /* end = */ pos->parent;
     }
 
     if (!pos->parent) {
@@ -414,21 +461,21 @@ private:
     }
   }
 
-  void M_inspect_dfs(const const_base_ptr& root, size_type depth = 0) const {
+  static void S_inspect_dfs(const const_base_ptr& root, size_type depth = 0) {
     auto child = root->children[1];
-    if (child) M_inspect_dfs(child, depth+1);
-    fprintf(stderr, "%*s-(%p) (%zu): %d (H: %zu)\n",
+    if (child) S_inspect_dfs(child, depth+1);
+    fprintf(stderr, "%*s-(%p) (%zu): %d (H: %zu) (P: %p)\n",
             static_cast<int>(depth), "",
             root.get(),
             root->left_size,
             root->value,
-            root->height
+            root->height,
+            root->parent.get()
             );
     child = root->children[0];
-    if (child) M_inspect_dfs(child, depth+1);
+    if (child) S_inspect_dfs(child, depth+1);
   }
 
-  // base_ptr M_merge(base_ptr left, base_ptr right);
   base_ptr M_merge(avl_tree&& other) {
     if (other.empty()) return M_end;
     if (empty()) {
@@ -438,11 +485,27 @@ private:
     size_type left_size = M_size + 1;  // +1 for M_end
     M_size += other.M_size + 2;  // +1 for dummy, +1 for M_end
     base_ptr med(new M_node);
+    med->value = 123;
+    M_end->value = 456;
+    other.M_end->value = 789;
     M_root = S_merge(M_root, other.M_root, med, left_size);
-    M_erase(M_end);
-    M_erase(med);
-    M_end = other.M_end;
-    return other.M_begin;
+    // base_ptr end = M_end;
+    // M_end = other.M_end;
+    // base_ptr tmp(new M_node);
+    // M_node_swap(end, tmp);
+    // M_erase(tmp);
+    // M_erase(med);
+    // return other.M_begin;
+
+    M_node_swap(M_end, other.M_end);
+    base_ptr tmp(new M_node(234));
+    M_node_swap(tmp, other.M_end);
+    M_erase(tmp);
+    med = M_erase(med);
+
+    other.M_size = 0;
+    other.M_root = other.M_begin = other.M_end;// = tmp;
+    return med;
   }
   // static base_ptr S_merge(base_ptr left, base_ptr right) {
   //   base_ptr left_root = left;
@@ -512,33 +575,35 @@ private:
     S_rebalance(med, root);
     return root;
   }
-  avl_tree M_split(base_ptr pos) {
-    avl_tree right;
-    right->root = S_split(M_root, pos);
-    // TODO M_size の管理
-    right->M_begin = S_leftmost(right->root);
-    right->M_end = S_rightmost(right->root);
-    return right;
-  }
-  static base_ptr S_split(base_ptr root, const_base_ptr pos) {
-    base_ptr left_root = pos->children[0];
-    base_ptr right_root = pos->children[1];
-    left->root->parent = right_root->parent = nullptr;
-    pos->children[0] = pos->children[1] = nullptr;
-    base_ptr next = pos->parent;
-    // TODO 根まで登りながら左と右に merge
-    //      size を管理しながらやる
-    //      計算量が O(log n) になるように気をつける
+  // avl_tree M_split(base_ptr pos) {
+  //   avl_tree right;
+  //   right->root = S_split(M_root, pos);
+  //   // TODO M_size の管理
+  //   right->M_begin = S_leftmost(right->root);
+  //   right->M_end = S_rightmost(right->root);
+  //   return right;
+  // }
+  // static base_ptr S_split(base_ptr root, const_base_ptr pos) {
+  //   base_ptr left_root = pos->children[0];
+  //   base_ptr right_root = pos->children[1];
+  //   left->root->parent = right_root->parent = nullptr;
+  //   pos->children[0] = pos->children[1] = nullptr;
+  //   base_ptr next = pos->parent;
+  //   // TODO 根まで登りながら左と右に merge
+  //   //      size を管理しながらやる
+  //   //      計算量が O(log n) になるように気をつける
 
-    // この呼び出しのあと root から辿れる木は，元々の木で pos より真に左側に
-    // あったもの．返り値は残りのノードに辿れる根．
-    // あれれ，分離された木のサイズってどう取得するの？
-    // → M_split 側で pos-M_begin から先に計算しておくとよい
-  }
+  //   // この呼び出しのあと root から辿れる木は，元々の木で pos より真に左側に
+  //   // あったもの．返り値は残りのノードに辿れる根．
+  //   // あれれ，分離された木のサイズってどう取得するの？
+  //   // → M_split 側で pos-M_begin から先に計算しておくとよい
+  // }
 
   static void S_deep_copy_dfs(base_ptr& dst, base_ptr const& src) {
     dst = base_ptr(new M_node(src->value));
+    dst->parent = src->parent;
     dst->left_size = src->left_size;
+    dst->height = src->height;
     for (size_t i = 0; i <= 1; ++i) {
       if (src->children[i])
         S_deep_copy_dfs(dst->children[i], src->children[i]);
@@ -704,7 +769,7 @@ public:
     fprintf(stderr, "begin: %p\n", M_begin.get());
     fprintf(stderr, "end: %p\n", M_end.get());
     fprintf(stderr, "size: %zu\n", M_size);
-    M_inspect_dfs(std::const_pointer_cast<M_node const>(M_root));
+    S_inspect_dfs(std::const_pointer_cast<M_node const>(M_root));
   }
 
   void verify() const {
@@ -793,7 +858,7 @@ int main() {
   s.inspect();
   r.merge(std::move(s));
   r.inspect();
-  s.clear();
+  // s.clear();
   t.inspect();
   s.inspect();
 }
