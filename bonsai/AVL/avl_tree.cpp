@@ -485,65 +485,18 @@ private:
     size_type left_size = M_size + 1;  // +1 for M_end
     M_size += other.M_size + 2;  // +1 for dummy, +1 for M_end
     base_ptr med(new M_node);
-    med->value = 123;
-    M_end->value = 456;
-    other.M_end->value = 789;
     M_root = S_merge(M_root, other.M_root, med, left_size);
-    // base_ptr end = M_end;
-    // M_end = other.M_end;
-    // base_ptr tmp(new M_node);
-    // M_node_swap(end, tmp);
-    // M_erase(tmp);
-    // M_erase(med);
-    // return other.M_begin;
 
     M_node_swap(M_end, other.M_end);
-    base_ptr tmp(new M_node(234));
+    base_ptr tmp(new M_node);
     M_node_swap(tmp, other.M_end);
     M_erase(tmp);
     med = M_erase(med);
 
     other.M_size = 0;
-    other.M_root = other.M_begin = other.M_end;// = tmp;
+    other.M_root = other.M_begin = other.M_end;
     return med;
   }
-  // static base_ptr S_merge(base_ptr left, base_ptr right) {
-  //   base_ptr left_root = left;
-  //   base_ptr right_root = right;
-  //   left = S_rightmost(left);
-  //   right = S_leftmost(right);
-  //   size_t left_size = left->left_size + 1;
-  //   while (left->parent && right->parent) {
-  //     left = left->parent;
-  //     right = right->parent;
-  //     left_size += left->left_size + 1;
-  //   }
-  //   base_ptr tmp(new M_node);
-  //   tmp->children[0] = left;
-  //   tmp->children[1] = right;
-  //   tmp->left_size = left_size;
-  //   base_ptr root = tmp;
-  //   if (left->parent) {
-  //     tmp->parent = left->parent;
-  //     left->parent->children[1] = tmp;
-  //     root = left_root;
-  //   } else if (right->parent) {
-  //     tmp->parent = right->parent;
-  //     right->parent->children[0] = tmp;
-  //     root = right_root;
-  //   } else {
-  //     tmp->parent = nullptr;
-  //   }
-  //   left->parent = right->parent = tmp;
-  //   S_fix_left_subtree_size(tmp, +1);
-  //   S_fix_height(tmp);
-  //   S_rebalance(tmp, root);
-
-  //   base_ptr begin = S_leftmost(left_root);
-  //   base_ptr end = S_rightmost(right_root);
-  //   S_erase(tmp, begin, end, root);
-  //   return root;
-  // }
 
   static base_ptr S_merge(base_ptr left, base_ptr right, base_ptr med, size_type left_size) {
     base_ptr left_root = left;
@@ -575,6 +528,7 @@ private:
     S_rebalance(med, root);
     return root;
   }
+
   // avl_tree M_split(base_ptr pos) {
   //   avl_tree right;
   //   right->root = S_split(M_root, pos);
