@@ -362,17 +362,17 @@ private:
       end = lhs;
     }
 
+    base_ptr lpar = lhs->parent;
+    base_ptr rpar = rhs->parent;
     for (auto child: lhs->children)
       if (child) child->parent = rhs;
     for (auto child: rhs->children)
       if (child) child->parent = lhs;
 
-    base_ptr lpar = lhs->parent;
     if (lpar) {
       size_type ldir = (lhs == lpar->children[1]);
       lpar->children[ldir] = rhs;
     }
-    base_ptr rpar = rhs->parent;
     if (rpar) {
       size_type rdir = (rhs == rpar->children[1]);
       rpar->children[rdir] = lhs;
@@ -429,10 +429,7 @@ private:
     if (pos->children[0] && pos->children[1]) {
       base_ptr tmp = pos;
       S_advance(tmp);
-      // pos->value = std::move(tmp->value);
-      // pos = tmp;
       S_node_swap(pos, tmp, begin, end, root);
-      // S_inspect_dfs(root);
     }
 
     base_ptr next = pos;
@@ -445,9 +442,7 @@ private:
     if (child) {
       child->parent = pos->parent;
     } else if (pos == end) {
-      // next = end = pos->parent;
-      assert(false);
-      next = /* end = */ pos->parent;
+      next = end = pos->parent;
     }
 
     if (!pos->parent) {
@@ -481,42 +476,53 @@ private:
     }
     auto child = root->children[1];
     if (child) S_inspect_dfs(child, depth+1);
-    fprintf(stderr, "%*s-(%p) (%zu): %d (H: %zu) (P: %p)\n",
+    fprintf(stderr, "%*s-(%p) (%zu): %d (H: %zu) (P: %p) (C: %p, %p)\n",
             static_cast<int>(depth), "",
             root.get(),
             root->left_size,
             root->value,
             root->height,
-            root->parent.get()
+            root->parent.get(),
+            root->children[0].get(),
+            root->children[1].get()
             );
     child = root->children[0];
     if (child) S_inspect_dfs(child, depth+1);
   }
 
-  base_ptr M_merge(avl_tree&& other) {
+  base_ptr M_merge(avl_tree&& other) { return M_merge(std::move(other)); }
+  base_ptr M_merge(avl_tree& other) {
     if (other.empty()) return M_end;
     if (empty()) {
       *this = std::move(other);
       return M_begin;
     }
+    M_end->value = 123;
+    other.M_end->value = 456;
     size_type left_size = M_size + 1;  // +1 for M_end
     M_size += other.M_size + 2;  // +1 for dummy, +1 for M_end
     base_ptr med(new M_node);
     M_root = S_merge(M_root, other.M_root, med, left_size);
 
-    M_node_swap(M_end, other.M_end);
+    base_ptr end = M_end;
+    M_end = other.M_end;
+
     base_ptr tmp(new M_node);
-    M_node_swap(tmp, other.M_end);
+    M_node_swap(other.M_end, tmp);
+    other.M_size = 0;
+    other.M_root = other.M_begin = other.M_end;
+
+    M_node_swap(end, tmp);
+    M_end = end;
     M_erase(tmp);
     med = M_erase(med);
 
-    other.M_size = 0;
-    other.M_root = other.M_begin = other.M_end;
     return med;
   }
 
   static base_ptr S_merge(base_ptr left, base_ptr right, base_ptr med, size_type left_size) {
     med->left_size = left_size;
+    med->height = 0;
     if (!left && !right) return med;
     if (!left) {
       base_ptr begin = S_leftmost(right);
@@ -532,7 +538,8 @@ private:
     base_ptr root = med;
     if (left->height < right->height) {
       size_t h = left->height + 1;
-      while (right->height > h) right = right->children[0];  // left spine
+      while (right->children[0] && right->height > h)
+        right = right->children[0];  // left spine
       if (right->parent) {
         med->parent = right->parent;
         right->parent->children[0] = med;
@@ -540,7 +547,7 @@ private:
       }
     } else if (left->height > right->height) {
       size_t h = right->height + 1;
-      while (left->height > h) {
+      while (left->children[1] && left->height > h) {
         med->left_size -= left->left_size + 1;
         left = left->children[1];  // right spine
       }
@@ -554,18 +561,16 @@ private:
     left->parent = right->parent = med;
     med->children[0] = left;
     med->children[1] = right;
-    // med->left_size = left_size;
-    S_fix_left_subtree_size(med, +1);
+    S_fix_left_subtree_size(med, med->left_size+1);
     S_fix_height(med);
     S_rebalance(med, root);
 
-    fprintf(stderr, "--- merged ---\n");
-    S_inspect_dfs(root);
-    fprintf(stderr, "---\n");
     return root;
   }
 
   avl_tree M_split(base_ptr pos) {
+    if (pos == M_end) return avl_tree();
+
     size_t left_size = S_index(pos) - S_index(M_begin);
     size_t right_size = M_size - left_size;
 
@@ -586,6 +591,7 @@ private:
   }
 
   static std::pair<base_ptr, base_ptr> S_split(base_ptr pos) {
+    // XXX pos should not point the last element
     base_ptr left_root = pos->children[0];
     base_ptr right_root = pos->children[1];
     size_type acc_size = pos->left_size;
@@ -606,24 +612,26 @@ private:
         base_ptr subroot = pos->children[0];
         pos->children[0] = pos->children[1] = nullptr;
         if (subroot) subroot->parent = nullptr;
-        fprintf(stderr, "merge leftward, size: %zu, pos: %d\n", size, pos->value);
         left_root = S_merge(subroot, left_root, pos, size);
         left_root->parent = nullptr;
+        acc_size += size + 1;
       } else {
         // merge rightward
         size = pos->left_size - acc_size - 1;
         base_ptr subroot = pos->children[1];
         pos->children[0] = pos->children[1] = nullptr;
         if (subroot) subroot->parent = nullptr;
-        fprintf(stderr, "merge rightward, size: %zu, pos: %d\n", size, pos->value);
         right_root = S_merge(right_root, subroot, pos, size);
         right_root->parent = nullptr;
       }
-      acc_size += size + 1;
     }
 
     crit->children[0] = crit->children[1] = nullptr;
-    S_push_back(crit, left_root);
+    crit->left_size = 0;
+    {
+      base_ptr begin = S_leftmost(right_root);
+      S_insert(S_leftmost(right_root), crit, begin, right_root);
+    }
     return {left_root, right_root};
   }
 
@@ -783,6 +791,7 @@ public:
   void pop_back() { erase(--end()); }
   void pop_front() { erase(begin()); }
   // ## merge and split
+  iterator merge(avl_tree& other) { return M_merge(other); }
   iterator merge(avl_tree&& other) { return M_merge(std::move(other)); }
   avl_tree split(const_iterator pos) {
     return  M_split(std::const_pointer_cast<M_node>(pos.node));
