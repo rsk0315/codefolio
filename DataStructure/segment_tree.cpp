@@ -140,8 +140,6 @@ public:
   basic_segment_tree() = default;
   basic_segment_tree(basic_segment_tree const&) = default;
   basic_segment_tree(basic_segment_tree&&) = default;
-  basic_segment_tree(basic_segment_tree const&) = default;
-  basic_segment_tree(basic_segment_tree&&) = default;
 
   basic_segment_tree(size_t n, first_type const& x = binary_operation().identity):
     M_base_size(n),
