@@ -4,6 +4,7 @@ template <
 >
 class basic_segment_tree {
 public:
+  using size_type = size_t;
   using first_type = typename Monoid::first_type;
   using second_type = typename Monoid::second_type;
   using value_type = first_type;
@@ -12,23 +13,63 @@ public:
   using container = Container;
 
 private:
-  size_t M_base_size;
+  size_type M_base_size;
   binary_operation M_op1;
   external_binary_operation M_op2;
   container M_c;
+
+  template <typename Predicate>
+  size_type M_search_root(Predicate pred, value_type& x) {
+    size_type n = M_base_size;
+    size_type l = n;
+    size_type r = n+n;
+    size_type v = r;
+    std::vector<size_type> rs;
+    x = M_op1.identity;
+    while (l < r) {
+      if (l & 1) {
+        if (!pred(M_op1(x, M_c[l]))) return l;
+        x = M_op1(x, M_c[l++]);
+      }
+      if (r & 1) rs.push_back(--r);
+      l >>= 1;
+      r >>= 1;
+    }
+    while (!rs.empty()) {
+      size_type r = rs.back();
+      rs.pop_back();
+      if (!pred(M_op1(x, M_c[r]))) return r;
+      x = M_op1(x, M_c[r]);
+    }
+    return v;
+  }
+
+  template <typename Predicate>
+  size_type M_search_leaf(Predicate pred, size_type v, value_type& x) {
+    size_type n = M_base_size;
+    while (v < n) {
+      size_type c = v << 1;
+      if (pred(M_op1(x, M_c[c]))) {
+        x = M_op1(x, M_c[c]);
+        c |= 1;
+      }
+      v = c;
+    }
+    return v - n;
+  }
 
 public:
   basic_segment_tree() = default;
   basic_segment_tree(basic_segment_tree const&) = default;
   basic_segment_tree(basic_segment_tree&&) = default;
 
-  basic_segment_tree(size_t n, first_type const& x = binary_operation().identity):
+  basic_segment_tree(size_type n, first_type const& x = binary_operation().identity):
     M_base_size(n),
     M_op1(binary_operation()),
     M_op2(external_binary_operation()),
     M_c(n+n, x)
   {
-    for (size_t i = n; i--;)
+    for (size_type i = n; i--;)
       M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
   }
 
@@ -39,16 +80,16 @@ public:
     M_op2(external_binary_operation()),
     M_c(M_base_size*2)
   {
-    for (size_t i = M_base_size; first != last; ++i)
+    for (size_type i = M_base_size; first != last; ++i)
       M_c[i] = *first++;
-    for (size_t i = M_base_size; i--;)
+    for (size_type i = M_base_size; i--;)
       M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
   }
 
   basic_segment_tree& operator =(basic_segment_tree const&) = default;
   basic_segment_tree& operator =(basic_segment_tree&&) = default;
 
-  void modify(size_t i, second_type const& x) {
+  void modify(size_type i, second_type const& x) {
     i += M_base_size;
     M_c[i] = M_op2(M_c[i], x);
     while (i > 1) {
@@ -57,7 +98,7 @@ public:
     }
   }
 
-  first_type accumulate(size_t l, size_t r) {
+  first_type accumulate(size_type l, size_type r) {
     first_type resl = M_op1.identity;
     first_type resr = resl;
     l += M_base_size;
@@ -69,5 +110,12 @@ public:
       r >>= 1;
     }
     return M_op1(resl, resr);
+  }
+
+  template <typename Predicate>
+  size_type bound(Predicate pred) {
+    value_type x;
+    size_type root = M_search_root(pred, x);
+    return M_search_leaf(pred, root, x);
   }
 };
