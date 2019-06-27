@@ -24,8 +24,9 @@ private:
     size_type res = 0;
     node = M_root;
     while (res < s.length()) {
-      auto it = node->children.find(s[res++]);
+      auto it = node->children.find(s[res]);
       if (it == node->children.end()) break;
+      ++res;
       node = it->second;
     }
     return res;
