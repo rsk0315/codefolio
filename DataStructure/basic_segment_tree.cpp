@@ -119,3 +119,20 @@ public:
     return M_search_leaf(pred, root, x);
   }
 };
+
+template <typename Tp>
+struct range_sum_single_add {
+  using first_type = Tp;
+  using second_type = Tp;
+  struct binary_operation {
+    first_type identity{};
+    first_type operator ()(first_type const& x, first_type const& y) const {
+      return x + y;
+    }
+  };
+  struct external_binary_operation {
+    first_type operator ()(first_type const& x, second_type const& y) const {
+      return x + y;
+    }
+  };
+};
