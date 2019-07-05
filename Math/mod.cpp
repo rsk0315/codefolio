@@ -1,4 +1,4 @@
-template <class Tp>
+template <typename Tp>
 Tp gcd(Tp a, Tp b, Tp& x, Tp& y) {
   x = Tp(0);
   y = Tp(1);
@@ -11,7 +11,7 @@ Tp gcd(Tp a, Tp b, Tp& x, Tp& y) {
   return b;
 }
 
-template <class Tp>
+template <typename Tp>
 Tp modinv(Tp a, Tp mod) {
   Tp x, y;
   gcd(a, mod, x, y);
@@ -20,7 +20,7 @@ Tp modinv(Tp a, Tp mod) {
   return x;
 }
 
-template <class Tp>
+template <typename Tp>
 Tp modadd(Tp a, Tp b, Tp mod) {
   a += b % mod;
   if (a < 0) a += mod;
@@ -28,10 +28,10 @@ Tp modadd(Tp a, Tp b, Tp mod) {
   return a;
 }
 
-template <class Tp>
-Tp modadd(const std::initializer_list<Tp>& adds, Tp mod) {
+template <typename Tp>
+Tp modadd(std::initializer_list<Tp> const& adds, Tp mod) {
   Tp res = 0;
-  for (const auto& add: adds) {
+  for (auto const& add: adds) {
     res += add % mod;
     if (res < 0) res += mod;
     if (res >= mod) res -= mod;
@@ -39,7 +39,7 @@ Tp modadd(const std::initializer_list<Tp>& adds, Tp mod) {
   return res;
 }
 
-template <class Tp>
+template <typename Tp>
 Tp modsub(Tp a, Tp b, Tp mod) {
   a -= b % mod;
   if (a < 0) a += mod;
@@ -48,13 +48,13 @@ Tp modsub(Tp a, Tp b, Tp mod) {
 }
 
 template <class Tp>
-Tp modmul(const std::initializer_list<Tp>& muls, Tp mod) {
+Tp modmul(std::initializer_list<Tp> const& muls, Tp mod) {
   Tp res = 1;
-  for (const auto& mul: muls) (res *= mul) %= mod;
+  for (auto const& mul: muls) (res *= mul) %= mod;
   return res;
 }
 
-template <class Tp>
+template <typename Tp>
 Tp modpow(Tp base, intmax_t iexp, Tp mod) {
   Tp res = 1;
   for (Tp dbl = base; iexp; iexp >>= 1) {

@@ -1,4 +1,4 @@
-intmax_t interpolate(const std::vector<intmax_t>& y, intmax_t x, intmax_t mod) {
+intmax_t interpolate(std::vector<intmax_t> const& y, intmax_t x, intmax_t mod) {
   // based on Lagrange interpolation
   // y[i] = f(i) where i in [0, n]
   assert(0 <= x);

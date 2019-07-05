@@ -1,22 +1,23 @@
-template <class Tp>
+template <typename Tp>
 class congruences {
-  Tp sol, mod=1;
+  Tp M_sol;
+  Tp M_mod = 1;
 
 public:
   congruences() {}
 
   std::pair<Tp, Tp> append(Tp a, Tp q) {
-    if (mod == 1) {
-      sol = a % (mod = q);
+    if (M_mod == 1) {
+      M_sol = a % (M_mod = q);
     } else {
-      Tp x = (modsub(a, sol, q) * modinv(mod, q)) % q;
-      sol += x * mod;
-      mod *= q;
+      Tp x = (modsub(a, M_sol, q) * modinv(M_mod, q)) % q;
+      M_sol += x * M_mod;
+      M_mod *= q;
     }
-    return {sol, mod};
+    return {M_sol, M_mod};
   }
 
   std::pair<Tp, Tp> get() const {
-    return {sol, mod};
+    return {M_sol, M_mod};
   }
 };
