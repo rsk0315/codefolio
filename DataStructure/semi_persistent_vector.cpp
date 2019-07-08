@@ -1,5 +1,5 @@
 template <typename Tp>
-class semi_persistent_array {
+class semi_persistent_vector {
 public:
   using size_type = size_t;
   using value_type = Tp;
@@ -9,10 +9,10 @@ private:
   size_type last = 0;
 
 public:
-  semi_persistent_array() = default;
-  semi_persistent_array(semi_persistent_array const&) = default;
-  semi_persistent_array(semi_persistent_array&&) = default;
-  semi_persistent_array(size_type n, value_type const& x = value_type{}):
+  semi_persistent_vector() = default;
+  semi_persistent_vector(semi_persistent_vector const&) = default;
+  semi_persistent_vector(semi_persistent_vector&&) = default;
+  semi_persistent_vector(size_type n, value_type const& x = value_type{}):
     M_c(n, {std::make_pair(0, x)})
   {}
 

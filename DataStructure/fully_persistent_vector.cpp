@@ -1,5 +1,5 @@
 template <typename Tp, size_t D = 4>
-class fully_persistent_array {
+class fully_persistent_vector {
 public:
   using size_type = size_t;
   using value_type = Tp;
@@ -31,7 +31,7 @@ private:
   snapshot_ptr M_root = nullptr;
 
 public:
-  fully_persistent_array(size_type n, value_type const& x = value_type{}) {
+  fully_persistent_vector(size_type n, value_type const& x = value_type{}) {
     std::queue<base_ptr> q;
     base_ptr root = nullptr;
     size_type m = 0;

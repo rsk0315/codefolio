@@ -4,11 +4,11 @@
 #include <vector>
 #include <random>
 
-#include "../../DataStructure/semi_persistent_array.cpp"
+#include "../../DataStructure/semi_persistent_vector.cpp"
 
 int main() {
   size_t n = 10;
-  semi_persistent_array<int> spa(n);
+  semi_persistent_vector<int> spa(n);
   size_t t = 10;
   std::mt19937 rsk(0315);
   std::uniform_int_distribution<size_t> neko(0, n-1);

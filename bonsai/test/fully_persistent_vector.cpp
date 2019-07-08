@@ -7,11 +7,11 @@
 
 #include <random>
 
-#include "../../DataStructure/fully_persistent_array.cpp"
+#include "../../DataStructure/fully_persistent_vector.cpp"
 
 int main() {
   size_t n = 10;
-  fully_persistent_array<int> fpa(n);
+  fully_persistent_vector<int> fpa(n);
   // auto ss0 = fpa.get_snapshot();
   // for (size_t i = 0; i < n; ++i)
   //   printf("%d%c", ss0.get(i), i+1<n? ' ':'\n');
@@ -24,7 +24,7 @@ int main() {
   std::uniform_int_distribution<size_t> nya(0, n-1);
   std::uniform_int_distribution<int> neko(0, 99);
 
-  using snapshot = typename fully_persistent_array<int>::snapshot;
+  using snapshot = typename fully_persistent_vector<int>::snapshot;
   std::vector<snapshot> ss;
   ss.push_back(fpa.get_snapshot());
 
