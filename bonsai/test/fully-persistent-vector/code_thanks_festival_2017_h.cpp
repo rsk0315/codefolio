@@ -6,7 +6,7 @@
 #include <queue>
 #include <array>
 
-template <typename Tp, size_t B = 4>
+template <typename Tp, size_t B = 3>
 class fully_persistent_vector {
 public:
   using size_type = size_t;
@@ -26,17 +26,68 @@ private:
   };
   using base_ptr = std::shared_ptr<M_node>;
 
-  struct M_snapshot {
-    using snapshot_ptr = std::shared_ptr<M_snapshot>;
-    base_ptr root = nullptr;
-    // snapshot_ptr parent = nullptr;
-    // std::vector<snapshot_ptr> children;
-    M_snapshot() = default;
-    M_snapshot(M_snapshot const&) = default;  // ?
-    M_snapshot(M_snapshot&&) = default;
-    M_snapshot(base_ptr root): root(root) {}
+public:
+  class snapshot {
+    friend fully_persistent_vector;
+    using snapshot_ptr = std::shared_ptr<snapshot>;
+    base_ptr M_root;
+    snapshot(base_ptr root): M_root(root) {}
+
+  public:
+    snapshot() = default;
+    snapshot(snapshot const&) = default;
+    snapshot(snapshot&&) = default;
+    snapshot& operator =(snapshot const&) = default;
+    snapshot& operator =(snapshot&&) = default;
+
+    value_type get(size_type i) const {
+      base_ptr node = M_root;
+      size_t j = 0;
+      size_t h = 0;
+      while (j < i) {
+        ++h;
+        ++j <<= S_log_branch;
+      }
+      size_t shift = (h-1) * S_log_branch;
+      while (h--) {
+        j >>= S_log_branch;
+        size_t b = (i-j) >> shift;
+        node = node->children[b];
+        i -= (b+1) << shift;
+        shift -= S_log_branch;
+      }
+      return node->value;
+    }
+
+    snapshot set(size_type i, value_type const& x) {
+      base_ptr root0(M_root);
+      base_ptr root1(new M_node(root0->value));
+      snapshot_ptr new_ss(new snapshot(root1));
+      size_t j = 0;
+      size_t h = 0;
+      while (j < i) {
+        ++h;
+        ++j <<= S_log_branch;
+      }
+      size_t shift = (h-1) * S_log_branch;
+      while (h--) {
+        j >>= S_log_branch;
+        size_type b = (i-j) >> shift;
+        root1->children = root0->children;
+        root0 = root0->children[b];
+        root1 = root1->children[b] = base_ptr(new M_node(root0->value));
+        i -= (b+1) << shift;
+        shift -= S_log_branch;
+      }
+      root1->value = x;
+      root1->children = root0->children;
+
+      return *new_ss;
+    }
   };
-  using snapshot_ptr = std::shared_ptr<M_snapshot>;
+  using snapshot_ptr = std::shared_ptr<snapshot>;
+
+private:
   snapshot_ptr M_root = nullptr;
 
 public:
@@ -53,7 +104,6 @@ public:
       if (m >= n) break;
       base_ptr v = q.front();
       q.pop();
-      // v->children.resize(S_branch, nullptr);
       v->children = {};
       for (size_type i = 0; i < S_branch; ++i) {
         v->children[i] = base_ptr(new M_node(x));
@@ -61,62 +111,10 @@ public:
         if (++m >= n) break;
       }
     }
-    M_root = snapshot_ptr(new M_snapshot(root));
+    M_root = snapshot_ptr(new snapshot(root));
   }
 
-  class snapshot {
-    snapshot_ptr M_ss;
-
-  public:
-    snapshot(snapshot_ptr ss): M_ss(ss) {}
-
-    value_type get(size_type i) const {
-      base_ptr node = M_ss->root;
-      size_t j = 0;
-      size_t h = 0;
-      while (j < i) {
-        ++h;
-        ++j <<= S_log_branch;
-      }
-      while (h--) {
-        j >>= S_log_branch;
-        size_t b = (i-j) >> (h * S_log_branch);
-        node = node->children[b];
-        i -= (b+1) << (h * S_log_branch);
-      }
-      return node->value;
-    }
-
-    snapshot set(size_type i, value_type const& x) {
-      base_ptr root0(M_ss->root);
-      base_ptr root1(new M_node(root0->value));
-      snapshot_ptr new_ss(new M_snapshot(root1));
-      size_t j = 0;
-      size_t h = 0;
-      while (j < i) {
-        ++h;
-        ++j <<= S_log_branch;
-      }
-      while (h--) {
-        j >>= S_log_branch;
-        size_type b = (i-j) >> (h * S_log_branch);
-        root1->children = root0->children;
-        root0 = root0->children[b];
-        root1 = root1->children[b] = base_ptr(new M_node(root0->value));
-        i -= (b+1) << (h * S_log_branch);
-      }
-      root1->value = x;
-      root1->children = root0->children;
-
-      // M_ss->children.push_back(new_ss);
-      // new_ss->parent = M_ss;
-      return snapshot(new_ss);
-    }
-  };
-
-  snapshot get_snapshot() const {
-    return snapshot(M_root);
-  }
+  snapshot get_snapshot() const { return *M_root; }
 };
 
 using snapshot = typename fully_persistent_vector<int>::snapshot;
