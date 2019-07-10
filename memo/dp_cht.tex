@@ -30,14 +30,22 @@ $p(j)$や$r(j)$は$\DP[j]$を含む式でもいいし，関係ない式でも問
 また，$\DP[0]$の値は計算できているとする．
 \begin{alg}
   \caption{CHTで高速化したDP}
-  {$\mathcal{S} \gets \{p(0)\cdot x+r(0)\}$}\;
+  %% {$\mathcal{S} \gets \{p(0)\cdot x+r(0)\}$}\;
+  {$\mathcal{S} \gets \{\}$}\;
   \For{$i \in \{1, \dots, N-1\}$}
   {
+    {$\mathcal{S} \gets \mathcal{S} \cup \{p(i-1)\cdot x+r(i-1)\}$}\;
     {$\displaystyle\DP[i] \gets \min_{ax+b\in\mathcal{S}} \{a\cdot q(i)+b\}+s(i)$}\;
-    {$\mathcal{S} \gets \mathcal{S} \cup \{p(i)\cdot x+r(i)\}$}\;
   }
 \end{alg}
 
-
+このような遷移に変形させることができれば勝ちなので，それを意識して式変形するとよい．
+たとえば，以下のような変形が例として挙げられる．
+\begin{align*}
+  \min_{0\le j < i}\,\{\DP[j] + (i-j)^2 + C\}
+  &= \min_{0\le j < i}\,\{\DP[j] + i^2-2ij+j^2+C\}\\
+  &= \min_{0\le j < i}\,\{(-2j)\cdot i + (j^2+\DP[j])\} + (i^2+C).
+\end{align*}
+convex hull trickの実装としてLi--Chao treeを用いる場合などは，$q(i)$の取りうる最大値が小さくなるように変形すると，クエリ先読みなどの必要がなくなることがあったりしてうれしそう．
 
 \end{document}
