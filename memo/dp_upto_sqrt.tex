@@ -1,0 +1,87 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\DP}{\ensuremath\mathrm{dp}}
+
+\begin{document}
+\section{状態を$O(\sqrt n)$個にまとめるDP}
+
+愚直には以下のような遷移をするDPを考える．
+\begin{alg}
+  \caption{愚直なDP}
+  \For{$i \in \{1, \dots, K\}$}
+  {
+    \For{$j \in \{1, \dots, N\}$}
+    {
+      {$\displaystyle\DP[i][j] \gets \sum_{k=1}^{\lfloor N/j\rfloor} \DP[i-1][k]$}\;
+    }
+  }
+\end{alg}
+
+\noindent
+$\sum$の部分は累積和を用意することで$O(1)$で計算可能としても，全体では$O(KN)$時間と$O(N)$要素ぶんの空間が必要となる\footnote{前のテーブルと今のテーブルだけ確保するやつを必要に応じて使う．}．
+
+ここで，$\sum$の上限である$\lfloor N/j\rfloor$が等しい$j$たちについては$\DP[i][j]$の値は同じになることがわかる．
+$j < \sqrt N$である$j$は$O(\sqrt N)$個しかなく，$j \ge \sqrt N$である$j$に対して$\lfloor N/j\rfloor$は$O(\sqrt N)$個しかないことから，状態の個数を$O(\sqrt N)$個にまとめられることがわかる．
+また，以下のようにしてその状態たちを求めることができる．
+\begin{alg}
+  \caption{まとめる状態を求める}
+  {$S \gets \{0\}$}\;
+  {$i \gets 1$}\;
+  \While{$i\times i \le N$}
+  {
+    {$S \gets S \cup \{i, \lfloor N/i\rfloor\}$}\;
+    {$i \gets i+1$}\;
+  }
+\end{alg}
+\noindent
+この処理のあと
+\[S = \{a_0, a_1, \dots, a_{M-1}\},\text{ where }a_0 = 0 < a_1 < \dots < a_{M-1}\]
+とすると，各$j$について$k \in (a_{j-1}, a_j]$は同じ状態としてまとめられる．
+まとめられた状態から別の状態に値を渡すとき，まとめた個数を掛ける必要があるので，次のようになる．
+以下で，$\DP[i][j]$は各$i$に関して$(a_{j-1}, a_j]$でまとめた状態の値を管理する．
+時間計算量は$O(KM) = O(K\sqrt N)$．
+\begin{alg}
+  \caption{状態をまとめたあとのDP}
+  \For{$i \in \{1, \dots, K\}$}
+  {
+    \For{$j \in \{1, \dots, M-1\}$}
+    {
+      {$\displaystyle\DP[i][j] \gets \left(\sum_{k=1}^{M-j}\DP[i-1][k]\right) \times (a_j-a_{j-1})$}\;
+    }
+  }
+\end{alg}
+
+\begin{minted}{c++}
+  int main() {
+    size_t N, K;
+    scanf("%zu %zu", &N, &K);
+  
+    std::vector<size_t> a{0};
+    for (size_t i = 1; i * i <= N; ++i) {
+      a.push_back(i);
+      a.push_back(N/i);
+    }
+    std::sort(a.begin(), a.end());
+    a.erase(std::unique(a.begin(), a.end()), a.end());
+  
+    size_t M = a.size();
+    std::vector<std::vector<intmax_t>> dp(K, std::vector<intmax_t>(M));
+    for (size_t j = 1; j < M; ++j) {
+      dp[0][j] = a[j] - a[j-1];
+      (dp[0][j] += dp[0][j-1]) %= mod;
+    }
+  
+    for (size_t i = 1; i < K; ++i) {
+      for (size_t j = 1; j < M; ++j) {
+        dp[i][j] = dp[i-1][M-j] * (a[j]-a[j-1]) % mod;
+        (dp[i][j] += dp[i][j-1]) %= mod;
+      }
+    }
+  
+    printf("%jd\n", dp[K-1][M-1]);
+  }
+\end{minted}
+
+\end{document}

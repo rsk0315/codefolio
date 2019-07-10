@@ -1,0 +1,143 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\DP}{\ensuremath\mathrm{dp}}
+
+\begin{document}
+\section{全方位木DP}
+$n$頂点の木が与えられる．ある頂点$r$を根として以下のようなDPを考える．
+\begin{itemize}
+\item 頂点$i$が葉のとき$\DP[i]$は既知である．
+\item 頂点$i$が内部節点で$(c_{i,1}, \dots, c_{i,m})$を子に持つとき$\DP[i]$は$(\DP[c_{i,1}], \dots, \DP[c_{i,m}])$から計算できる．
+\item 最終的に求めたい答えは$\DP[r]$である．
+\end{itemize}
+このアルゴリズムは，上のDPで$r=1, \dots, n$としたときそれぞれについての$\DP[r]$を$O(n)$で求める\footnote{ここ正確ではなくて，各マージの際の単位演算を$O(n)$回行うみたいなことが言いたい．}．
+
+いま，適当な関数$f$と演算$\oplus$が定義されて$\DP[i]$が次のように計算できるとする．
+\[\DP[i] = f(\DP[c_{i,1}]) \oplus \dots \oplus f(\DP[c_{i,m}])\]
+頂点$i$を根として見たとき，$i$のある子$c_{i,k}$以下の部分木がない木における$\DP[i]$を$\DP[i]_k$と書くことにすると，これは次のようになっているはずである．
+\[\DP[i]_k = f(\DP[c_{i,1}]) \oplus \dots \oplus f(\DP[c_{i,k-1}]) \oplus f(\DP[c_{i,k+1}]) \oplus \dots \oplus f(\DP[c_{i,m}])\]
+このアルゴリズムではこれを高速に求められる必要があるので，左右からの累積和を用いて次のように書けるとする\footnote{適当に単位元を番兵としておいておく．たぶん葉での値が単位元になると思う．}．
+\begin{align*}
+  \DP_L[i][j] &= f(\DP[c_{i,1}]) \oplus \dots \oplus f(\DP[c_{i,j-1}])\\
+  \DP_R[i][j] &= f(\DP[c_{i,j}]) \oplus \dots \oplus f(\DP[c_{i,m}])\\
+  \DP[i]_k &= \DP_L[i][k] \oplus \DP_R[i][k+1]
+\end{align*}
+
+全体としては，DFSを2回行う．
+最初のDFSでは頂点$1$を根としたときのDPを求め，次のDFSではその結果を元に各頂点を根としたときのDPを求める．
+
+木を隣接リスト表現で管理しているとする．このとき，$i$に関する隣接リストの$j$番目の要素は，対象の木を$i$を根として見たときの$j$番目の子として考えることができる．
+また，頂点$i$に関する隣接リストの$j$番目の要素が，頂点$1$を根としたときの$i$の親であるとき，$p[i] = j$とする．
+
+各頂点$i$に対し，$i$の次数が$\delta(i)$のとき，$\DP_L[i]$および$\DP_R[i]$を要素数$\delta(i)+1$の配列としておき，各要素を$\oplus$の単位元で初期化しておく．
+$\DP[i]$を$i$を根としたときの問題の答えとする．
+
+\newpage
+\begin{alg}
+  \caption{最初のDFS}
+  \Function(\textsc{Dfs0}{$(i, p)$})
+  {
+    {$x \gets d$}\Comment*{答えをDPの初期値で初期化}
+    \For{$j \in \{1, \dots, n\}$}
+    {
+      {$u \gets g[i][j]$}\;
+      \If{$u = p$}{
+        {$p[i] \gets j$}\;
+        \Continue\;
+      }
+      {$y \gets f(\text{\textsc{Dfs0}}(u, i))$}\;
+      {$x \gets x \oplus y$}\;
+      {$\DP_L[i][j+1] \gets \DP_R[i][j] \gets y$}\;
+    }
+    \Return{$x$}\;
+  }
+\end{alg}
+
+\begin{alg}
+  \caption{二回目のDFS}
+  \Function(\textsc{Dfs1}{$(i, p, p_i)$})
+  {
+    \If{$i \neq 1$}
+    {
+      {$y \gets f(d \oplus \DP_L[p][p_i] \oplus \DP_R[p][p_i+1])$}\;
+      {$\DP_L[i][p[i]+1] \gets \DP_R[i][p[i]] \gets y$}\;
+    }
+    \For{$j \in \{2, \dots, \delta(i)\}$}
+    {
+      {$\DP_L[i][j] \gets \DP_L[i][j] \oplus \DP_L[i][j-1]$}\;
+    }
+    \For{$j \in \{\delta(i)-1, \dots, 1\}$}
+    {
+      {$\DP_R[i][j] \gets \DP_R[i][j] \oplus \DP_R[i][j+1]$}\;
+    }
+    {$\DP[i] = (d \oplus \DP_R[i][1])$}\;
+    \For{$j \in \{1, \dots, \delta(i)\}$}
+    {
+      {$u \gets g[i][j]$}\;
+      \lIf{$i \neq p$}{$\text{\textsc{Dfs1}}(u, i, j)$}
+    }
+  }
+\end{alg}
+
+$\text{\textsc{Dfs0}}(1, 0)$および$\text{\textsc{Dfs1}}(1, 0, 0)$を呼び出すとよい．
+
+\begin{minted}{c++}
+  std::vector<intmax_t> dp_on_tree(const tree& g) {
+    size_t n = g.size();
+    std::vector<size_t> parent(n, -1);
+  
+    std::pair<intmax_t, intmax_t> const leaf(1, 1);
+    std::pair<intmax_t, intmax_t> const unit(0, 0);
+    auto f = [](std::pair<intmax_t, intmax_t> const& c) {
+        return std::make_pair(c.first, c.first+c.second);
+    };
+  
+    std::vector<std::vector<std::pair<intmax_t, intmax_t>>> dp0(n), dp1(n);
+    std::vector<intmax_t> dp(n);
+    for (size_t i = 0; i < n; ++i) {
+      dp0[i].resize(g[i].size()+1, unit);
+      dp1[i].resize(g[i].size()+1, unit);
+    }
+  
+    make_fix_point([&](auto dfs0, size_t v, size_t p) -> std::pair<intmax_t, intmax_t> {
+        std::pair<intmax_t, intmax_t> res = leaf;
+        for (size_t i = 0; i < g[v].size(); ++i) {
+          size_t u = g[v][i];
+          if (u == p) {
+            parent[v] = i;
+            continue;
+          }
+          std::pair<intmax_t, intmax_t> tmp = f(dfs0(u, v));
+          res += tmp;
+          dp0[v][i+1] = dp1[v][i] = tmp;
+        }
+        return res;
+    })(0, -1);
+  
+    make_fix_point([&](auto dfs1, size_t v, size_t p, size_t pi) -> void {
+        if (v != 0) {
+          std::pair<intmax_t, intmax_t> tmp = f(leaf + dp0[p][pi] + dp1[p][pi+1]);
+          dp0[v][parent[v]+1] = tmp;
+          dp1[v][parent[v]] = tmp;
+        }
+        {
+          for (size_t i = 1; i < dp0[v].size(); ++i)
+            dp0[v][i] += dp0[v][i-1];
+          for (size_t i = dp1[v].size()-1; i--;)
+            dp1[v][i] += dp1[v][i+1];
+    
+          dp[v] = (leaf + dp0[v][0] + dp1[v][0]).second;
+        }
+        for (size_t i = 0; i < g[v].size(); ++i) {
+          size_t u = g[v][i];
+          if (u != p) dfs1(u, v, i);
+        }
+    })(0, -1, -1);
+  
+    return dp;
+  }
+\end{minted}
+
+\end{document}
