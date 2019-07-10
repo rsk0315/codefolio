@@ -1,0 +1,43 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\DP}{\ensuremath\mathrm{dp}}
+
+\begin{document}
+\section{CHTで高速化するDP}
+
+以下のような遷移をするDPを考える．
+\begin{alg}
+  \caption{愚直なDP}
+  \For{$i \in \{1, \dots, N-1\}$}
+  {
+    {$\displaystyle\DP[i] \gets \min_{0\le j < i}\,\{p(j)\cdot q(i) + r(j)\} + s(i)$}\;
+  }
+\end{alg}
+
+\noindent
+$p(j)$や$r(j)$は$\DP[j]$を含む式でもいいし，関係ない式でも問題ない．
+
+ここで，直線の集合に関する以下の処理をできるデータ構造を用意する．これはconvex hull trickなどと呼ばれるものである．
+\begin{itemize}
+\item 直線$y=ax+b$を追加する
+\item 管理している直線のうち，$x=x_0$での$y$の最小値を答える
+\end{itemize}
+
+これを用いると，上のDPは以下のように高速化できる．
+直線の集合を$\mathcal{S}$とし，このデータ構造を用いて管理する．
+また，$\DP[0]$の値は計算できているとする．
+\begin{alg}
+  \caption{CHTで高速化したDP}
+  {$\mathcal{S} \gets \{p(0)\cdot x+r(0)\}$}\;
+  \For{$i \in \{1, \dots, N-1\}$}
+  {
+    {$\displaystyle\DP[i] \gets \min_{ax+b\in\mathcal{S}} \{a\cdot q(i)+b\}+s(i)$}\;
+    {$\mathcal{S} \gets \mathcal{S} \cup \{p(i)\cdot x+r(i)\}$}\;
+  }
+\end{alg}
+
+
+
+\end{document}
