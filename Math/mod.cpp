@@ -47,7 +47,7 @@ Tp modsub(Tp a, Tp b, Tp mod) {
   return a;
 }
 
-template <class Tp>
+template <typename Tp>
 Tp modmul(std::initializer_list<Tp> const& muls, Tp mod) {
   Tp res = 1;
   for (auto const& mul: muls) (res *= mul) %= mod;
