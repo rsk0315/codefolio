@@ -8,9 +8,9 @@ private:
   using interval_type = std::pair<value_type, value_type>;
   using line_type = std::pair<value_type, value_type>;
   std::map<interval_type, line_type> M_lines;
-  std::map<line_type, interval_type> M_intervals;
-  static constexpr value_type S_min = std::numeric_limits<value_type>::min();
-  static constexpr value_type S_max = std::numeric_limits<value_type>::max();
+  std::map<line_type, interval_type, std::greater<line_type>> M_intervals;
+  static const value_type S_min = std::numeric_limits<value_type>::min();
+  static const value_type S_max = std::numeric_limits<value_type>::max();
 
   static value_type S_floor(value_type x, value_type y) {
     value_type q = x / y;
@@ -58,37 +58,43 @@ public:
     if (it0 != M_intervals.end()) {
       value_type a0, b0;
       std::tie(a0, b0) = it0->first;
-      lb = S_ceil(-(a-a0), b-b0);  // XXX this may cause overflow
+      lb = S_ceil(b-b0, -(a-a0));  // XXX this may cause overflow
     }
     if (it1 != M_intervals.end()) {
       value_type a1, b1;
       std::tie(a1, b1) = it1->first;
-      ub = S_floor(-(a1-a), b1-b);  // XXX this may cause overflow
+      ub = S_floor(b1-b, -(a1-a));  // XXX this may cause overflow
     }
     if (ub < lb) return false;
 
     if (it0 != M_intervals.end()) {
       while (lb <= it0->second.first) {
-        M_lines.erase(it0->first);
+        M_lines.erase(it0->second);
         it0 = M_intervals.erase(it0);
         if (it0 == M_intervals.begin()) {
           it0 = M_intervals.end();
           break;
         }
         --it0;
+        value_type a0, b0;
+        std::tie(a0, b0) = it0->first;
+        lb = S_ceil(b-b0, -(a-a0));
       }
     }
 
     while (it1 != M_intervals.end() && it1->second.second <= ub) {
-      M_lines.erase(it1->first);
+      M_lines.erase(it1->second);
       it1 = M_intervals.erase(it1);
+      value_type a1, b1;
+      std::tie(a1, b1) = it1->first;
+      ub = S_floor(b1-b, -(a1-a));
     }
 
     if (it0 != M_intervals.end()) {
       value_type a0, b0, l0, u0;
       std::tie(a0, b0) = it0->first;
       std::tie(l0, u0) = it0->second;
-      it0->second = std::min(u0, lb-1);
+      it0->second.second = std::min(u0, lb-1);
       M_lines.erase(interval_type(l0, u0));
       M_lines[it0->second] = it0->first;
     }
@@ -96,18 +102,25 @@ public:
       value_type a1, b1, l1, u1;
       std::tie(a1, b1) = it1->first;
       std::tie(l1, u1) = it1->second;
-      it1->second = std::max(l1, ub+1);
+      it1->second.first = std::max(l1, ub+1);
       M_lines.erase(interval_type(l1, u1));
       M_lines[it1->second] = it1->first;
     }
+
+    M_lines[interval_type(lb, ub)] = line_type(a, b);
+    M_intervals[line_type(a, b)] = interval_type(lb, ub);
 
     return true;
   }
 
   value_type min_at(value_type const& x) {
     // return the minimum value at x
+
     value_type a, b;
     std::tie(a, b) = (--M_lines.upper_bound(interval_type(x, S_max)))->second;
     return a*x + b;
   }
 };
+
+template <typename Tp> Tp const linear_minima<Tp>::S_min;
+template <typename Tp> Tp const linear_minima<Tp>::S_max;
