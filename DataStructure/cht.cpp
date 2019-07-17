@@ -33,8 +33,8 @@ public:
   linear_minima& operator =(linear_minima const&) = default;
   linear_minima& operator =(linear_minima&&) = default;
 
-  bool append(value_type const& a, value_type const& b) {
-    // try to append y = ax+b; return true if it is actually appended
+  bool push(value_type const& a, value_type const& b) {
+    // try to push y = ax+b; return true if it is actually pushed
     if (M_lines.empty()) {
       M_lines[interval_type(S_min, S_max)] = line_type(a, b);
       M_intervals[line_type(a, b)] = interval_type(S_min, S_max);
@@ -113,9 +113,8 @@ public:
     return true;
   }
 
-  value_type min_at(value_type const& x) {
+  value_type at(value_type const& x) {
     // return the minimum value at x
-
     value_type a, b;
     std::tie(a, b) = (--M_lines.upper_bound(interval_type(x, S_max)))->second;
     return a*x + b;
