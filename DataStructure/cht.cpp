@@ -12,6 +12,20 @@ private:
   static constexpr value_type S_min = std::numeric_limits<value_type>::min();
   static constexpr value_type S_max = std::numeric_limits<value_type>::max();
 
+  static value_type S_floor(value_type x, value_type y) {
+    value_type q = x / y;
+    value_type r = x % y;
+    if (r < 0) --q;
+    return q;
+  }
+
+  static value_type S_ceil(value_type x, value_type y) {
+    value_type q = x / y;
+    value_type r = x % y;
+    if (r > 0) ++q;
+    return q;
+  }
+
 public:
   linear_minima() = default;
   linear_minima(linear_minima const&) = default;
