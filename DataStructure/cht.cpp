@@ -9,8 +9,8 @@ private:
   using line_type = std::pair<value_type, value_type>;
   std::map<interval_type, line_type> M_lines;
   std::map<line_type, interval_type, std::greater<line_type>> M_intervals;
-  static const value_type S_min = std::numeric_limits<value_type>::min();
-  static const value_type S_max = std::numeric_limits<value_type>::max();
+  static value_type const S_min = std::numeric_limits<value_type>::min();
+  static value_type const S_max = std::numeric_limits<value_type>::max();
 
   static value_type S_floor(value_type x, value_type y) {
     value_type q = x / y;
