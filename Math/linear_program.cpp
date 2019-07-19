@@ -47,9 +47,14 @@ private:
     std::swap(ni[e], bi[l]);
   }
 
+  static size_type S_any_positive(value_type const& c) {
+    for (size_type i = 0; i < c.size(); ++i)
+      if (c[i] > 0) return i;
+    return -1;
+  }
+
   static value_type S_initialize(indices_type& ni, indices_type& bi,
                                  matrix_type& a, vector_type& b, vector_type& c) {
-
     size_type m = b.size();
     size_type n = c.size();
     size_type k = std::min_element(b.begin(), b.end()) - b.begin();
@@ -63,6 +68,27 @@ private:
     }
 
     
+  }
+
+  static void S_simplex(indices_type& ni, indices_type& bi,
+                        matrix_type& a, vector_type& b, vector_type& c,
+                        value_type& v) {
+
+    if (std::isnan(v)) return S_infeasible;
+    while (true) {
+      size_type e = S_any_positive(c);
+      if (e+1 == 0) break;
+
+      vector_type delta(m, S_unbounded);
+      for (size_type i = 0; i < m; ++i)
+        a[i][e] = b[i] / a[i][e];
+
+      auto it = std::min_element(delta.begin(), delta.end());
+      if (std::isinf(*it)) return S_unbounded;
+
+      size_type l = it - delta.begin();
+      S_pivot(ni, bi, a, b, c, v, l, e);
+    }
   }
 
 public:
@@ -85,22 +111,8 @@ public:
 
     indices_type ni, bi;
     value_type v = S_initialize(ni, bi, a, b, c);
-    if (std::isnan(v)) return S_infeasible;
 
-    while (true) {
-      size_type e = S_any_positive(c);
-      if (e+1 == 0) break;
-
-      vector_type delta(m, S_unbounded);
-      for (size_type i = 0; i < m; ++i)
-        a[i][e] = b[i] / a[i][e];
-
-      auto it = std::min_element(delta.begin(), delta.end());
-      if (std::isinf(*it)) return S_unbounded;
-
-      size_type l = it - delta.begin();
-      S_pivot(ni, bi, a, b, c, v, l, e);
-    }
+    S_simplex(ni, bi, a, b, c, v);
     return std::accumulate(b.begin(), b.end(), value_type{});
   }
 };
