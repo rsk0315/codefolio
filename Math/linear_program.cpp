@@ -162,15 +162,12 @@ public:
                              Vector const& b0, Vector const& c0) {
 
     size_type m = b0.size();
-    size_type n = c0.size();
-
     matrix_type a(m);
     for (size_type i = 0; i < m; ++i)
       a[i] = vector_type(a0[i].begin(), a0[i].end());
 
     vector_type b(b0.begin(), b0.end());
     vector_type c(c0.begin(), c0.end());
-
     indices_type ni, bi;
     value_type v{};
     if (!S_initialize(ni, bi, a, b, c, v)) return S_infeasible;
@@ -179,5 +176,5 @@ public:
   }
 };
 
-template <typename Tp> Tp const linear_program<Tp>::S_infeasible;
-template <typename Tp> Tp const linear_program<Tp>::S_unbounded;
+template <typename Tp> constexpr Tp const linear_program<Tp>::S_infeasible;
+template <typename Tp> constexpr Tp const linear_program<Tp>::S_unbounded;
