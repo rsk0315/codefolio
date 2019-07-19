@@ -34,32 +34,6 @@ private:
     return res;
   }
 
-  static void S_inspect(matrix_type const& a,
-                        vector_type const& b, vector_type const& c,
-                        indices_type const& ni, indices_type const& bi) {
-
-    size_type m = b.size();
-    size_type n = c.size();
-    fprintf(stderr, "---\n");
-    fprintf(stderr, "a:\n");
-    for (size_type i = 0; i < m; ++i)
-      for (size_type j = 0; j < n; ++j)
-        fprintf(stderr, "%.3f%c", a[i][j], j+1<n? ' ': '\n');
-    fprintf(stderr, "b:\n");
-    for (size_type i = 0; i < m; ++i)
-      fprintf(stderr, "%.3f%c", b[i], i+1<m? ' ': '\n');
-    fprintf(stderr, "c:\n");
-    for (size_type j = 0; j < n; ++j)
-      fprintf(stderr, "%.3f%c", c[j], j+1<n? ' ': '\n');
-    fprintf(stderr, "bi:\n");
-    for (size_type i = 0; i < m; ++i)
-      fprintf(stderr, "%zu%c", bi[i], i+1<m? ' ': '\n');
-    fprintf(stderr, "ni:\n");
-    for (size_type j = 0; j < n; ++j)
-      fprintf(stderr, "%zu%c", ni[j], j+1<n? ' ': '\n');
-    fprintf(stderr, "---\n");
-  }
-
   static void S_pivot(indices_type& ni, indices_type& bi,
                       matrix_type& a, vector_type& b, vector_type& c,
                       value_type& v, size_type l, size_type e) {
@@ -84,7 +58,6 @@ private:
       a[i][e] *= -a[l][e];
     }
     v += c[e] * b[l];
-    fprintf(stderr, "v <- %.20f\n", v);
 
     for (size_type j = 0; j < n; ++j) {
       if (j == e) continue;
@@ -92,7 +65,6 @@ private:
     }
     c[e] *= -a[l][e];
     std::swap(ni[e], bi[l]);
-    S_inspect(a, b, c, ni, bi);
   }
 
   static value_type S_initialize(indices_type& ni, indices_type& bi,
@@ -100,13 +72,12 @@ private:
                                  value_type& v) {
     size_type m = b.size();
     size_type n = c.size();
-    // size_type k = std::min_element(b.begin(), b.end()) - b.begin();
-    size_type k = S_argmin(b, bi);
     ni.resize(n);
     bi.resize(m);
     std::iota(ni.begin(), ni.end(), 0);
     std::iota(bi.begin(), bi.end(), n);
     v = value_type{0};
+    size_type k = S_argmin(b, bi);
     if (b[k] >= value_type{0}) {
       // the initial basic solution is feasible
       return true;
@@ -117,18 +88,11 @@ private:
 
     vector_type c0(n+1);
     c0[n] = value_type{-1};
-
-    // S_inspect(a, b, c0, ni, bi);
-
     S_pivot(ni, bi, a, b, c0, v, k, n);
-
-    // S_inspect(a, b, c, ni, bi);
-
     S_simplex(ni, bi, a, b, c0, v);
 
     for (size_type i = 0; i < bi.size(); ++i) {
       if (bi[i] == n+m) {
-        fprintf(stderr, "? %.12f\n", b[bi[i]]);
         if (b[bi[i]] != value_type{0}) {
           // XXX -Wfloat-equal
           return false;
@@ -143,11 +107,8 @@ private:
     // variable in this objective function by the right-hand side of its
     // associated constraint
 
-    S_inspect(a, b, c0, ni, bi);
-
     for (size_type j = 0; j <= n; ++j) {
       if (ni[j] != n+m) continue;
-      fprintf(stderr, "erasing %zu\n", j);
       for (auto& ai: a) ai.erase(ai.begin()+j);
       c0.erase(c0.begin()+j);
       ni.erase(ni.begin()+j);
@@ -171,10 +132,6 @@ private:
       }
       c = std::move(c1);
     }
-
-    S_inspect(a, b, c, ni, bi);
-
-    // return /* the modified final slack form */;
     return true;
   }
 
@@ -186,23 +143,13 @@ private:
     while (true) {
       size_type e = S_any_positive(c);
       if (e+1 == 0) return true;
-      fprintf(stderr, "c[%zu]: %.3f\n", e, c[e]);
-
-      S_inspect(a, b, c, ni, bi);
 
       vector_type delta(m, S_unbounded);
       for (size_type i = 0; i < m; ++i)
         if (a[i][e] > 0) delta[i] = b[i] / a[i][e];
 
-      for (size_type i = 0; i < m; ++i)
-        fprintf(stderr, "%.3f%c", delta[i], i+1<m? ' ': '\n');
-
-      // auto it = std::min_element(delta.begin(), delta.end());
-      // if (*it == S_unbounded) return false;
       size_type l = S_argmin(delta, bi);
       if (delta[l] == S_unbounded) return false;
-
-      // size_type l = it - delta.begin();
       S_pivot(ni, bi, a, b, c, v, l, e);
     }
   }
@@ -217,7 +164,6 @@ public:
     size_type m = b0.size();
     size_type n = c0.size();
 
-    // FIXME better design
     matrix_type a(m);
     for (size_type i = 0; i < m; ++i)
       a[i] = vector_type(a0[i].begin(), a0[i].end());
@@ -229,8 +175,6 @@ public:
     value_type v{};
     if (!S_initialize(ni, bi, a, b, c, v)) return S_infeasible;
     if (!S_simplex(ni, bi, a, b, c, v)) return S_unbounded;
-
-    S_inspect(a, b, c, ni, bi);
     return v;
   }
 };
