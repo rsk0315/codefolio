@@ -70,7 +70,7 @@ int main() {
   // double y = linear_program<double>::maximize(a, b, c);
   // printf("%.12f\n", y);
 
-  if (false) {
+  if (true) {
     std::vector<std::vector<double>> a{{-0.2, -0.2},
                                        {1.8, -0.2}};
 
@@ -79,7 +79,7 @@ int main() {
     double v = linear_program<double>::maximize(a, b, c);
     printf("%.12f\n", v);
   }
-  if (false) {
+  if (true) {
     std::vector<std::vector<double>> a{{2.0, -1.0},
                                        {1.0, -5.0}};
 
@@ -88,7 +88,7 @@ int main() {
     double v = linear_program<double>::maximize(a, b, c);
     printf("%.12f\n", v);
   }
-  {
+  if (false) {
     std::vector<std::vector<double>> a{{1.0, 2.0, 1.0},
                                        {3.0, 0.0, 2.0},
                                        {1.0, 4.0, 0.0}};
