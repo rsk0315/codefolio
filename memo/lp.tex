@@ -1,0 +1,84 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\usepackage{mathtools}
+
+\begin{document}
+\section{線形計画問題}
+
+線形関数の制約で書ける最適化問題を線形計画問題と呼ぶ．
+例を以下に挙げる：
+\begin{alignat*}{2}
+  & \text{minimize } & & -2x_1 + 3x_2 \\
+  & \text{subject to }& \quad & \begin{aligned}[t]
+    \phantom{1}x_1 + \phantom{1}x_2 &= 7,\\
+    \phantom{1}x_1 - 2x_2 &\le 4,\\
+    \phantom{1}x_1 \phantom{{} + 0x_2} &\ge 0.
+  \end{aligned}
+\end{alignat*}
+
+% https://tex.stackexchange.com/questions/184937/align-a-linear-program
+%% \begin{alignat*}{2}
+%%   & \text{minimize: } & & \sum_{j=1}^{m} w_{j}x_{j} \\
+%%    & \text{subject to: }& \quad & \sum_{\mathclap{{j:e_{i} \in S_{j}}}}\begin{aligned}[t]
+%%                     x_{j} & \geq 1,& i & =1, \dots, n\\[3ex]
+%%                   x_{j} & \in \{0,1\}, & \quad j &=1 ,\dots, m
+%%                 \end{aligned}
+%% \end{alignat*}
+
+この問題を解く方法を線形計画法といい，今回はその一つとしてsimplex法を紹介する．
+
+\subsection{制約の形式}
+最初に，standard form / slack formと呼ばれる二つの形式について述べる．
+
+\subsubsection{standard form}
+standard formは以下のような形式を持つ．
+\begin{enumerate}
+\item 最大化の形である．
+  \begin{itemize}
+  \item 線形関数のminimizeではなくmaximizeをする．
+  \item minimize $\sum_j c_jx_j$をmaximize $\sum_j -c_jx_j$に書き換えると変換可能．
+  \end{itemize}
+\item 各変数$x_j$について非負制約$x_j \ge 0$がある．
+  \begin{itemize}
+  \item 非負制約のない$x_j$を$x_j = x_j'-x_j''$で置き換え，これらに非負制約をつけることで変換可能．
+  \end{itemize}
+\item 等号制約ではなく不等号制約の形である．
+  \begin{itemize}
+  \item $\sum_j a_{ij}x_j = b_i$を$\sum_j a_{ij}x_j \le b_i$と$\sum_j a_{ij}x_j \ge b_i$の二つの条件に書き換えると変換可能．
+  \end{itemize}
+\item 不等式制約は$\ge$ではなく$\le$の形の制約である．
+  \begin{itemize}
+  \item これは各変数の非負制約については除外されるはず．
+  \item $\sum_j a_{ij}x_j \ge b_i$を$\sum_j -a_{ij}x_j \le -b_i$に書き換えると変換可能．
+  \end{itemize}
+\end{enumerate}
+
+すなわち，standard formは$m\times n$行列$\bm{A} = (a_{ij})$，$m$次元ベクトル$\bm{b} = (b_i)$，$n$次元ベクトル$\bm{c} = (c_j)$, $\bm{x} = (x_j)$を用いて以下のように表せる．
+\begin{alignat*}{2}
+  & \text{maximize } & & \bm{c}^\top\bm{x} \\
+  & \text{subject to }& \quad & \begin{aligned}[t]
+    \bm{A}\bm{x} \le \bm{b}, \\
+    \phantom{\bm{A}}\bm{x} \ge \bm{0}.
+  \end{aligned}
+\end{alignat*}
+ここで，ベクトルについての不等式は，各要素に対してその不等式が成り立つことを意味する．
+
+\subsubsection{slack form}
+次に，slack formについて述べる．
+standard formにおける次の式がある．
+\[\sum_{j=1}^n a_{ij}x_j \le b_i.\]
+これを次の二つの制約に書き換える．
+この書き換えによって得られる形式がslack formである．
+\begin{align*}
+  x_{n+i} &= b_i - \sum_{j=1}^n a_{ij}x_j,\\
+  x_{n+i} &\ge 0.
+\end{align*}
+slack formにおいて，左辺に現れる変数たち$x_{n+i}$をbasic variablesといい，右辺に現れる変数たち$x_j$をnonbasic variablesという．
+
+\subsection{simplex法}
+線形計画問題をslack formの形式で扱い，大まかには以下のような処理をする．
+あるbasicな変数とnonbasicな変数を一つずつ選び，それらを交換する\footnote{basicな変数をnonbasicになるようにし，nonbasicな変数をbasicになるように書き換える．}ことを繰り返しながら最大化を行う．
+
+\end{document}
