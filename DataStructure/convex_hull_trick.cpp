@@ -19,9 +19,9 @@ private:
   }
 
 public:
-  template <class ForwardIt>
-  lines(ForwardIt first, ForwardIt last): dec(first, last) {
-    static_assert(std::is_convertible<typename ForwardIt::value_type, value_type>::value, "Type mismatch");
+  template <class InputIt>
+  lines(InputIt first, InputIt last): dec(first, last) {
+    static_assert(std::is_convertible<typename InputIt::value_type, value_type>::value, "Type mismatch");
     std::sort(dec.begin(), dec.end());
     size_type n = dec.size();
     init_resize(n);
