@@ -1,11 +1,12 @@
 template <typename RandomIt, typename OutputIt>
-OutputIt slide_min(RandomIt first, RandomIt last, ptrdiff_t width, OutputIt d_first) {
-  std::deque<RandomIt> st;
+OutputIt window_minima(RandomIt first, RandomIt s_last, RandomIt last, OutputIt d_first) {
+  std::deque<RandomIt> dq;
+  ptrdiff_t width = std::distance(first, s_last);
   for (auto it = first; it < last; ++it) {
-    while (!st.empty() && !(*st.back() < *it)) st.pop_back();
-    st.push_back(it);
-    if (width <= it - st.front()) st.pop_front();
-    if (width-1 <= it - first) *d_first++ = *st.front();
+    while (!dq.empty() && *it < *dq.back()) dq.pop_back();
+    dq.push_back(it);
+    if (width <= it - dq.front()) dq.pop_front();
+    if (width-1 <= it - first) *d_first++ = *dq.front();
   }
   return d_first;
 }
