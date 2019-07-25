@@ -100,8 +100,8 @@ private:
   }
 
 public:
-  template <class InputIt>
-  wavelet_matrix(InputIt first, InputIt last):
+  template <class ForwardIt>
+  wavelet_matrix(ForwardIt first, ForwardIt last):
     c(first, last), zeros(bitlen), n(c.size())
   {
     std::vector<value_type> whole = c;
