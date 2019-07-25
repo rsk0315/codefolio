@@ -5,11 +5,11 @@ OutputIt longest_increasing(InputIt first, InputIt last, OutputIt d_first) {
   value_type inf = std::numeric_limits<value_type>::max();
   difference_type len = std::distance(first, last);
   std::vector<value_type> dp(len, inf);
-  do {
+  while (first != last) {
     auto it = std::lower_bound(dp.begin(), dp.end(), *first);
     if (!(*it < inf)) *d_first++ = *first;
-    *it = *first;
-  } while (++first != last);
+    *it = *first++;
+  }
   return d_first;
 }
 
@@ -21,10 +21,10 @@ typename InputIt::difference_type longest_increasing(InputIt first, InputIt last
   difference_type len = std::distance(first, last);
   std::vector<value_type> dp(len, inf);
   difference_type res = 0;
-  do {
+  while (first != last) {
     auto it = std::lower_bound(dp.begin(), dp.end(), *first);
     if (!(*it < inf)) ++res;
-    *it = *first;
-  } while (++first != last);
+    *it = *first++;
+  }
   return res;
 }
