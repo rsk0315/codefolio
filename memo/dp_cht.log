@@ -1,4 +1,4 @@
-This is e-pTeX, Version 3.14159265-p3.8.0-180226-2.6 (utf8.euc) (TeX Live 2018) (preloaded format=platex 2018.5.14)  11 JUL 2019 01:37
+This is e-pTeX, Version 3.14159265-p3.8.0-180226-2.6 (utf8.euc) (TeX Live 2018) (preloaded format=platex 2018.5.14)  26 JUL 2019 12:58
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1109,41 +1109,41 @@ LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
 (Font)              scaled to size 9.60999pt on input line 12.
 LaTeX Font Info:    Font shape `T1/ppl/bx/n' in size <10> not available
 (Font)              Font shape `T1/ppl/b/n' tried instead on input line 12.
-LaTeX Font Info:    Try loading font information for T1+ccr on input line 17.
+LaTeX Font Info:    Try loading font information for T1+ccr on input line 13.
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/ccfonts/t1ccr.fd
 File: t1ccr.fd 1999/11/22 v1.0a (WaS)
 )
-LaTeX Font Info:    Try loading font information for U+zeur on input line 17.
+LaTeX Font Info:    Try loading font information for U+zeur on input line 13.
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/eulervm/uzeur.fd
 File: uzeur.fd 2005/01/11 v4.0 (WaS)
 )
-LaTeX Font Info:    Try loading font information for U+zeus on input line 17.
+LaTeX Font Info:    Try loading font information for U+zeus on input line 13.
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/eulervm/uzeus.fd
 File: uzeus.fd 2005/01/11 v4.0 (WaS)
 )
-LaTeX Font Info:    Try loading font information for U+zeuex on input line 17.
+LaTeX Font Info:    Try loading font information for U+zeuex on input line 13.
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/eulervm/uzeuex.fd
 File: uzeuex.fd 2005/01/11 v4.0 (WaS)
 )
 LaTeX Font Info:    Font shape `JY1/mc/m/n' will be
-(Font)              scaled to size 7.30359pt on input line 17.
+(Font)              scaled to size 7.30359pt on input line 13.
 LaTeX Font Info:    Font shape `JY1/mc/m/n' will be
-(Font)              scaled to size 5.76599pt on input line 17.
-LaTeX Font Info:    Try loading font information for OT1+zplm on input line 17.
+(Font)              scaled to size 5.76599pt on input line 13.
+LaTeX Font Info:    Try loading font information for OT1+zplm on input line 13.
 
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/psnfss/ot1zplm.fd
 File: ot1zplm.fd 2002/09/08 Fontinst v1.914 font definitions for OT1/zplm.
 )
 LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
-(Font)              scaled to size 7.30359pt on input line 17.
+(Font)              scaled to size 7.30359pt on input line 13.
 LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
-(Font)              scaled to size 5.76599pt on input line 17.
-LaTeX Font Info:    Try loading font information for TS1+ppl on input line 24.
+(Font)              scaled to size 5.76599pt on input line 13.
+LaTeX Font Info:    Try loading font information for TS1+ppl on input line 25.
 
 (/usr/local/texlive/2018/texmf-dist/tex/latex/psnfss/ts1ppl.fd
 File: ts1ppl.fd 2001/06/04 font definitions for TS1/ppl.
@@ -1152,12 +1152,12 @@ File: ts1ppl.fd 2001/06/04 font definitions for TS1/ppl.
 ]
 (./dp_cht.aux) ) 
 Here is how much of TeX's memory you used:
- 21436 strings out of 493281
- 461546 string characters out of 6145041
- 588234 words of memory out of 5000000
- 24867 multiletter control sequences out of 15000+600000
- 25530 words of font info for 81 fonts, out of 8000000 for 9000
+ 21438 strings out of 493281
+ 461570 string characters out of 6145041
+ 588235 words of memory out of 5000000
+ 24868 multiletter control sequences out of 15000+600000
+ 25706 words of font info for 82 fonts, out of 8000000 for 9000
  934 hyphenation exceptions out of 8191
  62i,21n,104p,856b,616s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on dp_cht.dvi (1 page, 4284 bytes).
+Output written on dp_cht.dvi (1 page, 4616 bytes).

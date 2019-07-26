@@ -10,6 +10,7 @@
 以下のような遷移をするDPを考える．
 \begin{alg}
   \caption{愚直なDP}
+  {$\DP[0] \gets c$}\Comment*{初期条件は計算できるとする．}
   \For{$i \in \{1, \dots, N-1\}$}
   {
     {$\displaystyle\DP[i] \gets \min_{0\le j < i}\,\{p(j)\cdot q(i) + r(j)\} + s(i)$}\;
@@ -25,12 +26,13 @@ $p(j)$や$r(j)$は$\DP[j]$を含む式でもいいし，関係ない式でも問
 \item 管理している直線のうち，$x=x_0$での$y$の最小値を答える
 \end{itemize}
 
-これを用いると，上のDPは以下のように高速化できる．
-直線の集合を$\mathcal{S}$とし，このデータ構造を用いて管理する．
-また，$\DP[0]$の値は計算できているとする．
+これを用いて上のDPを以下のように高速化できる．
+直線の集合$\mathcal{S}$をこのデータ構造を用いて管理する．
+% また，$\DP[0]$の値は計算できているとする．
 \begin{alg}
   \caption{CHTで高速化したDP}
   %% {$\mathcal{S} \gets \{p(0)\cdot x+r(0)\}$}\;
+  {$\DP[0] \gets c$}\;
   {$\mathcal{S} \gets \{\}$}\;
   \For{$i \in \{1, \dots, N-1\}$}
   {
@@ -40,7 +42,7 @@ $p(j)$や$r(j)$は$\DP[j]$を含む式でもいいし，関係ない式でも問
 \end{alg}
 
 このような遷移に変形させることができれば勝ちなので，それを意識して式変形するとよい．
-たとえば，以下のような変形が例として挙げられる．
+典型的には，以下のような遷移をするDPなどがこの枠組みに当てはまる．
 \begin{align*}
   \DP[i]
   &= \min_{0\le j < i}\,\{\DP[j] + (i-j)^2 + C\}\\
@@ -48,5 +50,6 @@ $p(j)$や$r(j)$は$\DP[j]$を含む式でもいいし，関係ない式でも問
   &= \min_{0\le j < i}\,\{\underset{p(j)}{\underbrace{(-2j)}}\cdot \underset{q(i)}{\underbrace{\mathstrut i}} + \underset{r(j)}{\underbrace{(j^2+\DP[j])}}\} + \underset{s(i)}{\underbrace{(i^2+C)}}.
 \end{align*}
 convex hull trickの実装としてLi--Chao treeを用いる場合などは，$q(i)$の取りうる最大値が小さくなるように変形すると，クエリ先読みなどの必要がなくなることがあったりしてうれしそう．
+もっとも，\texttt{std::map}などを利用してオンラインで処理することもできる．
 
 \end{document}
