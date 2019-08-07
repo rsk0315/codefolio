@@ -49,7 +49,7 @@ namespace fast {
     template <typename Integral,
               typename enable_if_integral<Integral>::type* = nullptr>
     void scan_parallel(Integral& x) {
-      // based on https://qiita.com/rsk0315_h4x/items/17a9cb12e0de5fd918f4
+      // See https://qiita.com/rsk0315_h4x/items/17a9cb12e0de5fd918f4
       if (__builtin_expect(endpos <= pos + int_digits, 0))
         M_reread_from_stdin();
       bool ends = false;
@@ -105,7 +105,9 @@ namespace fast {
 
     template <typename Integral,
               typename enable_if_integral<Integral>::type* = nullptr>
-    void scan(Integral& x) { scan_parallel(x); }
+    // Use scan_parallel(x) only when x may be too large (about 10^12).
+    // Otherwise, even when x <= 10^9, scan_serial(x) may be faster.
+    void scan(Integral& x) { scan_serial(x); }
   };
 
   class printer {
