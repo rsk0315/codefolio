@@ -1,27 +1,29 @@
 template <class BidirIt>
 void radix_sort(BidirIt first, BidirIt last) {
   using value_type = typename BidirIt::value_type;
-  intmax_t cur_shift = 0;
-  intmax_t max_exp = sizeof(value_type);
+  constexpr int shift = 8;
+  constexpr int max_exp = sizeof(value_type);
+  constexpr size_t size = 1 << shift;
+  constexpr size_t mask = size-1;
   std::vector<value_type> work(std::distance(first, last));
-  for (int i = 0; i < max_exp; ++i) {
-    size_t num[256] = {};
+  for (int i = 0, cs = 0; i < max_exp; ++i) {
+    size_t num[size] = {};
 
     for (BidirIt it = first; it != last; ++it)
-      ++num[*it >> cur_shift & 255];
+      ++num[*it >> cs & mask];
     {
       size_t tmp = 0;
-      for (int j = 0; j < 256; ++j)
+      for (size_t j = 0; j < size; ++j)
         std::swap(tmp, num[j] += tmp);
     }
     for (BidirIt it = first; it != last; ++it)
-      work[num[*it >> cur_shift & 255]++] = *it;
+      work[num[*it >> cs & mask]++] = *it;
     {
       size_t j = 0;
       for (BidirIt it = first; it != last; ++it)
         *it = work[j++];
     }
-    cur_shift += 8;
+    cs += shift;
   }
   if (!std::is_signed<value_type>::value) return;
 
