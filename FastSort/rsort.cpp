@@ -1,3 +1,5 @@
+#warning "Newer version is available: /algorithm/radix_sort.cpp"
+
 template <class RandomIt>
 auto rsort(RandomIt first, RandomIt last)
   -> typename std::enable_if<std::is_integral<
