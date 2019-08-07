@@ -1,315 +1,174 @@
 #include <cstdio>
-#include <cstring>
 #include <cstdint>
-#include <cstdlib>
 #include <cstddef>
-#include <cinttypes>
-
+#include <cstring>
+#include <utility>
 #include <type_traits>
 #include <limits>
 
-/* FastIO by rsk0315 (last update: 2018/02/21 00:36) */
+namespace fast {
+  // fast I/O by rsk0315 (update: 2019-08-08 07:02:47).
+  // This version supports only integer inputs/outputs, single character
+  // outputs, and string literal outputs.
+  static size_t constexpr buf_size = 1 << 17;
+  static size_t constexpr margin = 1;
+  static char inbuf[buf_size + margin] = {};
+  static char outbuf[buf_size + margin] = {};
+  static __attribute__((aligned(8))) char minibuf[32];
+  static size_t constexpr int_digits = 20;  // 18446744073709551615
+  static uintmax_t constexpr digit_mask = 0x3030303030303030;
+  static uintmax_t constexpr first_mask = 0x00FF00FF00FF00FF;
+  static uintmax_t constexpr second_mask = 0x0000FFFF0000FFFF;
+  static uintmax_t constexpr third_mask = 0x00000000FFFFFFFF;
+  static uintmax_t constexpr tenpow[] = {
+    1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000
+  };
+  template <typename Tp>
+  using enable_if_integral = std::enable_if<std::is_integral<Tp>::value, Tp>;
 
-namespace FastIn {
-  static constexpr size_t BUF_SIZE=1<<17, INT_LEN=24, FLT_LEN=400;
-  static char buf[BUF_SIZE|1]={}, *pos=buf, *endbuf=nullptr;
-  FILE *fin;
+  class scanner {
+    char* pos = inbuf;
+    char* endpos = inbuf + buf_size;
 
-  inline bool rebuffer() {
-    // returns true <=> there is at least one unread character
-    size_t rest=endbuf-pos;
-    if (buf+rest > pos) {
-      // buf[:pos] and buf[-pos:] are overlapping, which std::memcpy()
-      // causes undefined behavior.
-      return true;
+    void M_read_from_stdin() {
+      endpos = inbuf + fread(pos, 1, buf_size, stdin);
+    }
+    void M_reread_from_stdin() {
+      ptrdiff_t len = endpos - pos;
+      if (!(inbuf + len <= pos)) return;
+      memcpy(inbuf, pos, len);
+      char* tmp = inbuf + len;
+      endpos = tmp + fread(tmp, 1, buf_size-len, stdin);
+      *endpos = 0;
+      pos = inbuf;
     }
 
-    std::memcpy(buf, pos, rest); 
-    pos = buf;
-    size_t len=std::fread(pos+rest, 1, BUF_SIZE-rest, fin);
-    *(endbuf = buf + (rest+len)) = 0;
+  public:
+    scanner() { M_read_from_stdin(); }
 
-    return *pos;
-  }
-
-  inline bool scan(char &in) {
-    if ((in = *pos)) {
-      ++pos;
-      return true;
-    }
-
-    return rebuffer() && (in = *pos++);
-  }
-
-  inline bool scan(char *in) {
-    if ((*in = *pos) == 0) {
-      if (rebuffer() && (*in = *pos) == 0) {
-        return false;
-      }
-    }
-    ++in;
-    while (true) {
-      if ((*in = *pos++) == 0) {
-        if (rebuffer() && (*in = *pos++) == 0) {
-          return true;
-        }
-      }
-      ++in;
-    }
-  }
-
-  inline bool scan(double &in) {
-    if (pos + FLT_LEN >= endbuf && !rebuffer()) {
-      in = 0.0;
-      return false;
-    }
-
-    char *tmp;
-    in = std::strtod(pos, &tmp);
-    pos = tmp;
-    return true;
-  }
-
-  template <class Int>
-  inline bool scan(Int &in) {
-    in = 0;
-
-    // assume that no redundant whitespace appears
-    if (pos + INT_LEN >= endbuf && !rebuffer()) {
-      return false;
-    }
-
-    if (std::is_signed<Int>::value) {
-      if (*pos == '-') {
-        in = ~*++pos+'1';
-        while (*++pos >= '0') {
-          in = in*10 + ~*pos+'1';
-        }
+    template <typename Integral,
+              typename enable_if_integral<Integral>::type* = nullptr>
+    void scan_parallel(Integral& x) {
+      // based on https://qiita.com/rsk0315_h4x/items/17a9cb12e0de5fd918f4
+      if (__builtin_expect(endpos <= pos + int_digits, 0))
+        M_reread_from_stdin();
+      bool ends = false;
+      typename std::make_unsigned<Integral>::type y = 0;
+      bool neg = false;
+      if (std::is_signed<Integral>::value && *pos == '-') {
+        neg = true;
         ++pos;
-        return true;
       }
-    }
-
-    // assume that numbers are separated by the character whose value is
-    // less than '0' (e.g. whitespaces, newlines)
-    do {
-      in = in*10 + *pos-'0';
-    } while (*++pos >= '0');
-    ++pos;
-    return true;
-  }
-
-  inline bool eat() {
-    if (*pos > ' ') {
-      return true;
-    }
-
-    do {
-      if (*pos == 0 && !rebuffer()) {
-        return false;
-      }
-    } while (*++pos <= ' ');
-
-    return true;
-  }
-
-  inline bool eat(char ch) {
-    if (*pos == ch) {
-      return true;
-    }
-
-    do {
-      if (*pos == 0 && !rebuffer()) {
-        return false;
-      }
-    } while (*++pos != ch);
-
-    return true;
-  }
-
-  class Scanner {
-    bool rebuffer() {
-      return FastIn::rebuffer();
-    }
-
-  public:
-    Scanner(FILE *fin=stdin) {
-      FastIn::fin = fin;
-      endbuf = pos + std::fread(buf, 1, BUF_SIZE, fin);
-    }
-
-    template <class T>
-    inline bool scan(T &in) {
-      return FastIn::scan(in);
-    }
-
-    template <class First, class... Rest>
-    inline bool scan(First &in, Rest &...ins) {
-      return scan(in) && scan(ins...);
-    }
-  };
-}
-
-namespace FastOut {
-  static constexpr size_t BUF_SIZE=1<<17, INT_LEN=24, FLT_LEN=400;
-  static constexpr char FLT_FMT[]="%.16f";
-  static char buf[BUF_SIZE|1]={}, *pos=buf, *endbuf=pos+BUF_SIZE;
-  FILE *fout;
-
-  inline void flush() {
-    std::fwrite(buf, 1, pos-buf, fout);
-    pos = buf;
-  }
-
-  inline void print(const char out) {
-    if (pos == endbuf) {
-      flush();
-    }
-    *pos++ = out;
-  }
-
-  inline void print(const char *out) {
-    size_t len=std::strlen(out);
-    if (pos + len >= endbuf) {
-      flush();
-      if (len >= BUF_SIZE) {
-        std::fwrite(out, 1, len, fout);
-        return;
-      }
-    }
-    std::memcpy(pos, out, len);
-    pos += len;
-  }
-
-  inline void print(char *out) {
-    size_t len=std::strlen(out);
-    if (pos + len >= endbuf) {
-      flush();
-      if (len >= BUF_SIZE) {
-        std::fwrite(out, 1, len, fout);
-        return;
-      }
-    }
-    std::memcpy(pos, out, len);
-    pos += len;
-  }
-
-
-  template <class Char, size_t Len>
-  inline void print(const Char (&out)[Len]) {
-    print(&out[0]);
-  }
-
-  inline void print(const double out) {
-    char minibuf[FLT_LEN];
-    size_t len=std::snprintf(minibuf, FLT_LEN, FLT_FMT, out);
-    if (pos + len >= endbuf) {
-      flush();
-    }
-    std::memcpy(pos, minibuf, len);
-    pos += len;
-  }
-
-  inline void print(const bool out) {
-    print(out? "true":"false");
-  }
-
-  template <class Int>
-  inline void print(Int out) {
-    static_assert(std::is_integral<Int>::value, "For integers only");
-
-    if (out == 0) {
-      if (pos == endbuf) {
-        flush();
-      }
-      *pos++ = '0';
-      return;
-    }
-
-    char minibuf[INT_LEN], *minipos=minibuf+INT_LEN;
-    if (std::is_signed<Int>::value && out < 0) {
-      if (pos == endbuf) {
-        flush();
-      }
-      *pos++ = '-';
-      if (out == std::numeric_limits<Int>::min() && Int(-1) == ~Int(0)) {
-        // In two's complement representation, we could not represent the
-        // absolute value of minimum (maximum-magnitude negative) value.
-        // Without this branch, we would overflow (undefined behavior) by
-        // the value.  If we know the input is never the value, we can
-        // remove this branch and save (nanoseconds-order) time.
-        switch (sizeof out) {
-        case 1:
-          return (void)(print("128"));
-        case 2:
-          return (void)(print("32768"));
-        case 3:
-          return (void)(print("8388608"));
-        case 4:
-          return (void)(print("2147483648"));
-        case 8:
-          return (void)(print("9223372036854775808"));
-        case 16:
-          return (void)(print("170141183460469231731687303715884105728"));
-        default:
-          // Regardless of the number of its bytes, lowest (decimal) digit
-          // is always eight, but other digits depend on it.
-          *--minipos = '8';
-          out /= -10;
+      do {
+        memcpy(minibuf, pos, 8);
+        long c = *(long*)minibuf;
+        long d = (c & digit_mask) ^ digit_mask;
+        int skip = 8;
+        int shift = 8;
+        if (d) {
+          int ctz = __builtin_ctzl(d);
+          if (ctz == 4) break;
+          c &= (1L << (ctz-5)) - 1;
+          int discarded = (68-ctz) / 8;
+          shift -= discarded;
+          c <<= discarded * 8;
+          skip -= discarded;
+          ends = true;
         }
-      } else {
-        out = -out;
+        c |= digit_mask;
+        c ^= digit_mask;
+        c = ((c >> 8) + c*10) & first_mask;
+        c = ((c >> 16) + c*100) & second_mask;
+        c = ((c >> 32) + c*10000) & third_mask;
+        y = y*tenpow[shift] + c;
+        pos += skip;
+      } while (!ends);
+      x = (neg? -y: y);
+      ++pos;
+    }
+
+    template <typename Integral,
+              typename enable_if_integral<Integral>::type* = nullptr>
+    void scan_serial(Integral& x) {
+      if (__builtin_expect(endpos <= pos + int_digits, 0))
+        M_reread_from_stdin();
+      bool neg = false;
+      if (std::is_signed<Integral>::value && *pos == '-') {
+        neg = true;
+        ++pos;
       }
+      typename std::make_unsigned<Integral>::type y = *pos-'0';
+      while (*++pos >= '0') y = 10*y + *pos-'0';
+      x = (neg? -y: y);
+      ++pos;
     }
 
-    // We know the division is too slow; we wish we could avoid using them
-    // TWICE PER LOOP!  ...Now, we notice that compilers are so smart that
-    // can replace it by shift operations...  The division-compatible
-    // instructions for unsigned are shorter than ones for signed.
-    typename std::make_unsigned<Int>::type out_=out;
-    do {
-      *--minipos = '0' + out_%10;
-      out_ /= 10;
-    } while (out_ > 0);
+    template <typename Integral,
+              typename enable_if_integral<Integral>::type* = nullptr>
+    void scan(Integral& x) { scan_parallel(x); }
+  };
 
-    size_t len=(minibuf+INT_LEN)-minipos;
-    if (pos + len >= endbuf) {
-      flush();
-    }
-    std::memcpy(pos, minipos, len);
-    pos += len;
-  }
+  class printer {
+    char* pos = outbuf;
 
-  class Printer {
-    inline void flush() {
-      FastOut::flush();
+    void M_flush_stdout() {
+      fwrite(outbuf, 1, pos-outbuf, stdout);
+      pos = outbuf;
     }
 
   public:
-    Printer(FILE *fout=stdout) {
-      FastOut::fout = fout;
+    printer() = default;
+    ~printer() { M_flush_stdout(); }
+
+    void print(char c) {
+      if (__builtin_expect(pos + 1 >= outbuf + buf_size, 0)) M_flush_stdout();
+      *pos++ = c;
     }
 
-    ~Printer() {
-      flush();
+    template <size_t N>
+    void print(char const(&s)[N]) {
+      if (__builtin_expect(pos + N >= outbuf + buf_size, 0)) M_flush_stdout();
+      memcpy(pos, s, N-1);
+      pos += N-1;
     }
 
-    template <class T>
-    inline void print(const T out) {
-      FastOut::print(out);
+    template <typename Integral,
+              typename enable_if_integral<Integral>::type* = nullptr>
+    void print(Integral x) {
+      if (__builtin_expect(pos + int_digits >= outbuf + buf_size, 0))
+        M_flush_stdout();
+      if (x == 0) {
+        *pos++ = '0';
+        return;
+      }
+      if (x < 0) {
+        *pos++ = '-';
+        if (__builtin_expect(x == std::numeric_limits<Integral>::min(), 0)) {
+          switch (sizeof x) {
+          case 2: print("32768"); return;
+          case 4: print("2147483648"); return;
+          case 8: print("9223372036854775808"); return;
+          }
+        }
+        x = -x;
+      }
+      char* mp = minibuf + sizeof minibuf;
+      *--mp = x % 10 + '0';
+      size_t len = 1;
+      typename std::make_unsigned<Integral>::type y = x / 10;
+      while (y > 0) {
+        *--mp = y % 10 + '0';
+        y /= 10;
+        ++len;
+      }
+      memcpy(pos, mp, len);
+      pos += len;
     }
 
-    template <class First, class... Rest>
-    inline void print(const First &out, const Rest &...outs) {
-      FastOut::print(out);
-      Printer::print(outs...);
-    }
-
-    template <class T>
-    inline void println(const T out) {
-      FastOut::print(out);
-      FastOut::print('\n');
-    }
+    template <typename Tp>
+    void println(Tp x) { print(x), print('\n'); }
   };
-}
+} // fast::
 
+fast::scanner cin;
+fast::printer cout;
