@@ -1,0 +1,59 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\begin{document}
+\section{包除原理}
+
+数え上げのテクの一つ．
+集合$A$と，その要素を変数とする述語たち$\mathcal{P}=\{P_1, \dots, P_k\}$に対して，以下の集合の要素数を求める\footnote{各$i$に対して$A_i=\{a\in A\mid P_i(a)\}$なる$A$の部分集合を考えると図示しやすいかも？}．
+\[\left\{a\in A\Biggm| \bigvee_{P\in\mathcal{P}} P(a)\right\}.\]
+これが以下のように求められるというものである．
+\begin{align}\label{eqn:base}
+\left|\left\{a\in A\Biggm| \bigvee_{P\in\mathcal{P}} P(a)\right\}\right|
+= \sum_{\emptyset\subset\mathcal{P}'\subseteq\mathcal{P}} (-1)^{|\mathcal{P}'|-1}\cdot \left|\left\{a\in A\Biggm| \bigwedge_{P\in\mathcal{P}'} P(a)\right\}\right|.
+\end{align}
+ここで，$\left|\left\{a\in A\mid\bigwedge_{P\in\mathcal{P}'}P(a)\right\}\right|$は容易に計算できるとする．
+%
+$\mathcal{P}'$の要素数を$i$で固定したときにこの値が一定であるなら，そうした$\mathcal{P}'$の代表元を$\mathcal{P}^i$と書くことにしてさらに変形できる．
+\begin{align}\label{eqn:linear}
+\left|\left\{a\in A\Biggm| \bigvee_{P\in\mathcal{P}} P(a)\right\}\right|
+= \sum_{i=1}^k (-1)^{i-1}\cdot{}_k C_i\cdot\left|\left\{a\in A\Biggm| \bigwedge_{P\in\mathcal{P}^i} P(a)\right\}\right|.
+\end{align}
+式(\ref{eqn:base})では求めるべき値の個数が$2^k-1$であるのに対し，式(\ref{eqn:linear})では$k$になっていてうれしい．
+%% \subsection{証明}
+%% $\mathcal{P}$の要素数に関する帰納法で示す．
+%% $|\mathcal{P}|=2$の場合はVenn図などからわかる．
+%% $|\mathcal{P}|<k$のとき成り立っているとし，$|\mathcal{P}|=k$の場合が成り立つことを示す．
+%% \begin{align*}
+%%   \left|\left\{a\in A\Biggm| \bigvee_{i=1}^k P_i(a)\right\}\right|
+%%   &= \left|\left\{a\in A\Biggm| P_k(a)\vee\left(\bigvee_{i=1}^{k-1} P_i(a)\right)\right\}\right|\\
+%%   &= |\{a\in A\mid P_k(a)\}|
+%%   + \left|\left\{a\in A\Biggm| \bigvee_{i=1}^{k-1} P_i(a)\right\}\right|
+%%   - \left|\left\{a\in A\Biggm| P_k(a)\wedge\left(\bigvee_{i=1}^{k-1} P_i(a)\right)\right\}\right|\\
+%%   &= |\{a\in A\mid P_k(a)\}|
+%%   + \left|\left\{a\in A\Biggm| \bigvee_{i=1}^{k-1} P_i(a)\right\}\right|
+%%   - \left|\left\{a\in A\Biggm| \bigvee_{i=1}^{k-1} \big(P_k(a)\wedge P_i(a)\big)\right\}\right|\\
+%% \end{align*}
+% つらいので省略します
+
+あるいは$\left|\left\{a\in A\mid\bigwedge_{P\in\mathcal{P}'}\neg P(a)\right\}\right|$が容易に計算でき，以下の集合の要素数を求めたいこともある．
+\[\left\{a\in A\Biggm| \bigwedge_{P\in\mathcal{P}} P(a)\right\}.\]
+余事象を考えるとよくて，以下のように変形できる．
+\begin{align*}
+  \left\{a\in A\Biggm| \bigwedge_{P\in\mathcal{P}} P(a)\right\}
+  &= A \setminus \left\{a\in A\Biggm| \bigvee_{P\in\mathcal{P}} \neg P(a)\right\}.
+\end{align*}
+これは式(\ref{eqn:base})の枠組みで求められる．
+
+\subsection{発展}
+\subsubsection{高速ゼータ変換}
+集合$S$の部分集合を引数に取る関数$f$に対して$g(S)=\sum_{T\subseteq S} f(T)$を高速に求める．
+若干ギャップがある気がするけど，たぶん述語たち$\mathcal{P}$の部分集合$\mathcal{P}'$についていい感じのことができる．To-do: 追記．
+% わかんないんだけど，ある条件を満たす A の部分集合を Venn 図上で囲んだり塗り分けたりすることにするやつ，これらの変換で各部分集合についての総和を取るってのとマッチしてない気がしてて，えびちゃん混乱してるんだよね．
+
+\subsection{応用}
+\subsubsection{暗黙の制約}
+$n\le 10^9$なら$n$の持つ素因数の個数はたかだか$9$個なので，$n$が多少大きくても$n$の素因数に関する部分集合であれば式(\ref{eqn:base})をそのまま計算することができる．
+
+\end{document}
