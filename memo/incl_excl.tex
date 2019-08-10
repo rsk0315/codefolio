@@ -8,36 +8,36 @@
 \section{包除原理}
 
 数え上げのテクニックの一つ．
-集合$A$が与えられ，その要素を変数とする述語たち$\mathcal{P}=\{P_1, \dots, P_k\}$を考える．
-$1\le i\le k$に対して$A$の部分集合$A_i$を$A_i=\{a\in A\mid P_i(a)\}$で定めるとき，$\bigcup_{i=1}^k A_i$の要素数を求めるものである．
-$\Lambda_K=\{1, \dots, k\}$とする．
+集合$A$が与えられ，その要素を変数とする述語たち$\mathcal{P}=\{P_1, \dots, P_n\}$を考える．
+$1\le i\le n$に対して$A$の部分集合$A_i$を$A_i=\{a\in A\mid P_i(a)\}$で定めるとき，$\bigcup_{i=1}^n A_i$の要素数を求めるものである．
+$\Lambda_n=\{1, \dots, n\}$とする．
 \begin{align}\label{eqn:base}
-\left|\bigcup_{i=1}^k A_i\right|
-&= \sum_{\emptyset\subset\Lambda\subseteq \Lambda_K} (-1)^{|\Lambda|-1}\cdot \left|\bigcap_{i\in\Lambda} A_i\right|.\\
+\left|\bigcup_{i=1}^n A_i\right|
+&= \sum_{\emptyset\subset\Lambda\subseteq \Lambda_n} (-1)^{|\Lambda|-1}\cdot \left|\bigcap_{i\in\Lambda} A_i\right|.\\
 \label{eqn:base2}
-&= \sum_{j=1}^k (-1)^{j-1}\cdot \left(\sum_{|\Lambda|=j} \left|\bigcap_{i\in\Lambda} A_i\right|\right).
+&= \sum_{j=1}^n (-1)^{j-1}\cdot \left(\sum_{|\Lambda|=j} \left|\bigcap_{i\in\Lambda} A_i\right|\right).
 \end{align}
 $\Lambda$の要素数を固定したときに$\left|\bigcap_{i\in\Lambda} A_i\right|$の総和をDPなどで求められるなら，式(\ref{eqn:base2})を用いて計算することができる．また，特に
 $|\Lambda|=|\Lambda'|\implies\left|\bigcap_{i\in\Lambda}A_i\right| = \left|\bigcap_{i\in\Lambda'}A_i\right|$であるなら，$|\Lambda|=j$であるような$\Lambda$の代表元を$\Lambda^j$と書くことにして次のように変形できる．
 \begin{align}\label{eqn:linear}
-  \left|\bigcup_{i=1}^k A_i\right|
-  = \sum_{j=1}^k (-1)^{j-1}\cdot {}_k C_j\cdot\left|\bigcap_{i\in\Lambda^j}A_i\right|.
+  \left|\bigcup_{i=1}^n A_i\right|
+  = \sum_{j=1}^n (-1)^{j-1}\cdot {}_n C_j\cdot\left|\bigcap_{i\in\Lambda^j}A_i\right|.
 \end{align}
-式(\ref{eqn:base})においては$\sum$で足される項が$2^k-1$個だったのに対し，式(\ref{eqn:base2})--(\ref{eqn:linear})では$k$に減っていてうれしい．
+式(\ref{eqn:base})においては$\sum$で足される項が$2^n-1$個だったのに対し，式(\ref{eqn:base2})--(\ref{eqn:linear})では$n$に減っていてうれしい．
 
 上の議論は，$\left|\bigcap_{i\in\Lambda}A_i\right|$を計算するのが容易であることを前提としているが，逆に$\left|\bigcap_{i\in\Lambda}(A\setminus A_i)\right|$の計算が容易な状況\footnote{満たす条件を決め打ちするよりも，満たさない条件を決め打ちした方が楽な場合．}
-で$\bigcap_{i=1}^k A_i$の要素数を求めたいときには以下のようにするとよい．
+で$\bigcap_{i=1}^n A_i$の要素数を求めたいときには以下のようにするとよい．
 \[
-\bigcap_{i=1}^k A_i = A\setminus\left(\bigcup_{i=1}^k (A\setminus A_i)\right).
+\bigcap_{i=1}^n A_i = A\setminus\left(\bigcup_{i=1}^n (A\setminus A_i)\right).
 \]
 すなわち，
 \begin{align}\label{eqn:cmpl}
-\left|\bigcap_{i=1}^k A_i\right| = |A|-\left|\left(\bigcup_{i=1}^k (A\setminus A_i)\right)\right|.
+\left|\bigcap_{i=1}^n A_i\right| = |A|-\left|\left(\bigcup_{i=1}^n (A\setminus A_i)\right)\right|.
 \end{align}
 これは，$A\setminus A_i$を$A_i$と置き直すことで，式(\ref{eqn:base})の枠組みで求められる．
 
 \subsection{証明}
-$\Lambda$の大きさ$n$に関する帰納法で示す．$n=2$の場合はVenn図などから示される（省略）．
+$\mathcal{P}$の大きさ$n$に関する帰納法で示す．$n=2$の場合はVenn図などから示される（省略）．
 $n<k$で成り立っていることを仮定する．
 まず，$n=2$の場合の式を用いて次のように変形する．
 \begin{align*}
@@ -84,7 +84,7 @@ $n<k$で成り立っていることを仮定する．
 各\texttt{j}について$\mathtt{dp}[\mathtt{j}] = f(\mathtt{j})$で初期化し，ゼータ変換を施すと$\mathtt{dp}[\mathtt{j}] = g(\mathtt{j})$になっている．M\"obius変換についても$g$と$f$が逆になること以外は同様である．
 ここで，\texttt{j}は部分集合を2進数でエンコードしたものである．
 
-たとえば，$\Lambda_k$の各部分集合$S$に対して$\sum_{T\subseteq S} (-1)^{|T|}\cdot \left|\bigcap_{i\in T}A_i\right|$を考える．
+たとえば，$\Lambda_n$の各部分集合$S$に対して$\sum_{T\subseteq S} (-1)^{|T|}\cdot \left|\bigcap_{i\in T}A_i\right|$を考える．
 これは，$g(T) = \left|\bigcap_{i\in T} A_i\right|$として高速M\"obius変換で得られる$f(S)$を用いて$(-1)^{|S|}\cdot f(S)$として計算できる．
 
 \subsubsection{DP}
