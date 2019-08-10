@@ -1,4 +1,4 @@
-This is e-pTeX, Version 3.14159265-p3.8.0-180226-2.6 (utf8.euc) (TeX Live 2018) (preloaded format=platex 2018.5.14)  10 AUG 2019 07:49
+This is e-pTeX, Version 3.14159265-p3.8.0-180226-2.6 (utf8.euc) (TeX Live 2018) (preloaded format=platex 2018.5.14)  10 AUG 2019 18:33
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1143,50 +1143,26 @@ LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
 LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
 (Font)              scaled to size 5.76599pt on input line 9.
 LaTeX Font Info:    Font shape `JT1/mc/m/n' will be
-(Font)              scaled to size 7.30359pt on input line 9.
+(Font)              scaled to size 7.30359pt on input line 23.
 LaTeX Font Info:    Font shape `JY1/mc/m/n' will be
-(Font)              scaled to size 4.805pt on input line 9.
+(Font)              scaled to size 4.805pt on input line 23.
 LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
-(Font)              scaled to size 7.68799pt on input line 9.
+(Font)              scaled to size 7.68799pt on input line 23.
 LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
-(Font)              scaled to size 4.805pt on input line 9.
+(Font)              scaled to size 4.805pt on input line 23.
 LaTeX Font Info:    Font shape `JT1/mc/m/n' will be
-(Font)              scaled to size 5.76599pt on input line 9.
-LaTeX Font Info:    Font shape `JT1/mc/m/n' will be
-(Font)              scaled to size 11.53198pt on input line 49.
-LaTeX Font Info:    Font shape `JY1/mc/m/n' will be
-(Font)              scaled to size 11.53198pt on input line 49.
-LaTeX Font Info:    Font shape `JT1/mc/bx/n' in size <12> not available
-(Font)              Font shape `JT1/gt/m/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `JT1/gt/m/n' will be
-(Font)              scaled to size 11.53198pt on input line 49.
-LaTeX Font Info:    Font shape `JY1/mc/bx/n' in size <12> not available
-(Font)              Font shape `JY1/gt/m/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
-(Font)              scaled to size 11.53198pt on input line 49.
-LaTeX Font Info:    Font shape `T1/ppl/bx/n' in size <12> not available
-(Font)              Font shape `T1/ppl/b/n' tried instead on input line 49.
-LaTeX Font Info:    Font shape `JT1/mc/bx/n' in size <10> not available
-(Font)              Font shape `JT1/gt/m/n' tried instead on input line 50.
-LaTeX Font Info:    Font shape `JT1/gt/m/n' will be
-(Font)              scaled to size 9.60999pt on input line 50.
-LaTeX Font Info:    Font shape `JY1/mc/bx/n' in size <10> not available
-(Font)              Font shape `JY1/gt/m/n' tried instead on input line 50.
-LaTeX Font Info:    Font shape `JY1/gt/m/n' will be
-(Font)              scaled to size 9.60999pt on input line 50.
-LaTeX Font Info:    Font shape `T1/ppl/bx/n' in size <10> not available
-(Font)              Font shape `T1/ppl/b/n' tried instead on input line 50.
+(Font)              scaled to size 5.76599pt on input line 23.
  [1
 
 ]
 (./incl_excl.aux) ) 
 Here is how much of TeX's memory you used:
- 21442 strings out of 493281
- 461562 string characters out of 6145041
- 589258 words of memory out of 5000000
- 24869 multiletter control sequences out of 15000+600000
- 38340 words of font info for 113 fonts, out of 8000000 for 9000
+ 21428 strings out of 493281
+ 461337 string characters out of 6145041
+ 588259 words of memory out of 5000000
+ 24855 multiletter control sequences out of 15000+600000
+ 35818 words of font info for 106 fonts, out of 8000000 for 9000
  934 hyphenation exceptions out of 8191
- 62i,14n,104p,859b,256s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 62i,9n,104p,859b,256s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on incl_excl.dvi (1 page, 6024 bytes).
+Output written on incl_excl.dvi (1 page, 4864 bytes).
