@@ -32,7 +32,7 @@ $|\Lambda|=|\Lambda'|\implies\left|\bigcap_{i\in\Lambda}A_i\right| = \left|\bigc
 \]
 すなわち，
 \begin{align}\label{eqn:cmpl}
-\left|\bigcap_{i=1}^n A_i\right| = |A|-\left|\left(\bigcup_{i=1}^n (A\setminus A_i)\right)\right|.
+\left|\bigcap_{i=1}^n A_i\right| = |A|-\left|\bigcup_{i=1}^n (A\setminus A_i)\right|.
 \end{align}
 これは，$A\setminus A_i$を$A_i$と置き直すことで，式(\ref{eqn:base})の枠組みで求められる．
 
@@ -84,8 +84,9 @@ $n<k$で成り立っていることを仮定する．
 各\texttt{j}について$\mathtt{dp}[\mathtt{j}] = f(\mathtt{j})$で初期化し，ゼータ変換を施すと$\mathtt{dp}[\mathtt{j}] = g(\mathtt{j})$になっている．M\"obius変換についても$g$と$f$が逆になること以外は同様である．
 ここで，\texttt{j}は部分集合を2進数でエンコードしたものである．
 
-たとえば，$\Lambda_n$の各部分集合$S$に対して$\sum_{T\subseteq S} (-1)^{|T|}\cdot \left|\bigcap_{i\in T}A_i\right|$を考える．
-これは，$g(T) = \left|\bigcap_{i\in T} A_i\right|$として高速M\"obius変換で得られる$f(S)$を用いて$(-1)^{|S|}\cdot f(S)$として計算できる．
+たとえば，$\Lambda_n$の各部分集合$S$に対して式(\ref{eqn:base})の包除原理を行うことを考える．すなわち，各$S$に対して$f(S)=\sum_{T\subseteq S} (-1)^{|T|-1}\cdot \left|\bigcap_{i\in T}A_i\right|$を計算する．
+これは，$g(\emptyset)=0$，$g(T) = \left|\bigcap_{i\in T} A_i\right|$として高速M\"obius変換で得られる$f(S)$を用いて$(-1)^{|S|}\cdot f(S)$として計算できる．
+これにより，愚直には$O(3^{|S|})$かかる計算を$O(|S|\cdot 2^{|S|})$で行うことができる\footnote{目安としては，前者が$n\le 15$で後者が$n\le 20$程度まで許容できる．}．
 
 \subsubsection{DP}
 式(\ref{eqn:base2})より，$j$個の条件を満たす場合の数を求めることを考える．
@@ -105,6 +106,9 @@ $\DP[i][j]$から$\DP[i+1][j+1]$への遷移（$i$番目の条件を満たす）
 Everything on It的なのを書く．
 
 \subsection{補足}
+$\mathcal{P}$の各部分集合$\mathcal{P}'$について$\left|\bigcap_{i\in\mathcal{P}'} A_i\right|$を前計算しておくことで，各クエリで与えられる$\mathcal{Q}$について$\left|\bigcup_{i\in\mathcal{Q}} A_i\right|$を高速に求められたりする．
+% Uncommon
+
 \subsubsection{暗黙の制約}
 $n\le 10^9$，$n\le 10^{18}$なら$n$の持つ素因数の個数はそれぞれ，たかだか$9$個，$15$個なので，$n$が多少大きくても$n$の素因数に関する部分集合であれば式(\ref{eqn:base})をそのまま計算することができる．
 
