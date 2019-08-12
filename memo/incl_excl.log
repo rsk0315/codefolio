@@ -1,4 +1,4 @@
-This is e-pTeX, Version 3.14159265-p3.8.0-180226-2.6 (utf8.euc) (TeX Live 2018) (preloaded format=platex 2018.5.14)  11 AUG 2019 21:44
+This is e-pTeX, Version 3.14159265-p3.8.0-180226-2.6 (utf8.euc) (TeX Live 2018) (preloaded format=platex 2018.5.14)  13 AUG 2019 05:05
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -1215,10 +1215,10 @@ runsystem(rm incl_excl.pyg)...executed.
 Here is how much of TeX's memory you used:
  21650 strings out of 493281
  464441 string characters out of 6145041
- 592259 words of memory out of 5000000
+ 592258 words of memory out of 5000000
  25059 multiletter control sequences out of 15000+600000
  39594 words of font info for 120 fonts, out of 8000000 for 9000
  934 hyphenation exceptions out of 8191
  62i,10n,104p,859b,452s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on incl_excl.dvi (4 pages, 16984 bytes).
+Output written on incl_excl.dvi (4 pages, 16992 bytes).

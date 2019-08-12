@@ -9,7 +9,7 @@
 
 数え上げのテクニックの一つ．
 集合$A$が与えられ，その要素を変数とする述語たち$\mathcal{P}=\{P_1, \dots, P_n\}$を考える．
-$1\le i\le n$に対して$A$の部分集合$A_i$を$A_i=\{a\in A\mid P_i(a)\}$で定めるとき，$\bigcup_{i=1}^n A_i$の要素数を求めるものである．
+$1\le i\le n$に対して$A$の部分集合$A_i$を$A_i=\{a\in A\mid P_i(a)\}$で定めるとき，$\left|\bigcup_{i=1}^n A_i\right|$を求めるものである．
 $\Lambda_n=\{1, \dots, n\}$とする．
 \begin{align}\label{eqn:base}
 \left|\bigcup_{i=1}^n A_i\right|
@@ -26,7 +26,7 @@ $|\Lambda|=|\Lambda'|\implies\left|\bigcap_{i\in\Lambda}A_i\right| = \left|\bigc
 式(\ref{eqn:base})においては$\sum$で足される項が$2^n-1$個だったのに対し，式(\ref{eqn:base2})--(\ref{eqn:linear})では$n$に減っていてうれしい．
 
 上の議論は，$\left|\bigcap_{i\in\Lambda}A_i\right|$を計算するのが容易であることを前提としているが，逆に$\left|\bigcap_{i\in\Lambda}(A\setminus A_i)\right|$の計算が容易な状況\footnote{満たす条件を決め打ちするよりも，満たさない条件を決め打ちした方が楽な場合．}
-で$\bigcap_{i=1}^n A_i$の要素数を求めたいときには以下のようにするとよい．
+で$\left|\bigcap_{i=1}^n A_i\right|$を求めたいときには以下のようにするとよい．
 \[
 \bigcap_{i=1}^n A_i = A\setminus\left(\bigcup_{i=1}^n (A\setminus A_i)\right).
 \]
@@ -34,7 +34,7 @@ $|\Lambda|=|\Lambda'|\implies\left|\bigcap_{i\in\Lambda}A_i\right| = \left|\bigc
 \begin{align}\label{eqn:cmpl}
 \left|\bigcap_{i=1}^n A_i\right| = |A|-\left|\bigcup_{i=1}^n (A\setminus A_i)\right|.
 \end{align}
-これは，$A\setminus A_i$を$A_i$と置き直すことで，式(\ref{eqn:base})の枠組みで求められる．
+右辺の第2項は，$A\setminus A_i$を$A_i$と置き直すことで式(\ref{eqn:base})の枠組みで求められる．
 
 \subsection{証明}
 $\mathcal{P}$の大きさ$n$に関する帰納法で示す．$n=2$の場合はVenn図などから示される（省略）．
@@ -97,7 +97,7 @@ $\DP[i][j]$から$\DP[i+1][j+1]$への遷移（$i$番目の条件を満たす）
 その後，$\DP[n][j]$から$\sum_{|\Lambda|=j}\left|\bigcap_{i\in\Lambda} A_i\right|$を求めることで式(\ref{eqn:base2})を計算できる．
 
 状態数が$O(n^2)$であり，$n\le 5000$などではMLEしうるので，一次元配列を使いまわすテクを使うとよい．
-また，操作回数など別のパラメータが必要になる場合は適宜DPの次元を必要がある（それはそう）．
+また，操作回数など別のパラメータが必要になる場合は適宜DPの次元を増やす必要がある（それはそう）．
 
 \subsubsection{約数系包除}
 書かなきゃにゃん．
@@ -109,7 +109,7 @@ Everything on It的なのを書く．
 $\mathcal{P}$の各部分集合$\mathcal{P}'$について$\left|\bigcap_{i\in\mathcal{P}'} A_i\right|$を前計算しておくことで，各クエリで与えられる$\mathcal{Q}$について$\left|\bigcup_{i\in\mathcal{Q}} A_i\right|$を高速に求められたりする．
 % Uncommon
 
-\subsubsection{暗黙の制約}
+%\subsubsection{暗黙の制約}
 $n\le 10^9$，$n\le 10^{18}$なら$n$の持つ素因数の個数はそれぞれ，たかだか$9$個，$15$個なので，$n$が多少大きくても$n$の素因数に関する部分集合であれば式(\ref{eqn:base})をそのまま計算することができる．
 
 \end{document}
