@@ -32,7 +32,7 @@ $|\Lambda|=|\Lambda'|\implies\left|\bigcap_{i\in\Lambda}A_i\right| = \left|\bigc
 \]
 すなわち，
 \begin{align}\label{eqn:cmpl}
-\left|\bigcap_{i=1}^n A_i\right| = |A|-\left|\bigcup_{i=1}^n (A\setminus A_i)\right|.
+  \left|\bigcap_{i=1}^n A_i\right| = |A|-\left|\bigcup_{i=1}^n (A\setminus A_i)\right|.
 \end{align}
 右辺の第2項は，$A\setminus A_i$を$A_i$と置き直すことで式(\ref{eqn:base})の枠組みで求められる．
 
@@ -95,6 +95,17 @@ $n<k$で成り立っていることを仮定する．
 $\DP[i][j]$では，$i$番目までの条件を見て，そのうち$j$個の条件を満たす場合の数（を求めるための値\footnote{遷移のしやすさと相談するとよさそう．}）として定義する．
 $\DP[i][j]$から$\DP[i+1][j+1]$への遷移（$i$番目の条件を満たす）と$\DP[i+1][j]$への遷移（$i$番目の条件を考慮しない）をそれぞれがんばって考える．
 その後，$\DP[n][j]$から$\sum_{|\Lambda|=j}\left|\bigcap_{i\in\Lambda} A_i\right|$を求めることで式(\ref{eqn:base2})を計算できる．
+$\DP[n][j]$が直接その値を表す場合，（遷移によっては）$j$を指数部の偶奇を示す$\{0, 1\}$のみにまとめることができうる．
+
+また，式(\ref{eqn:cmpl})を用いる場合，$\DP[n][0]$は「$n$個目までの条件を見て$0$個の条件を考慮する場合」であり，これは集合全体に対応している．すなわち，以下のように簡単にできる（はず）．
+\begin{align*}
+  \left|\bigcap_{i=1}^n A_i\right|
+  % &= |A|-\left|\bigcup_{i=1}^n (A\setminus A_i)\right|\\
+  &= |A| - \sum_{j=1}^n (-1)^{j-1}\cdot \left(\sum_{|\Lambda|=j} \left|\bigcap_{i\in\Lambda} (A\setminus A_i)\right|\right)\\
+  &= \DP[n][0] - \sum_{j=1}^n (-1)^{j-1}\cdot \DP[n][j]\\
+  % &= (-1)^0\cdot\DP[n][0] + \sum_{j=1}^n (-1)^j\cdot\DP[n][j]\\
+  &= \sum_{j=0}^n (-1)^j\cdot\DP[n][j].
+\end{align*}
 
 状態数が$O(n^2)$であり，$n\le 5000$などではMLEしうるので，一次元配列を使いまわすテクを使うとよい．
 また，操作回数など別のパラメータが必要になる場合は適宜DPの次元を増やす必要がある（それはそう）．
