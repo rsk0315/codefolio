@@ -8,6 +8,7 @@
 #include <utility>
 #include <tuple>
 #include <map>
+#include <random>
 
 constexpr intmax_t  operator ""_jd(unsigned long long n) { return n; }
 constexpr uintmax_t operator ""_ju(unsigned long long n) { return n; }
@@ -171,7 +172,7 @@ std::pair<std::vector<intmax_t>, std::vector<intmax_t>> make_collision(
 }
 
 void replace(std::vector<intmax_t>& s,
-             std::map<intmax_t, std::vector<intmax_t>> const& t) {
+             std::vector<std::vector<intmax_t>> const& t) {
 
   std::vector<intmax_t> res;
   for (auto i: s) {
@@ -195,31 +196,6 @@ intmax_t hash(std::vector<intmax_t> const& s, intmax_t p, intmax_t b) {
   return h;
 }
 
-std::map<intmax_t, std::vector<intmax_t>> make_unit(
-    std::vector<intmax_t> const& s0, std::vector<intmax_t> const& s1,
-    intmax_t mod, intmax_t base, size_t sigma
-) {
-  std::map<intmax_t, std::vector<intmax_t>> t{{0_jd, s0}, {1_jd, s1}};
-  t.at(0);
-  t.at(1);
-  size_t len = 64 - __builtin_clzll(sigma);
-  std::map<intmax_t, std::vector<intmax_t>> res;
-  while (res.size() < sigma) {
-    fprintf(stderr, "size: %zu\n", res.size());
-    res.clear();
-    for (size_t i = 0; i < (1_zu << len); ++i) {
-      std::vector<intmax_t> cur(len);
-      for (size_t j = 0; j < len; ++j)
-        if (i >> j & 1) cur[j] = 1;
-      replace(cur, t);
-      intmax_t h = hash(cur, mod, base);
-      res[h] = std::move(cur);
-    }
-    ++len;
-  }
-  return res;
-}
-
 std::pair<std::vector<intmax_t>, std::vector<intmax_t>> make_collision(
     std::vector<std::pair<intmax_t, intmax_t>> const& params, size_t sigma
 ) {
@@ -231,18 +207,46 @@ std::pair<std::vector<intmax_t>, std::vector<intmax_t>> make_collision(
     bases.push_back(base);
   }
 
+  std::mt19937 rsk(0315);
+  std::uniform_int_distribution<int> nya(0, 1);
+
   std::vector<intmax_t> s, t;
   std::tie(s, t) = make_collision(mods[0], bases[0], sigma);
   for (size_t i = 1; i < mods.size(); ++i) {
-    auto unit = make_unit(s, t, mods[i], bases[i], sigma);
-    fprintf(stderr, "unit: %zu\n", unit.size());
+    intmax_t hs = hash(s, mods[i], bases[i]);
+    intmax_t ht = hash(t, mods[i], bases[i]);
+    if (hs == ht) continue;
 
-    intmax_t r = modpow<intmax_t>(bases[i], unit.at(0).size(), mods[i]);
-    std::vector<intmax_t> s0, t0;
-    std::tie(s0, t0) = make_collision(mods[i], r, sigma);
-
-    replace(s0, unit);
-    replace(t0, unit);
+    size_t len = std::log(std::sqrt(mods[i])) / std::log(2);
+    std::vector<intmax_t> s0(len), t0;
+    intmax_t r = modpow<__int128>(bases[i], s.size(), mods[i]);
+    do {
+      std::map<intmax_t, std::vector<intmax_t>> seen;
+      size_t fail = 0;
+      do {
+        // birthday attack
+        for (auto& si: s0) si = nya(rsk)? hs: ht;
+        intmax_t h0 = hash(s0, mods[i], r);
+        auto it = seen.find(h0);
+        if (it != seen.end()) {
+          if (s0 == it->second) {
+            if (++fail == 20) {
+              s0.push_back(0);
+              break;
+            }
+            continue;
+          }
+          t0 = it->second;
+          break;
+        }
+        seen.emplace(h0, s0);
+      } while (true);
+    } while (t0.empty());
+    std::vector<std::vector<intmax_t>> u{s, t};
+    for (auto& si: s0) si = ((si == hs)? 1: 0);
+    for (auto& ti: t0) ti = ((ti == hs)? 1: 0);
+    replace(s0, u);
+    replace(t0, u);
     s = std::move(s0);
     t = std::move(t0);
   }
@@ -250,24 +254,42 @@ std::pair<std::vector<intmax_t>, std::vector<intmax_t>> make_collision(
   return {s, t};
 }
 
+void print_strings(std::string const& s, std::string const& t, bool rich) {
+  if (!rich) {
+    puts(s.c_str()), puts(t.c_str());
+    return;
+  }
+
+  for (size_t i = 0; i < s.length(); ++i) {
+    if (s[i] != t[i]) printf("\x1b[1;31m");
+    printf("%c", s[i]);
+    if (s[i] != t[i]) printf("\x1b[m");
+  }
+  puts("");
+
+  for (size_t i = 0; i < s.length(); ++i) {
+    if (s[i] != t[i]) printf("\x1b[1;31m");
+    printf("%c", t[i]);
+    if (s[i] != t[i]) printf("\x1b[m");
+  }
+  puts("");
+}
+
 int main() {
+  size_t n;
+  scanf("%zu", &n);
+
   std::vector<std::pair<intmax_t, intmax_t>> params;
-  // params.emplace_back(4294967296_jd, 1000000007);
   // params.emplace_back(1000000007, 10007);
+  // params.emplace_back(4294967296_jd, 1000000007);
   // params.emplace_back(1000000007, 1777771);
+  for (size_t i = 0; i < n; ++i) {
+    intmax_t mod, base;
+    scanf("%jd %jd", &mod, &base);
+    params.emplace_back(mod, base);
+  }
 
-  // params.emplace_back(127, 13);
-  // params.emplace_back(149, 11);
-
-  // params.emplace_back(172359, 543);
-  // params.emplace_back(11, 3);
-
-  params.emplace_back(11, 3);
-  params.emplace_back(13, 5);
-  params.emplace_back(17, 7);
-  params.emplace_back(19, 9);
-
-  // std::sort(params.rbegin(), params.rend());
+  std::sort(params.rbegin(), params.rend());
 
   std::vector<intmax_t> s0, t0;
   std::tie(s0, t0) = make_collision(params, 26);
@@ -277,7 +299,7 @@ int main() {
   for (auto c: t0) t += c+'a';
 
   fprintf(stderr, "length: %zu\n", s.length());
-  printf("%s\n%s\n", s.c_str(), t.c_str());
+  print_strings(s, t, true);
 
   for (auto const& pi: params) {
     intmax_t mod, base;
