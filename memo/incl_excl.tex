@@ -1,6 +1,7 @@
 \documentclass{jsarticle}
 
 \usepackage{rsk0315}
+\usepackage{amsthm}
 
 \newcommand{\DP}{\ensuremath\mathrm{dp}}
 
@@ -62,7 +63,7 @@ $n<k$で成り立っていることを仮定する．
 第1項は$A_k$を含まない$k-1$個以下の積集合，第2項は$A_k$のみからなる集合，第3項は$A_k$を含む$2$個以上$k$個以下の積集合に関する式になっており，次のようにまとめることができる．
 \begin{align*}
   \left|\bigcup_{i=1}^k A_i\right|
-  &= \sum_{\emptyset\subset\Lambda\subseteq\Lambda_k} (-1)^{|\Lambda|-1} \cdot\left|\bigcap_{i\in\Lambda} A_i\right|.
+  &= \sum_{\emptyset\subset\Lambda\subseteq\Lambda_k} (-1)^{|\Lambda|-1} \cdot\left|\bigcap_{i\in\Lambda} A_i\right|.\qed
 \end{align*}
 
 \subsection{発展}
@@ -97,7 +98,7 @@ $\DP[i][j]$から$\DP[i+1][j+1]$への遷移（$i$番目の条件を満たす）
 その後，$\DP[n][j]$から$\sum_{|\Lambda|=j}\left|\bigcap_{i\in\Lambda} A_i\right|$を求めることで式(\ref{eqn:base2})を計算できる．
 $\DP[n][j]$が直接その値を表す場合，（遷移によっては）$j$を指数部の偶奇を示す$\{0, 1\}$のみにまとめることができうる．
 
-また，式(\ref{eqn:cmpl})を用いる場合，$\DP[n][0]$は「$n$個目までの条件を見て$0$個の条件を考慮する場合」であり，これは集合全体に対応している．すなわち，以下のように簡単にできる（はず）．
+また，式(\ref{eqn:cmpl})を用いる場合，$\DP[n][0]$は「$n$個目までの条件を見て$0$個の条件を考慮する場合」であり，これは集合全体に対応している．すなわち，以下のように簡単にできる（はず）．$f$は適当に定義する．
 \begin{align*}
   \left|\bigcap_{i=1}^n A_i\right|
   &= |A| - \sum_{j=1}^n (-1)^{j-1}\cdot \left(\sum_{|\Lambda|=j} \left|\bigcap_{i\in\Lambda} (A\setminus A_i)\right|\right)\\
@@ -109,14 +110,28 @@ $\DP[n][j]$が直接その値を表す場合，（遷移によっては）$j$を
 また，操作回数など別のパラメータが必要になる場合は適宜DPの次元を増やす必要がある（それはそう）．
 
 \subsubsection{約数系包除}
-書かなきゃにゃん．
+ある$n$について$f(n)$を求めた後，$g(n) = f(n) - \sum_{n'\sqsubset n} g(n')$を求める\footnote{$n'\sqsubseteq n$は$n'$が$n$の約数であることを表し，$n'\sqsubset n$は$n'$が$n$の真の約数である，つまり$n'\sqsubset n\iff n'\sqsubseteq n\wedge n'\neq n$であることを表す．}局面が考えられる．
+典型的な例では，周期が関連する数え上げなどが挙げられる．
+より具体的には，たとえば周期$4$の数列には周期$2$や$1$の数列も含まれるので，最小周期が$4$の数列を数え上げたい場合にはそれらを取り除く必要がある．
 
-$d$について$d'\sqsubset d$なる$d'$について重複を除く\footnote{$d'\sqsubset d$は$d'$が$d$の真の約数であることを意味する．}ようなことをする？
+さて，ここで以下の関係式が成り立つ（M\"obiusの反転公式）．
+\[f(n) = \sum_{n'\sqsubseteq n} g(n') \iff g(n) = \sum_{n'\sqsubseteq n} \mu(n/n')\cdot f(n').\]
+ここで，$\mu(n)$は以下で定義されるM\"obius関数である\footnote{$g(n)$を$f(n')$の足し引きで求める際に，足されるのか引かれるのか，あるいは打ち消されるのかを表す関数である．}．
+\[
+\mu(n) = \begin{cases}
+  1 & \text{if }n = 1,\\
+  0 & \text{if }{}^\exists m > 1\text{ s.t. }m^2\sqsubseteq n,\\
+  (-1)^k & \text{if }n = \prod_{i=1}^k p_i\text{, where each }p_i\text{ is prime}.
+\end{cases}
+\]
+$n'\sqsubseteq n$である各$n'$に対する$\mu(n')$は，$n$の素因数の列挙をしておくとbit DPで求めることができる．
+また，$n$の上限によってはEratosthenesの篩を応用して$1\le n'\le n$に対する$\mu(n')$を計算しておくこともできる．
 
-\subsubsection{その他}
-Everything on It的なのを書く．
-
-的なのってのはどの要素を指してるんですかね...
+%% \subsubsection{その他}
+%% Everything on It的なのを書く．
+%% 的なのってのはどの要素を指してるんですかね...
+%% べき集合に関するのを書こうとしたけど，本質的にはそこまで変わらなくない？
+%% 考えが変わったらどうにかします
 
 \subsection{補足}
 $\mathcal{P}$の各部分集合$\mathcal{P}'$について$\left|\bigcap_{i\in\mathcal{P}'} A_i\right|$を前計算しておくことで，各クエリで与えられる$\mathcal{Q}$について$\left|\bigcup_{i\in\mathcal{Q}} A_i\right|$を高速に求められたりする．
