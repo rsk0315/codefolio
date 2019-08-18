@@ -16,6 +16,7 @@ public:
   }
 
   intmax_t operator ()(intmax_t n, intmax_t r) const {
+    if (!(0 <= r && r <= n && 0 <= n)) return 0;
     intmax_t res = fact[n] * fact_inv[r] % mod;
     (res *= fact_inv[n-r]) %= mod;
     return res;
