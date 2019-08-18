@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <utility>
 #include <functional>
+#include <deque>
 
 #include "../../DataStructure/knuth_morris_pratt_searcher.cpp"
 

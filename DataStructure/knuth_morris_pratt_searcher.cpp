@@ -28,12 +28,16 @@ public:
       ForwardIt2 first, ForwardIt2 last
   ) const {
     std::vector<std::pair<ForwardIt2, ForwardIt2>> res;
+    std::deque<ForwardIt2> start;
     size_type j = 0;
     for (auto it = first; it != last;) {
+      start.push_back(it);
       while (j != S_npos && !M_pred(M_pat[j], *it)) j = M_fail[j];
       ++it;
+      if (start.size() > M_pat.size()) start.pop_front();
       if (++j == M_pat.size()) {
-        res.emplace_back(std::prev(it, j), it);  // XXX non-linear
+        fprintf(stderr, "pushed: [%td:%td]\n", start.front()-first, it-first);
+        res.emplace_back(start.front(), it);
         j = M_fail[j];
       }
     }
