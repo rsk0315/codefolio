@@ -119,6 +119,6 @@ public:
 
   template <typename OutputIt>
   OutputIt dump(OutputIt d_first) const {
-    std::copy(M_sa.begin(), M_sa.end(), d_first);
+    return std::copy(M_sa.begin(), M_sa.end(), d_first);
   }
 };
