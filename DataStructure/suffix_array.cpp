@@ -1,13 +1,15 @@
-template <typename Tp>
+template <typename Tp, typename Compare = std::less<Tp>>
 class suffix_array {
 public:
   using size_type = size_t;
   using value_type = Tp;
+  using compare = Compare;
 
 private:
   size_type M_size;
   std::vector<size_type> M_rank;
   std::vector<size_type> M_sa;
+  compare M_comp;
 
   template <typename InputIt>
   void M_build(InputIt first, InputIt last) {
@@ -22,9 +24,9 @@ private:
         if (i+1 >= rank0.size()) return true;
         if (j+1 >= rank0.size()) return false;
         // comparison between value_type's, not size_type's
-        if (rank0[i] < rank0[j] || rank0[j] < rank0[i])
-          return rank0[i] < rank0[j];
-        return rank0[i+1] < rank0[j+1];
+        if (M_comp(rank0[i], rank0[j]) || M_comp(rank0[j], rank0[i]))
+          return M_comp(rank0[i], rank0[j]);
+        return M_comp(rank0[i+1], rank0[j+1]);
       };
       std::sort(M_sa.begin(), M_sa.end(), comp0);
       std::vector<size_type> tmp(M_size);
@@ -61,5 +63,6 @@ public:
   suffix_array(suffix_array&&) = default;
 
   template <typename InputIt>
-  suffix_array(InputIt first, InputIt last) { M_build(first, last); }
+  suffix_array(InputIt first, InputIt last, Compare comp = Compare()):
+    M_comp(comp) { M_build(first, last); }
 };
