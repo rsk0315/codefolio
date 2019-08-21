@@ -73,6 +73,8 @@ public:
     }
     return res;
   }
+
+  value_type operator [](size_type i) const { return get(i); }
 };
 
 template <typename Tp>
