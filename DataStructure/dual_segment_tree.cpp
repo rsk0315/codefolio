@@ -57,8 +57,8 @@ public:
     l += M_base_size;
     r += M_base_size;
     while (l < r) {
-      if (l & 1) M_c[l] = M_op2(std::move(M_c[l++]), x);
-      if (r & 1) M_c[r] = M_op2(std::move(M_c[--r]), x);
+      if (l & 1) M_c[l] = M_op2(std::move(M_c[l]), x), ++l;
+      if (r & 1) --r, M_c[r] = M_op2(std::move(M_c[r]), x);
       l >>= 1;
       r >>= 1;
     }
