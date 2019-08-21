@@ -30,4 +30,19 @@ int main() {
     suffix_array<char>(a.begin(), a.end());
     suffix_array<char>(a.begin(), a.begin());
   }
+
+  {
+    std::string a = "abababb";
+    {
+      std::vector<std::string> s(a.size());
+      for (size_t i = 0; i < a.size(); ++i)
+        s[i] = std::string(a.substr(i));
+      std::sort(s.begin(), s.end());
+      for (size_t i = 0; i < s.size(); ++i)
+        fprintf(stderr, "%s\n", s[i].c_str());
+    }
+    std::string b0 = "abac";
+    suffix_array<char> sa(a.begin(), a.end());
+    printf("%td\n", sa.lcp(b0.begin(), b0.end()));
+  }
 }
