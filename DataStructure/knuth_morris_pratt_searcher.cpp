@@ -66,5 +66,5 @@ public:
 template <typename ForwardIt, typename BinaryPredicate = std::equal_to<>>
 auto make_knuth_morris_pratt_searcher(ForwardIt first, ForwardIt last,
                                       BinaryPredicate pred = BinaryPredicate()) {
-  return knuth_morris_pratt_searcher(first, last, pred);
+  return knuth_morris_pratt_searcher<ForwardIt, BinaryPredicate>(first, last, pred);
 }
