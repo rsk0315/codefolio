@@ -62,3 +62,9 @@ public:
       ForwardIt2 first, ForwardIt2 last
   ) const { return search_first(first, last); }
 };
+
+template <typename ForwardIt, typename BinaryPredicate = std::equal_to<>>
+auto make_knuth_morris_pratt_searcher(ForwardIt first, ForwardIt last,
+                                      BinaryPredicate pred = BinaryPredicate()) {
+  return knuth_morris_pratt_searcher(first, last, pred);
+}
