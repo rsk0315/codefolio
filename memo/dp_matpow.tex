@@ -1,0 +1,95 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\DP}{\ensuremath\mathrm{dp}}
+
+\begin{document}
+\section{行列累乗で高速化するDP}
+
+$\DP[i]$が$\DP[i-1]$と，ある$\DP_1[i-1]$, \dots, $\DP_k[i-1]$から計算でき，ある定数行列$A$が存在して任意の$i$について以下の式が成り立つとうれしい．
+\[
+\left(\begin{matrix}
+  \DP[i]\\
+  \DP_1[i]\\
+  \vdots\\
+  \DP_k[i]
+\end{matrix}\right) = A \times \left(\begin{matrix}
+  \DP[i-1]\\
+  \DP_1[i-1]\\
+  \vdots\\
+  \DP_k[i-1]
+\end{matrix}\right).
+\]
+うれしいのは以下のようにできるためである．
+\[
+\left(\begin{matrix}
+  \DP[n]\\
+  \DP_1[n]\\
+  \vdots\\
+  \DP_k[n]
+\end{matrix}\right) = A^n \times \left(\begin{matrix}
+  \DP[0]\\
+  \DP_1[0]\\
+  \vdots\\
+  \DP_k[0]
+\end{matrix}\right).
+\]
+行列$A$の大きさは$(k+1, k+1)$なので，乗算は$O(k^3)$で計算でき\footnote{Strassenの方法を使えば$O(k^{\log_2 7+o(1)})\subset O(k^{2.81})$で計算することもできる．}，繰り返し二乗法などで$O(\log n)$回の乗算で済ませられるので，全体として$O(k^3 \log n)$時間で$\DP[n]$を計算できる．
+自分でうまく$\DP_1$, \dots, $\DP_k$を決めてあげる必要があって，そこは大変そう．
+
+\subsection{利用例}
+以下のような遷移をするDPを考える．
+\begin{alg}
+  \caption{愚直なDP}
+  {$\DP[0] \gets c$}\Comment*{初期条件は計算できるとする．}
+  \For{$i \in \{1, \dots, N-1\}$}
+  {
+    {$\displaystyle\DP[i] \gets \sum_{j=1}^i j^2\cdot\DP[i-j]$}\;
+  }
+\end{alg}
+
+\noindent
+以下のように式変形をしていく．
+\begin{align*}
+  \DP[i]
+  &= \sum_{j=1}^i j^2\cdot\DP[i-j]\\
+  &= 1^2\cdot\DP[i-1] + \sum_{j=2}^i j^2\cdot\DP[i-j]\\
+  &= \DP[i-1] + \sum_{j=1}^{i-1} (j+1)^2\cdot\DP[i-(j+1)]\\
+  &= \DP[i-1] + \sum_{j=1}^{j-1} j^2\cdot\DP[i-1-j] + \sum_{j=1}^{i-1} 2j\cdot\DP[i-1-j] + \sum_{j=1}^{i-1} 1\cdot\DP[i-1-j]\\
+  &= \DP[i-1] + \DP[i-1] + 2\cdot\sum_{j=1}^{i-1} j\cdot\DP[i-1-j] + \sum_{j=1}^{i-1} \DP[i-1-j].
+\end{align*}
+ここで，$\DP_1[i] = \sum_{j=1}^i j\cdot\DP[i-j]$, $\DP_2[i] = \sum_{j=1}^i \DP[i-j]$とおくと，次のようにできる．
+\begin{align*}
+  \DP[i] = 2\cdot\DP[i-1] + 2\cdot\DP_1[i-1] + \DP_2[i-1].
+\end{align*}
+$\DP_1$および$\DP_2$についても同じ手続きをする．
+\begin{align*}
+  \DP_1[i]
+  &= \sum_{j=1}^i j\cdot\DP[i-j]\\
+  &= \DP[i-1] + \sum_{j=1}^{i-1} (j+1)\cdot\DP[i-1-j]\\
+  &= \DP[i-1] + \sum_{j=1}^{i-1} j\cdot\DP[i-1-j] + \sum_{j=1}^{i-1} \DP[i-1-j]\\
+  &= \DP[i-1] + \DP_1[i-1] + \DP_2[i-1].\\
+  \DP_2[i]
+  &= \sum_{j=1}^i \DP[i-j]\\
+  &= \DP[i-1] + \sum_{j=1}^{i-1} \DP[i-1-j]\\
+  &= \DP[i-1] + \DP_2[i-1].
+\end{align*}
+これらより，次のように書けることがわかる．
+\[
+\left(\begin{matrix}
+  \DP[i]\\
+  \DP_1[i]\\
+  \DP_2[i]
+\end{matrix}\right) = \left(\begin{matrix}
+  2 & 2 & 1\\
+  1 & 1 & 1\\
+  1 & 0 & 1
+\end{matrix}\right) \times \left(\begin{matrix}
+  \DP[i-1]\\
+  \DP_1[i-1]\\
+  \DP_2[i-1]
+\end{matrix}\right).
+\]
+一般に，$\DP[i] = \sum_{j=1}^i j^k\cdot\DP[i-j]$の形のDPは上のような変形から行列累乗で解ける．
+\end{document}
