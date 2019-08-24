@@ -1,3 +1,4 @@
+#include <cassert>
 #include <type_traits>
 
 template <typename Tp, Tp modulo>
