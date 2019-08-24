@@ -35,9 +35,11 @@ public:
   value_type factorial(underlying_type n) const { return M_f[n]; }
   value_type inversed_factorial(underlying_type n) const { return M_fi[n]; }
   value_type choose(underlying_type n, underlying_type r) const {
-    // XXX RE if modulo == 0 (runtime mod)
     // XXX implicitly assuming n < modulo
-    if (!(0 <= n && 0 <= r && r <= n)) return value_type(0);
+    if (!(0 <= n && 0 <= r && r <= n)) {
+      if (modulo == 0) return value_type(0, M_f[0].modulo());
+      return value_type(0);
+    }
     return M_f[n] * M_fi[r] * M_fi[n-r];
   }
 };

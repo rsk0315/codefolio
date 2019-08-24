@@ -152,4 +152,5 @@ public:
   modint& pow_eq(intmax_t iexp) { return *this = this->pow(iexp); }
 
   value_type get() const { return M_value; }
+  value_type modulo() const { return ((S_mod > 0)? S_mod: M_mod); }
 };
