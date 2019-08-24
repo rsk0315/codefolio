@@ -23,8 +23,8 @@ private:
   static constexpr value_type S_gcd(
       value_type a, value_type b, value_type& x, value_type& y
   ) {
-    x = 1;
-    y = 0;
+    x = 0;
+    y = 1;
     for (value_type u = y, v = x; a;) {
       value_type q = b / a;
       std::swap(x -= q*u, u);
