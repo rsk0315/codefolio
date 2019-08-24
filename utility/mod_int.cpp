@@ -1,3 +1,5 @@
+#include <type_traits>
+
 template <typename Tp, Tp modulo>
 class modint {
   // FIXME to implement with Montgomery multiplication
@@ -20,31 +22,33 @@ private:
     return n;
   }
 
-  static constexpr value_type S_gcd(
-      value_type a, value_type b, value_type& x, value_type& y
-  ) {
-    x = 0;
-    y = 1;
+  static constexpr value_type S_inv(value_type n) {
+    value_type x = 0;
+    value_type y = 1;
+    value_type a = n;
+    value_type b = S_mod;
     for (value_type u = y, v = x; a;) {
       value_type q = b / a;
       std::swap(x -= q*u, u);
       std::swap(y -= q*v, v);
       std::swap(b -= q*a, a);
     }
-    return b;
-  }
-
-  static constexpr value_type S_inv(value_type n) {
-    value_type x, y;
-    S_gcd(n, S_mod, x, y);
     if ((x %= S_mod) < 0) x += S_mod;
     return x;
   }
 
   static constexpr value_type S_inv(value_type n, value_type m) {
-    value_type x, y;
-    S_gcd(n, m, x, y);
-    if ((x %= m) < 0) x += m;
+    value_type x = 0;
+    value_type y = 1;
+    value_type a = n;
+    value_type b = m;
+    for (value_type u = y, v = x; a;) {
+      value_type q = b / a;
+      std::swap(x -= q*u, u);
+      std::swap(y -= q*v, v);
+      std::swap(b -= q*a, a);
+    }
+    if ((x %= S_mod) < 0) x += S_mod;
     return x;
   }
 
