@@ -63,6 +63,7 @@ public:
   modint& operator =(modint const&) = default;
   modint& operator =(modint&&) = default;
   modint& operator =(value_type n) {
+    assert(S_mod > 0);
     M_value = S_normalize(n, S_mod);
     return *this;
   }
