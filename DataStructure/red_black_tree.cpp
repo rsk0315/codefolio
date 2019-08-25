@@ -29,7 +29,6 @@ public:
   balanced_tree& operator =(balanced_tree const& other);  // deep copy
   balanced_tree& operator =(balanced_tree&&) = default;
 
-  // assign
   void assign(size_type count, const_reference value) {
     clear();
     M_put_sentinel();
@@ -119,8 +118,8 @@ public:
 
   iterator partition_point(const_reference key);
   const_iterator partition_point(const_reference key) const;
-  template <typename Compare>
-  iterator partition_point(const_reference key, Compare comp);
-  template <typename Compare>
-  const_iterator partition_point(const_reference key, Compare comp) const;
+  template <typename Predicate>
+  iterator partition_point(const_reference key, Predicate pred);
+  template <typename Predicate>
+  const_iterator partition_point(const_reference key, Predicate pred) const;
 };
