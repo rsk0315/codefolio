@@ -19,7 +19,7 @@ private:
   container M_c;
 
   template <typename Predicate>
-  size_type M_search_root(Predicate pred, value_type& x) {
+  size_type M_search_root(Predicate pred, value_type& x) const {
     size_type n = M_base_size;
     size_type l = n;
     size_type r = n+n;
@@ -45,7 +45,7 @@ private:
   }
 
   template <typename Predicate>
-  size_type M_search_leaf(Predicate pred, size_type v, value_type& x) {
+  size_type M_search_leaf(Predicate pred, size_type v, value_type& x) const {
     size_type n = M_base_size;
     while (v < n) {
       size_type c = v << 1;
@@ -75,19 +75,27 @@ public:
 
   template <typename InputIt>
   basic_segment_tree(InputIt first, InputIt last):
-    M_base_size(std::distance(first, last)),
-    M_op1(binary_operation()),
-    M_op2(external_binary_operation()),
-    M_c(M_base_size*2)
-  {
-    for (size_type i = M_base_size; first != last; ++i)
-      M_c[i] = *first++;
-    for (size_type i = M_base_size; i--;)
-      M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
-  }
+    M_op1(binary_operation()), M_op2(external_binary_operation())
+  { assign(first, last); }
 
   basic_segment_tree& operator =(basic_segment_tree const&) = default;
   basic_segment_tree& operator =(basic_segment_tree&&) = default;
+
+  void assign(size_type n, value_type const& x) {
+    M_base_size = n;
+    M_c.assign(n+n, x);
+    for (size_type i = n; i--;)
+      M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
+  }
+  template <typename InputIt>
+  void assign(InputIt first, InputIt last) {
+    container tmp(first, last);
+    M_base_size = tmp;
+    M_c.assign(M_base_size);
+    M_c.insert(M_c.end(), tmp.begin(), tmp.end());
+    for (size_type i = M_base_size; i--;)
+      M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
+  }
 
   void modify(size_type i, second_type const& x) {
     i += M_base_size;
@@ -98,7 +106,18 @@ public:
     }
   }
 
-  first_type accumulate(size_type l, size_type r) {
+  void assign_at(size_type i, value_type const& x) {
+    i += M_base_size;
+    M_c[i] = x;
+    while (i > 1) {
+      i >>= 1;
+      M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
+    }
+  }
+
+  value_type const& operator [](size_type i) const { return M_c[i + M_base_size]; }
+
+  value_type accumulate(size_type l, size_type r) {
     first_type resl = M_op1.identity;
     first_type resr = resl;
     l += M_base_size;
@@ -113,10 +132,11 @@ public:
   }
 
   template <typename Predicate>
-  size_type bound(Predicate pred) {
-    value_type x;
-    size_type root = M_search_root(pred, x);
-    return M_search_leaf(pred, root, x);
+  std::pair<size_type, value_type> partition_point(Predicate pred) const {
+    value_type value;
+    size_type root = M_search_root(pred, value);
+    size_type bound = M_search_leaf(pred, root, value);
+    return {bound, value};
   }
 };
 
