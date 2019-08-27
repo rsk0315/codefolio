@@ -28,6 +28,11 @@ public:
       ForwardIt2 first, ForwardIt2 last
   ) const {
     std::vector<std::pair<ForwardIt2, ForwardIt2>> res;
+    if (M_pat.empty()) {
+      for (auto it = first; it != last; ++it) res.emplace_back(it, it);
+      res.emplace_back(last, last);
+      return res;
+    }
     std::deque<ForwardIt2> start;
     size_type j = 0;
     for (auto it = first; it != last;) {
@@ -48,6 +53,7 @@ public:
   std::pair<ForwardIt2, ForwardIt2> search_first(
       ForwardIt2 first, ForwardIt2 last
   ) const {
+    if (M_pat.empty()) return {first, first};
     size_type j = 0;
     for (auto it = first; it != last;) {
       while (j != S_npos && !M_pred(M_pat[j], *it)) j = M_fail[j];

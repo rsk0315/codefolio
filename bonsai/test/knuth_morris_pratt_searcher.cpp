@@ -13,7 +13,8 @@
 void test(std::string const& pat, std::string const& text,
           std::vector<ptrdiff_t> const& expected) {
 
-  knuth_morris_pratt_searcher kmp(pat.begin(), pat.end());
+  // knuth_morris_pratt_searcher kmp(pat.begin(), pat.end());
+  auto kmp = make_knuth_morris_pratt_searcher(pat.begin(), pat.end());
 
   auto it = std::search(text.begin(), text.end(), kmp);
   // auto it = std::search(text.begin(), text.end(), std::default_searcher(pat.begin(), pat.end()));
@@ -41,6 +42,7 @@ void testset() {
   test("aabaabaaa", "aabaabaabaabaaabaabaaaaa", {6, 13});
   test("xxx", "a", {});
   test("aab", "abaacabaa", {});
+  test("", "xyzqw", {0, 1, 2, 3, 4, 5});
 }
 
 int main() {
