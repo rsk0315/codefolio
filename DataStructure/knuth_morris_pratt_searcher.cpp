@@ -41,7 +41,6 @@ public:
       ++it;
       if (start.size() > M_pat.size()) start.pop_front();
       if (++j == M_pat.size()) {
-        fprintf(stderr, "pushed: [%td:%td]\n", start.front()-first, it-first);
         res.emplace_back(start.front(), it);
         j = M_fail[j];
       }
