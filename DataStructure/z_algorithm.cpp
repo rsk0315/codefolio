@@ -10,6 +10,9 @@ private:
   BinaryPredicate M_pred;
 
 public:
+  z_array(z_array const&) = default;
+  z_array(z_array&&) = default;
+
   z_array(ForwardIt pat_first, ForwardIt pat_last,
           BinaryPredicate pred = BinaryPredicate()):
     M_pat(pat_first, pat_last), M_z(M_pat.size()), M_pred(pred)
@@ -29,6 +32,9 @@ public:
       j -= k;
     }
   }
+
+  z_array& operator =(z_array const&) = default;
+  z_array& operator =(z_array&&) = default;
 
   template <typename ForwardIt2>
   std::vector<std::pair<ForwardIt2, ForwardIt2>> search_all(

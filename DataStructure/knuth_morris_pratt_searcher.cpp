@@ -11,6 +11,9 @@ private:
   BinaryPredicate M_pred;
 
 public:
+  knuth_morris_pratt_searcher(knuth_morris_pratt_searcher const&) = default;
+  knuth_morris_pratt_searcher(knuth_morris_pratt_searcher&&) = default;
+
   knuth_morris_pratt_searcher(ForwardIt pat_first, ForwardIt pat_last,
                               BinaryPredicate pred = BinaryPredicate()):
     M_pat(pat_first, pat_last), M_fail(M_pat.size()+1), M_pred(pred)
@@ -22,6 +25,9 @@ public:
       M_fail[i] = (pred(i < M_pat.size() && M_pat[i], M_pat[j])? M_fail[j]: j);
     }
   }
+
+  knuth_morris_pratt_searcher& operator =(knuth_morris_pratt_searcher const&) = default;
+  knuth_morris_pratt_searcher& operator =(knuth_morris_pratt_searcher&&) = default;
 
   template <typename ForwardIt2>
   std::vector<std::pair<ForwardIt2, ForwardIt2>> search_all(
