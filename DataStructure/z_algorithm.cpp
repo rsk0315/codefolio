@@ -28,11 +28,6 @@ public:
       i += k;
       j -= k;
     }
-
-    // for (size_type i = 0; i < M_pat.size(); ++i)
-    //   std::cerr << (M_pat[i]) << (i+1<M_pat.size()? ' ': '\n');
-    // for (size_type i = 0; i < M_z.size(); ++i)
-    //   std::cerr << M_z[i] << (i+1<M_z.size()? ' ': '\n');
   }
 
   template <typename ForwardIt2>
@@ -76,10 +71,30 @@ public:
       ForwardIt2 first, ForwardIt2 last
   ) const {
     if (M_pat.empty()) return {first, first};
-    auto res = search_all(first, last);
-    fprintf(stderr, "res.size(): %zu\n", res.size());
-    if (res.empty()) return {last, last};
-    return res[0];
+    if (first == last) return {last, last};
+
+    std::deque<ForwardIt2> start;
+    size_type i = 0;
+    size_type j = 0;
+    for (auto it = first; it != last;) {
+      while (it != last && j < M_pat.size() && M_pred(M_pat[j], *it)) {
+        ++j;
+        start.push_back(it++);
+        if (start.size() > M_pat.size()) start.pop_front();
+      }
+      if (j == 0) {
+        ++i;
+        start.push_back(it++);
+        if (start.size() > M_pat.size()) start.pop_front();
+        continue;
+      }
+      if (j == M_pat.size()) return {start.front(), it};
+      size_type k = 1;
+      while (k < M_pat.size() && k+M_z[k] < j) ++k;
+      i += k;
+      j -= k;
+    }
+    return {last, last};
   }
 
   template <typename ForwardIt2>
