@@ -47,17 +47,22 @@ public:
       return res;
     }
 
-    auto it = first;
-    for (size_type i = 0, j = 0; it != last;) {
-      while (it != last && j < M_pat.size() && M_pred(M_pat[j], *it)) ++j, ++it;
-      if (j == M_pat.size()) {
-        res.emplace_back(first+i, it);
+    std::deque<ForwardIt2> start;
+    size_type i = 0;
+    size_type j = 0;
+    for (auto it = first; it != last;) {
+      while (it != last && j < M_pat.size() && M_pred(M_pat[j], *it)) {
+        ++j;
+        start.push_back(it++);
+        if (start.size() > M_pat.size()) start.pop_front();
       }
       if (j == 0) {
         ++i;
-        ++it;
+        start.push_back(it++);
+        if (start.size() > M_pat.size()) start.pop_front();
         continue;
       }
+      if (j == M_pat.size()) res.emplace_back(start.front(), it);
       size_type k = 1;
       while (k < M_pat.size() && k+M_z[k] < j) ++k;
       i += k;
