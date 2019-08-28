@@ -1,7 +1,7 @@
 #include <cassert>
 #include <type_traits>
 
-template <typename Tp, Tp modulo>
+template <typename Tp, Tp Modulo>
 class modint {
   // FIXME to implement with Montgomery multiplication
 
@@ -9,7 +9,7 @@ public:
   using value_type = typename std::make_signed<Tp>::type;
 
 private:
-  static constexpr value_type S_mod = modulo;
+  static constexpr value_type S_mod = Modulo;
   value_type M_value = 0;
   value_type M_mod;  // runtime value (used if S_mod == 0)
 
