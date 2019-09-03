@@ -1,6 +1,3 @@
-#include <cassert>
-#include <type_traits>
-
 template <typename Tp, Tp Modulo>
 class modint {
   // FIXME to implement with Montgomery multiplication
@@ -57,18 +54,12 @@ public:
   modint() = default;
   modint(modint const&) = default;
   modint(modint&&) = default;
-  modint(value_type n): M_value(S_normalize(n)) {
-    assert(S_mod > 0);
-  }
-  modint(value_type n, value_type m): M_value(S_normalize(n, m)), M_mod(m) {
-    assert(S_mod == 0);
-    assert(m > 0);
-  }
+  modint(value_type n): M_value(S_normalize(n)) {}
+  modint(value_type n, value_type m): M_value(S_normalize(n, m)), M_mod(m) {}
 
   modint& operator =(modint const&) = default;
   modint& operator =(modint&&) = default;
   modint& operator =(value_type n) {
-    assert(S_mod > 0);
     M_value = S_normalize(n, S_mod);
     return *this;
   }
@@ -77,7 +68,6 @@ public:
     if (S_mod > 0) {
       if ((M_value += other.M_value) >= S_mod) M_value -= S_mod;
     } else {
-      assert(M_mod == other.M_mod);
       if ((M_value += other.M_value) >= M_mod) M_value -= M_mod;
     }
     return *this;
@@ -86,7 +76,6 @@ public:
     if (S_mod > 0) {
       if ((M_value -= other.M_value) < 0) M_value += S_mod;
     } else {
-      assert(M_mod == other.M_mod);
       if ((M_value -= other.M_value) < 0) M_value += M_mod;
     }
     return *this;
@@ -95,7 +84,6 @@ public:
     if (S_mod > 0) {
       (M_value *= other.M_value) %= S_mod;
     } else {
-      assert(M_mod == other.M_mod);
       (M_value *= other.M_value) %= M_mod;
     }
     return *this;
@@ -104,7 +92,6 @@ public:
     if (S_mod > 0) {
       (M_value *= S_inv(other.M_value)) %= S_mod;
     } else {
-      assert(M_mod == other.M_mod);
       (M_value *= S_inv(other.M_value, M_mod)) %= M_mod;
     }
     return *this;
@@ -152,6 +139,82 @@ public:
   }
   modint& pow_eq(intmax_t iexp) { return *this = this->pow(iexp); }
 
+  bool operator ==(modint const& other) const {
+    return M_value == other.M_value;
+  }
+  bool operator ==(value_type const& n) const {
+    return M_value == S_normalize(n);
+  }
+  bool operator !=(modint const& other) const { return !(*this == other); }
+  bool operator !=(value_type const& n) const { return !(*this == n); }
+
   value_type get() const { return M_value; }
   value_type modulo() const { return ((S_mod > 0)? S_mod: M_mod); }
+
+  std::vector<modint> sqrt() const {
+    intmax_t const p = ((S_mod > 0)? S_mod: M_mod);
+    if (p % 4 == 3) {
+      modint r = pow((p+1) / 4);
+      if (r * r == *this) return {r, -r};
+      return {};
+    }
+
+    value_type s = __builtin_ctzll(p-1);
+    value_type q = (p-1) >> s;
+
+    modint z;
+    for (value_type z0 = 2; z0 < p; ++z0) {
+      z = ((S_mod > 0)? modint(z0): modint(z0, M_mod));
+      if (z.pow((p-1) / 2) == -1) break;
+    }
+
+    value_type m = s;
+    modint c = z.pow(q);
+    modint t = this->pow(q);
+    modint r = this->pow((q+1) / 2);
+
+    while (true) {
+      if (t == 0) return {0};
+      if (t == 1) return {r, -r};
+
+      value_type i = 0;
+      for (auto tt = t; tt != 1; ++i) tt *= tt;
+      if (i == m) return {};
+      auto b = c;
+      for (value_type j = 0; j < m-i-1; ++j) b *= b;
+      m = i;
+      c = b * b;
+      t *= c;
+      r *= b;
+    }
+  }
 };
+
+template <typename T1, typename T2, T2 modulo>
+modint<T2, modulo> operator +(T1 const& lhs, modint<T2, modulo> const& rhs) {
+  if (modulo > 0) return modint<T2, modulo>(lhs) + rhs;
+  return modint<T2, modulo>(lhs, rhs.modulo()) + rhs;
+}
+template <typename T1, typename T2, T2 modulo>
+modint<T2, modulo> operator -(T1 const& lhs, modint<T2, modulo> const& rhs) {
+  if (modulo > 0) return modint<T2, modulo>(lhs) - rhs;
+  return modint<T2, modulo>(lhs, rhs.modulo()) - rhs;
+}
+template <typename T1, typename T2, T2 modulo>
+modint<T2, modulo> operator *(T1 const& lhs, modint<T2, modulo> const& rhs) {
+  if (modulo > 0) return modint<T2, modulo>(lhs) * rhs;
+  return modint<T2, modulo>(lhs, rhs.modulo()) * rhs;
+}
+template <typename T1, typename T2, T2 modulo>
+modint<T2, modulo> operator /(T1 const& lhs, modint<T2, modulo> const& rhs) {
+  if (modulo > 0) return modint<T2, modulo>(lhs) / rhs;
+  return modint<T2, modulo>(lhs, rhs.modulo()) / rhs;
+}
+template <typename T1, typename T2, T2 modulo>
+bool operator ==(T1 const& lhs, modint<T2, modulo> const& rhs) {
+  return rhs == lhs;
+}
+template <typename T1, typename T2, T2 modulo>
+bool operator !=(T1 const& lhs, modint<T2, modulo> const& rhs) {
+  return !(lhs == rhs);
+}
