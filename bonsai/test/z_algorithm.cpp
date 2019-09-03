@@ -42,6 +42,7 @@ void testset() {
   test("abab", "abababcababab", {0, 2, 7, 9});
   test("aabaabaaa", "aabaabaabaabaaabaabaaaaa", {6, 13});
   test("xxx", "a", {});
+  test("xxxxxx", "xx", {});
   test("aab", "abaacabaa", {});
   test("", "xyzqw", {0, 1, 2, 3, 4, 5});
 }
