@@ -2,6 +2,15 @@
 
 \usepackage{rsk0315}
 
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\hypersetup{
+  bookmarksnumbered=true,
+  bookmarksopen=true,
+  colorlinks=true,  
+  linkcolor=blue,
+}
+
 \newcommand{\DP}{\ensuremath\mathrm{dp}}
 
 \begin{document}
@@ -269,5 +278,23 @@ a_i(x) = \sum_{j=0}^\infty \DP[i][j]\cdot x^j.
   \sum_{\substack{0\le k\le n \\ 0\le f(k)}} (-1)^k\cdot {}_n C_k \cdot {}_{n+f(k)} C_n.
 \end{align*}
 ここで，$f(k) = m-sn-k(t-s+1)$である．これは，適当に前処理を行うことで$O(n+m)$で求められる．
+
+手計算がやや大変だけど，DPの遷移が単純な場合は適当に適用できそう．
+
+\begin{thebibliography}{99}
+\bibitem{sci}
+  母関数について\\
+  \url{https://science-log.com/ホームページ/数学topページ/解析top/母関数について/}\\
+  \url{https://science-log.com/%E3%83%9B%E3%83%BC%E3%83%A0%E3%83%9A%E3%83%BC%E3%82%B8/%E6%95%B0%E5%AD%A6top%E3%83%9A%E3%83%BC%E3%82%B8/%E8%A7%A3%E6%9E%90top/%E6%AF%8D%E9%96%A2%E6%95%B0%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6/}
+    \footnote{\TeX{}の都合で日本語入りURLでつらいが発生しがちなのでエンコードしたものも載せています．}
+\bibitem{ishizuka}
+  \url{http://www.u.dendai.ac.jp/~ochi/ishizuka.pdf}
+\bibitem{koba1}
+  koba-e964の日記 -- yukicoder No.802 だいたい等差数列\\
+  \url{http://koba-e964.hatenablog.com/entry/2019/03/18/000751}
+\bibitem{koba2}
+  koba-e964の日記 -- KEYENCE Programming Contest 2019 F - Paper Cutting\\
+  \url{http://koba-e964.hatenablog.com/entry/2019/01/14/003307}
+\end{thebibliography}
 
 \end{document}
