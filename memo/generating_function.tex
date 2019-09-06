@@ -1,0 +1,202 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\DP}{\ensuremath\mathrm{dp}}
+
+\begin{document}
+\section{母関数}
+
+数列$\{a_i\}_{i=0}^{\infty}$に対して，以下の形式的冪級数を考える．
+\[\sum_{i=0}^{\infty} a_i x^i = a_0 + a_1 x + a_2 x^2 + \cdots.\]
+これを数列$\{a_i\}$の母関数と呼ぶ．
+
+\subsection{形式的冪級数}
+
+%% $a(x)$の$x^k$の係数を$[x^k]\,a(x)$で表すとする．
+
+形式的冪級数$a(x) = \sum_{i=0}^{\infty} a_i x^i$と$b(x) = \sum_{i=0}^{\infty} b_i x^i$に対して，和と積を以下のように定義する．
+\begin{align*}
+a(x) + b(x) &= \sum_{i=0}^{\infty} (a_i+b_i) x^i.\\
+a(x) \times b(x) &= \sum_{i=0}^{\infty} \left(\sum_{k=0}^i a_k b_{i-k}\right) x^i.
+\end{align*}
+また，$a(x) \times c(x) = 1$となるような$c(x)$が存在するとき，それを$a(x)^{-1}$や$1/a(x)$と表記する．
+主要な例として$(1-x)^{-1}$は以下のように表される．
+\begin{align*}
+  \frac{1}{1-x} &= \sum_{i=0}^\infty 1\cdot x^i\\
+  &= 1 + x + x^2 + \cdots.
+\end{align*}
+実際，$(1-x)$との積を考えると以下のようになる：
+\begin{align*}
+  (1-x) \times \left(\sum_{i=0}^\infty 1\cdot x^i\right)
+  &= 1\cdot 1 + \sum_{i=1}^\infty\left(1\cdot 1 + (-1)\cdot 1 + \sum_{k=2}^i (0\cdot 1)\right)x^i\\
+  &= 1.
+\end{align*}
+
+\section{主要な母関数および操作}
+
+%% $a_i = 1$であるような数列の母関数を考える．これはすでに登場しており，$1/(1-x)$である．
+上で述べた事実から，$(1-x)^{-1}$は$a_i = 1$なる数列の母関数となっていることに注意せよ．
+
+\subsection{指数型の数列}
+$a_i = i$であるような数列の母関数を考える．
+\begin{align*}
+  \sum_{i=0}^\infty a_i x^i &= \sum_{i=0}^\infty i\cdot x^i\\
+  &= x + 2x^2 + 3x^3 + \cdots\\
+  &= x \cdot (1 + 2x + 3x^2 + \cdots)\\
+  &= x \cdot \frac{d}{dx}(x + x^2 + x^3 + \cdots)\\
+  &= x \cdot \frac{d}{dx} (1-x)^{-1}\\
+  &= \frac{x}{(1-x)^2}.
+\end{align*}
+同様の手続きを繰り返すことで，$a_i = i^k$であるような数列の母関数も得ることができる．
+
+\subsection{二項係数}
+$a_i = {}_n C_i$であるような数列の母関数を考える．
+%ただし，$i > n$について${}_n C_i = 0$とする．
+二項定理より以下のように表せる．
+\begin{align*}
+  \sum_{i=0}^\infty a_i x^i &= \sum_{i=0}^\infty {}_n C_i\cdot x^i\\
+  &= (1+x)^n.
+\end{align*}
+実数$\alpha$に対しても以下のようにできる．
+\begin{align*}
+  (1+x)^\alpha = \sum_{i=0}^\infty {}_\alpha C_i\cdot x^i.
+\end{align*}
+ただし，
+\begin{align*}
+  {}_\alpha C_i = \frac{\alpha^{\underline{i}}}{i!}
+  = \frac{\alpha(\alpha-1)\cdots(\alpha-(i-1))}{i(i-1)\cdots 1}.
+\end{align*}
+たとえば，次のようになる．
+\begin{align*}
+  \sqrt{1+x} &= (1+x)^{1/2}\\
+  &= \sum_{i=0}^\infty {}_{1/2} C_i\cdot x^i\\
+  &= \sum_{i=0}^\infty \frac{\frac{1}{2}\left(\frac{1}{2}-1\right)\cdots\left(\frac{1}{2}-(i-1)\right)}{i!} \cdot x^i\\
+  &= 1 + \frac{1}{2}\cdot x + \sum_{i=2}^\infty \frac{1\cdot 1\cdot 3\cdots(2i-3)}{2^i\cdot i!}\cdot(-1)^{i-1}\cdot x^i\\
+  &= 1 + \frac{1}{2}\cdot x + \sum_{i=2}^\infty \frac{(2i-3)!!}{2^i\cdot i!}\cdot(-1)^{i-1}\cdot x^i.
+\end{align*}
+$(2i-2)!! = 2^{i-1}\cdot(i-1)!$であることから，さらに変形できる．
+\begin{align*}
+  \sqrt{1+x}
+  &= 1 + \frac{1}{2}\cdot x + \sum_{i=2}^\infty \frac{(2i-3)!!}{2^i\cdot i!}\cdot(-1)^{i-1} \cdot\frac{(2i-2)!!}{2^{i-1}\cdot(i-1)!}\cdot x^i\\
+  &= 1 + \frac{1}{2}\cdot x + \sum_{i=2}^\infty \frac{(-1)^{i-1}\cdot(2i-2)!}{2^{2i-1}\cdot i!\cdot(i-1)!}\cdot x^i\\
+  &= 1 + \frac{1}{2}\cdot x + \sum_{i=2}^\infty \frac{(-1)^{i-1}}{2^{2i-1}\cdot i}\cdot {}_{2i-2}C_{i-1}\cdot x^i\\
+  &= 1 + \sum_{i=1}^\infty \frac{(-1)^{i-1}}{2^{2i-1}\cdot i}\cdot {}_{2i-2}C_{i-1}\cdot x^i.
+\end{align*}
+
+\subsection{項のシフト}
+母関数$b(x)$で表される数列$\{b_i\}_{i=0}^\infty$に対して，次のように定義される数列$a_i$を考える．
+\[
+a_i = \begin{cases}
+  0, & \text{if }i < k;\\
+  b_{i-k}, & \text{if }i \ge k.\\
+\end{cases}
+\]
+これに対する母関数は以下のようになる．
+\begin{align*}
+  \sum_{i=0}^\infty a_i x^i
+  &= \sum_{i=0}^{k-1} 0\cdot x^i + \sum_{i=k}^\infty b_{i-k} x^i\\
+  &= \sum_{i=0}^\infty b_i x^{i+k}\\
+  &= x^k\cdot \sum_{i=0}^\infty b_i x^i\\
+  &= x^k\cdot b(x).
+\end{align*}
+
+\subsection{項のシフトの和}
+母関数$b(x)$で表される数列$b_i$の項をシフトさせたものたちの和で表される母関数$a(x)$を考える．
+\begin{align*}
+  a(x) &= x^j\cdot b(x) + x^{j+1}\cdot b(x) + \dots + x^{j+k-1}\cdot b(x)\\
+  &= \left(x^j + x^{j+1} + \dots + x^{j+k-1}\right)\cdot b(x)\\
+  &= \left((x^j + x^{j+1} + \cdots) - (x^{j+k} + x^{j+k+1} + \cdots)\right)\cdot b(x)\\
+  &= \left(\frac{x^j}{1-x} - \frac{x^{j+k}}{1-x}\right) \cdot b(x)\\
+  &= x^j\cdot\frac{1-x^k}{1-x^{\phantom{1}}}\cdot b(x).
+\end{align*}
+ところで，この母関数$a(x)$に対応する数列$a_i$は以下のようになっている．
+%% \[a_{j+k-1} = b_0 + \dots + b_{k-1}.\]
+%% \[a_{j} = b_{-(k-1)} + \dots + b_0.\]
+%% \[a_0 = b_{-(j+k-1)} + \dots + b_{-j}.\]
+\[a_i = b_{i-(j+k-1)} + \dots + b_{i-j}.\]
+これは何かの役に立ちそうな形をしているように見える\footnote{見えない？ もらうDPで長さ$k$の区間の和を得る形に似ている．}．
+
+\section{使い道}
+母関数の主な使い道の一つとして，数列の一般項を求めるというのがある．
+母関数$a(x)$を操作して閉じた式\footnote{$\sum$や$\cdots$などを含まない形の式．}を求め，その$x^i$の係数を見ることで$a_i$が求められる．
+よくある例として，Fibonacci数列およびCatalan数の一般項を母関数を使って求めてみる．
+\subsection{Fibonacci数列}
+Fibonacci数列$a_i$は，以下のように定義される数列である．
+\begin{align*}
+  a_i = \begin{cases}
+    0, & \text{if }i = 0;\\
+    1, & \text{if }i = 1;\\
+    a_{i-2} + a_{i-1}, & \text{if }i > 1.
+  \end{cases}
+\end{align*}
+母関数$a(x)$は以下のように表される．
+\begin{align*}
+  a(x) &= 0 + 1\cdot x + \sum_{i=2}^\infty a_i x^i\\
+  &= x + \sum_{i=2}^\infty (a_{i-2} + a_{i-1}) x^i\\
+  &= x + \sum_{i=0}^\infty a_i x^{i+2} + \sum_{i=1}^\infty a_i x^{i+1}\\
+  &= x + x^2\cdot a(x) + x\cdot (a(x)-a_0x).
+\end{align*}
+ここで，$a_0 = 0$であるから，以下のようにできる．
+\[
+a(x) = \frac{x}{1-x-x^2}.
+\]
+これを部分分数分解してみる．
+\begin{align*}
+  a(x) &= \frac{p}{1-qx} + \frac{r}{1-sx}\\
+  &= p\cdot\frac{1}{1-qx}+r\cdot\frac{1}{1-sx}\\
+  &= p\cdot\sum_{i=0}^\infty q^ix^i + r\cdot\sum_{i=0}^\infty s^ix^i\\
+  &= \sum_{i=0}^\infty (p\cdot q^i + r\cdot s^i)\cdot x^i.
+\end{align*}
+よって，$a_i = p\cdot q^i+r\cdot s^i$である．
+部分分数分解の係数比較から$p$, $q$, $r$, $s$を求め，一般項が得られる．
+
+\subsection{Catalan数}
+Catalan数$a_i$は，以下のように定義される数列である．
+\begin{align*}
+  a_i = \begin{cases}
+    1, & \text{if }i = 0;\\
+    %% a_{i-2} + a_{i-1}, & \text{if }i > 1.
+    \displaystyle\sum_{j=0}^{i-1} a_j\cdot a_{i-1-j}, & \text{if }i > 0.
+  \end{cases}
+\end{align*}
+母関数$a(x)$は定義から以下のように表される．
+\begin{align*}
+  a(x)
+  %% &= a_0 + (a_0a_1+a_1a_0) x + (a_0a_2+a_1a_1+a_2a_0)x^2 + \cdots\\
+  &= a_0 + \sum_{i=1}^\infty \left(\sum_{j=0}^{i-1} a_j\cdot a_{i-1-j}\right) x^i\\
+  &= a_0 + \sum_{i=0}^\infty \left(\sum_{j=0}^i a_j\cdot a_{i-j}\right) x^{i+1}.
+\end{align*}
+一方，積の定義から次の表示が得られる．
+\begin{align*}
+  a(x)^2
+  &= \sum_{i=0}^\infty \left(\sum_{j=0}^i a_j\cdot a_{i-j}\right) x^i.
+\end{align*}
+これらを比べることで，以下の等式を得る．
+\begin{align*}
+  a(x) &= a_0 + x\cdot a(x)^2.\\
+\end{align*}
+$a_0 = 1$と二次方程式の解の公式などを用いて，
+\begin{align*}
+  %% x\cdot a(x)^2 - a(x) + 1 &= 0\\
+  a(x) &= \frac{1\pm\sqrt{1-4x}}{2x}.
+\end{align*}
+複号の$+$を採用した場合，$\lim_{x\to+0}a(x)=\infty$より，$a_0=1$であることと矛盾する\footnote{形式的冪級数に対してこの手の操作が許されているのかよくわからない．}．
+$-$の方を採用し，以下を得る．
+\[a(x) = \frac{1-\sqrt{1-4x}}{2x}.\]
+$a(x)$の$x^i$の係数を求めるために，$1-\sqrt{1-4x}$を展開し，$2x$で割ることを考える\footnote{$1-\sqrt{1-4x}$の$x^{i+1}$の係数を求め，$2$で割ると考えてもよい．}．
+\begin{align*}
+  1-\sqrt{1-4x}
+  &= 1 - \left(1 + \sum_{i=1}^\infty \frac{(-1)^{i-1}}{2^{2i-1}\cdot i}\cdot {}_{2i-2}C_{i-1}\cdot (-4x)^i\right)\\
+  &= -\sum_{i=1}^\infty \frac{(-1)^{i-1}}{2^{2i-1}\cdot i}\cdot {}_{2i-2}C_{i-1}\cdot (-1)^i\cdot 4^i\cdot x^i\\
+  &= -\sum_{i=1}^\infty \frac{(-1)^{2i-1}}{i}\cdot {}_{2i-2}C_{i-1}\cdot 2\cdot x^i\\
+  &= \sum_{i=1}^\infty \frac{{}_{2i-2}C_{i-1}}{i}\cdot 2\cdot x^i.
+\end{align*}
+これより，
+\begin{align*}
+  \frac{1-\sqrt{1-4x}}{2x} &= \sum_{i=1}^\infty \frac{{}_{2i-2}C_{i-1}}{i}\cdot x^{i-1}\\
+  &= \sum_{i=0}^\infty \frac{{}_{2i}C_{i}}{i+1}\cdot x^i.
+\end{align*}
+よって，$\displaystyle a_i = \frac{{}_{2i}C_i}{i+1}$を得る．
+
+\end{document}
