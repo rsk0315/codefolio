@@ -9,7 +9,8 @@
 
 数列$\{a_i\}_{i=0}^{\infty}$に対して，以下の形式的冪級数を考える．
 \[\sum_{i=0}^{\infty} a_i x^i = a_0 + a_1 x + a_2 x^2 + \cdots.\]
-これを数列$\{a_i\}$の母関数と呼ぶ．
+これを数列$\{a_i\}$の母関数と呼ぶ．また，母関数$a(x)$の$x^i$の係数を$[x^i]\,a(x)$と表すことにする．すなわち，
+\[[x^i]\left(\sum_{i=0}^\infty a_ix^i\right) = a_i.\]
 
 \subsection{形式的冪級数}
 
@@ -18,7 +19,7 @@
 形式的冪級数$a(x) = \sum_{i=0}^{\infty} a_i x^i$と$b(x) = \sum_{i=0}^{\infty} b_i x^i$に対して，和と積を以下のように定義する．
 \begin{align*}
 a(x) + b(x) &= \sum_{i=0}^{\infty} (a_i+b_i) x^i.\\
-a(x) \times b(x) &= \sum_{i=0}^{\infty} \left(\sum_{k=0}^i a_k b_{i-k}\right) x^i.
+a(x) \times b(x) &= \sum_{i=0}^{\infty} \left(\sum_{j=0}^i a_j\cdot b_{i-j}\right) x^i.
 \end{align*}
 また，$a(x) \times c(x) = 1$となるような$c(x)$が存在するとき，それを$a(x)^{-1}$や$1/a(x)$と表記する．
 主要な例として$(1-x)^{-1}$は以下のように表される．
@@ -29,7 +30,7 @@ a(x) \times b(x) &= \sum_{i=0}^{\infty} \left(\sum_{k=0}^i a_k b_{i-k}\right) x^
 実際，$(1-x)$との積を考えると以下のようになる：
 \begin{align*}
   (1-x) \times \left(\sum_{i=0}^\infty 1\cdot x^i\right)
-  &= 1\cdot 1 + \sum_{i=1}^\infty\left(1\cdot 1 + (-1)\cdot 1 + \sum_{k=2}^i (0\cdot 1)\right)x^i\\
+  &= 1\cdot 1 + \sum_{i=1}^\infty\left(1\cdot 1 + (-1)\cdot 1 + \sum_{j=2}^i (0\cdot 1)\right)x^i\\
   &= 1.
 \end{align*}
 
@@ -120,7 +121,7 @@ a_i = \begin{cases}
 \section{使い道}
 母関数の主な使い道の一つとして，数列の一般項を求めるというのがある．
 母関数$a(x)$を操作して閉じた式\footnote{$\sum$や$\cdots$などを含まない形の式．}を求め，その$x^i$の係数を見ることで$a_i$が求められる．
-よくある例として，Fibonacci数列およびCatalan数の一般項を母関数を使って求めてみる．
+よくある例として，Fibonacci数列およびCatalan\nobreak 数の一般項を母関数を使って求めてみる．
 \subsection{Fibonacci数列}
 Fibonacci数列$a_i$は，以下のように定義される数列である．
 \begin{align*}
@@ -198,5 +199,75 @@ $a(x)$の$x^i$の係数を求めるために，$1-\sqrt{1-4x}$を展開し，$2x
   &= \sum_{i=0}^\infty \frac{{}_{2i}C_{i}}{i+1}\cdot x^i.
 \end{align*}
 よって，$\displaystyle a_i = \frac{{}_{2i}C_i}{i+1}$を得る．
+
+\section{競プロへの応用}
+上では，漸化式で表される数列を母関数を用いて求めた．
+ここでは，競プロの問題を解くための応用例として，以下の二つを挙げる．
+なお，母関数から冪級数展開をして係数を得る操作が必要となる．
+それに際して次の等式を覚えておくとよい．
+\[
+\frac{1}{(1-x)^{n+1}} = \sum_{i=0}^\infty {}_{n+i}C_i\cdot x^i.
+\]
+
+\subsection{和を得る操作の高速化}
+たとえば，以下のような和を求めたくなったとする．
+\[\sum_{i=0}^{n-1} c_i\cdot\left(\sum_{j=0}^i a_j\cdot b_{i-j}\right).\]
+ここで，数列$a_j$, $b_j$の母関数$a(x)$, $b(x)$は得られるとする\footnote{上の章で述べた指数型だったり二項係数だったり，あるいはそれらを組み合わせるなどしてがんばる．}．
+内側の和は畳み込みの形をしているので，次のようにして求められる．
+\[\sum_{i=0}^{n-1} c_i\cdot\left([x^i]\,(a(x)\times b(x))\right).\]
+よって，$a(x)\times b(x)$の各係数たちが求められるとよい．
+まず，$a(x)$および$b(x)$の閉じた式を求める．そうすると$a(x)\times b(x)$の閉じた式を計算できるので，それを冪級数展開して係数を調べる\footnote{この辺はプログラムではなく紙での計算になりそう．あるいはその手のソフトウェアを使った方が楽かも．}．
+
+この形であれば高速Fourier変換などでも求められそうだけど，$[x^i] (a(x)\times b(x))$が$O(1)$で求められる状況なら，これの方が$\log$一つぶんお得そう．
+
+\subsection{DP高速化}
+$j \ge 0$に対して以下のように定義されるDPを考える．
+\begin{align*}
+  \DP[0][j] &= 1,\\
+  \DP[i][j] &= \sum_{k=s}^t \DP[i-1][j-k].
+\end{align*}
+なお，$j < 0$のとき$\DP[*][j] = 0$とする．
+これについて，$\DP[n][m]$を求めたい．
+
+自明な高速化として，累積和を用いる方法で$O(nm)$は達成できるが，以下では母関数を用いて$O(n)$で求める方法を紹介する．
+まず，以下のように母関数を定義する．
+\[
+a_i(x) = \sum_{j=0}^\infty \DP[i][j]\cdot x^j.
+\]
+すなわち，$\DP[i]$が一つの母関数に対応する．目標は，$[x^m]\,a_n(x)$を求めることである．
+いま，初期条件から以下が成り立つ\footnote{$m$項目以降には関心がないので，計算しやすい関数を適宜選んでよさそう？}．
+\begin{align*}
+  a_0(x) &= \sum_{j=0}^\infty \DP[0][j]\cdot x^j\\
+  &= \sum_{j=0}^\infty 1\cdot x^j\\
+  &= \frac{1}{1-x}.
+\end{align*}
+さらに，遷移の条件から以下が成り立つ．項をシフトしたものを足す形になっていることに注意されたい．
+\begin{align*}
+  a_i(x) &= \sum_{j=0}^\infty \left(\sum_{k=s}^t \DP[i-1][j-k]\right) x^j\\
+  &= \sum_{k=s}^t \left(\sum_{j=0}^\infty \DP[i-1][j-k]\cdot x^j\right)\\
+  &= \sum_{k=s}^t \left(x^k\cdot a_{i-1}(x)\right)\\
+  &= \left(x^s + x^{s+1} + \dots + x^t\right)\cdot a_{i-1}(x)\\
+  &= x^s\cdot \frac{1-x^{t-s+1}}{1-x}\cdot a_{i-1}(x).
+\end{align*}
+よって，次のようにできる．
+\begin{align*}
+  a_n(x) &= \left(x^s\cdot \frac{1-x^{t-s+1}}{1-x}\right)^n \cdot a_{0}(x)\\
+  &= x^{sn} \cdot \frac{\left(1-x^{t-s+1}\right)^n}{(1-x)^n}\cdot \frac{1}{1-x}\\
+  &= x^{sn} \cdot \frac{\left(1-x^{t-s+1}\right)^n}{(1-x)^{n+1}}\\
+  &= \frac{x^{sn}}{(1-x)^{n+1}}\cdot\left(1-x^{t-s+1}\right)^n\\
+  &= \frac{x^{sn}}{(1-x)^{n+1}}\cdot\sum_{k=0}^n (-1)^k\cdot {}_n C_k\cdot x^{k(t-s+1)}.
+\end{align*}
+求めたいのはこれの$x^m$の係数であり，
+\begin{align*}
+  \frac{a_n(x)}{x^{sn}}
+  &= \frac{1}{(1-x)^{n+1}}\cdot\sum_{k=0}^n (-1)^k\cdot {}_n C_k\cdot x^{k(t-s+1)}.
+\end{align*}
+の$x^{m-sn}$の係数を求めればよい．
+右辺の$\sum$中の$x^{k(t-s+1)}$の係数と，$1/(1-x)^{n+1}$を展開したときの$x^{m-sn-k(t-s+1)}$の係数との積の合計がそれに相当する．
+上で述べたように，$1/(1-x)^{n+1}$の$x^i$の係数は${}_{n+i} C_i={}_{n+i} C_n$であったから，求める値は結局次のようにできる．
+\begin{align*}
+  \sum_{\substack{0\le k\le n \\ 0\le f(k)}} (-1)^k\cdot {}_n C_k \cdot {}_{n+f(k)} C_n.
+\end{align*}
+ここで，$f(k) = m-sn-k(t-s+1)$である．これは，適当に前処理を行うことで$O(n+m)$で求められる．
 
 \end{document}
