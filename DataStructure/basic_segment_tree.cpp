@@ -90,8 +90,8 @@ public:
   template <typename InputIt>
   void assign(InputIt first, InputIt last) {
     container tmp(first, last);
-    M_base_size = tmp;
-    M_c.assign(M_base_size);
+    M_base_size = tmp.size();
+    M_c.resize(M_base_size);
     M_c.insert(M_c.end(), tmp.begin(), tmp.end());
     for (size_type i = M_base_size; i--;)
       M_c[i] = M_op1(M_c[i<<1|0], M_c[i<<1|1]);
