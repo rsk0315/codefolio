@@ -29,7 +29,7 @@ public:
 
   size_type source() const { return M_src; }
   size_type target() const { return M_dst; }
-  size_type weight() const { return M_weight; }
+  weight_type weight() const { return M_weight; }
 };
 
 template <typename WeightType>
