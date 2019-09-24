@@ -11,7 +11,7 @@ private:
 
   struct node {
     std::shared_ptr<node> parent = nullptr;  // for checking link type
-    std::array<std::shared_ptr<node>, 2> children = {nullptr, nullptr};
+    std::array<std::shared_ptr<node>, 2> children = {{nullptr, nullptr}};
     value_type value;
     node() = default;
     node(node const&) = default;  // or deep copy?
