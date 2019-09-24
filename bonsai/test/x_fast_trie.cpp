@@ -30,8 +30,12 @@ int main() {
 
   auto ins = [&](int x) { xft.insert(x); xft.inspect(); };
   auto ers = [&](int x) { xft.erase(x); xft.inspect(); };
-  // ins(1);
-  ins(4);
-  // ins(5);
-  ers(4);
+  // // ins(1);
+  // ins(4);
+  // // ins(5);
+  // ers(4);
+  ins(1);
+  ins(2);
+  ins(3);
+  ers(2);
 }

@@ -42,8 +42,6 @@ private:
   static value_type S_significant_n_bits(value_type x, size_type n) {
     n += S_word_size - S_bits;
     if (n >= S_word_size) return x;
-    // fprintf(stderr, "(%ju & %jx): %jx\n",
-    //         x, ~(~0_ju >> n), (x & ~(~0_ju >> n)));
     return x & ~(~0_ju >> n);
   }
   static value_type S_significant_nth_bit(value_type x, size_type n) {
@@ -67,18 +65,31 @@ private:
     return {ub, it->second};
   }
 
-  static std::pair<pointer, pointer> S_neighbor(pointer const p) {
-    fprintf(stderr, "neighbor of %p\n", p.get());
+  std::pair<pointer, pointer> M_neighbor(value_type x) const {
+    size_type k;
+    pointer lcp;
+    std::tie(k, lcp) = M_lcp(x);
+    if (k == S_bits) return {lcp->children[0], lcp->children[1]};
+
     pointer pre = nullptr;
     pointer suc = nullptr;
-    fprintf(stderr, "left: %p, right: %p\n",
-            p->children[0].get(), p->children[1].get());
-    // if (p->children[0] && p->children[0]->parent != p) {
+    if (S_is_thread(lcp, 0)) {
+      suc = lcp->children[0];
+      pre = suc->children[0];
+    } else if (S_is_thread(lcp, 1)) {
+      pre = lcp->children[1];
+      suc = pre->children[1];
+    }
+    return {pre, suc};
+  }
+
+  static std::pair<pointer, pointer> S_neighbor(pointer const p) {
+    pointer pre = nullptr;
+    pointer suc = nullptr;
     if (S_is_thread(p, 0)) {
       suc = p->children[0];
       pre = suc->children[0];
     }
-    // if (p->children[1] && p->children[1]->parent != p) {
     if (S_is_thread(p, 1)) {
       pre = p->children[1];
       suc = pre->children[1];
@@ -99,30 +110,30 @@ private:
   static void S_maintain_thread(pointer leaf) {
     value_type x = leaf->value;
     for (pointer p = leaf->parent; p; p = p->parent) {
-      for (size_type i = 0; i <= 1; ++i) {
-        if (!p->children[i]
-            || (p->children[i]->parent != p && p->children[i]->value > x))
-          p->children[i] = leaf;
-      }
+      if (!p->children[0]
+          || (p->children[0]->parent != p && p->children[0]->value > x))
+        p->children[0] = leaf;
+      if (!p->children[1]
+          || (p->children[1]->parent != p && p->children[1]->value < x))
+        p->children[1] = leaf;
     }
   }
 
   static void S_inspect(pointer root, int depth) {
     if (!root) return;
 
-    // if (root->children[1] && root->children[1]->parent == root)
     if (!S_is_thread(root, 1))
       S_inspect(root->children[1], depth+1);
 
     fprintf(stderr, "%*c%p (%ju)", depth+1, ' ', root.get(), root->value);
-    // fprintf(stderr, " (left: %p)", root->children[0].get());
+    fprintf(stderr, " (left: %p)", root->children[0].get());
     if (S_is_thread(root, 0))
       fprintf(stderr, " [pre: %ju]", root->children[0]->value);
-    // fprintf(stderr, " (right: %p)", root->children[1].get());
+    fprintf(stderr, " (right: %p)", root->children[1].get());
     if (S_is_thread(root, 1))
       fprintf(stderr, " [suc: %ju]", root->children[1]->value);
 
-    // fprintf(stderr, " (parent: %p)", root->parent.get());
+    fprintf(stderr, " (parent: %p)", root->parent.get());
     fprintf(stderr, "\n");
 
     if (!S_is_thread(root, 0))
@@ -147,12 +158,10 @@ public:
 
     while (k < S_bits) {
       // add nodes to trie
-      // fprintf(stderr, "k: %zu\n", k);
       pointer tmp = std::make_shared<node>();
       cur->children[S_significant_nth_bit(x, k++)] = tmp;
       M_layers[k-1][S_significant_n_bits(x, k)] = tmp;
       tmp->value = S_significant_n_bits(x, k);
-      // fprintf(stderr, "<- %ju\n", S_significant_n_bits(x, k));
       tmp->parent = cur;
       cur = tmp;
     }
@@ -176,29 +185,23 @@ public:
 
     pointer pre = cur->children[0];
     pointer suc = cur->children[1];
-    fprintf(stderr, "cur: %p\n", cur.get());
+    cur->children[0] = cur->children[1] = nullptr;
+    for (pointer p = cur; p; p = p->parent) {
+      for (size_type j = 0; j <= 1; ++j)
+        if (p->children[j] == cur && S_is_thread(p, j))
+          p->children[j] = nullptr;
+    }
     {
       size_type i = S_bits-1;
-      bool erasing = true;
       for (pointer p = cur; p->parent;) {
-        for (size_type j = 0; j <= 1; ++j) {
-          if (p->parent->children[j] == cur)
-            p->parent->children[j] = nullptr;
-        }
         pointer tmp = p->parent;
-        // if (tmp->children[0] || tmp->children[1]) erasing = false;
-        if (tmp->children[0] && tmp->children[0] != p) erasing = false;
-        if (tmp->children[1] && tmp->children[1] != p) erasing = false;
-        if (erasing) {
-          M_layers[i].erase(p->value);
-          if (tmp->children[0] == p) tmp->children[0] = nullptr;
-          if (tmp->children[1] == p) tmp->children[1] = nullptr;
-          fprintf(stderr, "reseting %p\n", p.get());
+        size_type j = ((tmp->children[0] == p)? 0: 1);
+        if (!(p->children[0] || p->children[1])) {
+          M_layers[i].erase(S_significant_n_bits(x, i+1));
+          tmp->children[j] = nullptr;
           p.reset();
         }
         p = tmp;
-        fprintf(stderr, "i: %zu\n", i);
-        fprintf(stderr, "p: %p\n", p.get());
         i--;
       }
     }
@@ -218,11 +221,31 @@ public:
 
   size_type count(value_type x) const { return M_layers.back().count(x); }
 
-  // value_type successor(value_type x) const { return *M_neighbor(x)[1]; }
-  // value_type predecessor(value_type x) const { return *M_neighbor(x)[0]; }
+  value_type successor(value_type x) const { return *M_neighbor(x).second; }
+  value_type predecessor(value_type x) const { return *M_neighbor(x).first; }
+
+  void range_output(value_type x, value_type y) const {
+    size_t k;
+    pointer lb;
+    std::tie(k, lb) = M_lcp(x);
+    if (k < S_bits) lb = S_neighbor(lb).second;
+    pointer ub = M_neighbor(y).second;
+    for (pointer p = lb; p != ub; p = p->children[1])
+      printf("%ju\n", p->value);
+  }
 
   void inspect() const {
     S_inspect(M_root, 0);
     fprintf(stderr, "---\n");
+    for (size_type i = 0; i < S_bits; ++i) {
+      fprintf(stderr, "[%zu]:", i);
+      for (auto it = M_layers[i].begin(); it != M_layers[i].end(); ++it)
+        fprintf(stderr, " %ju", it->first);
+      fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "---\n");
   }
 };
+
+template <typename Key, typename Tp>
+using x_hash = std::unordered_map<Key, Tp>;
