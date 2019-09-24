@@ -96,6 +96,17 @@ private:
     }
   }
 
+  static void S_maintain_thread(pointer leaf) {
+    value_type x = leaf->value;
+    for (pointer p = leaf->parent; p; p = p->parent) {
+      for (size_type i = 0; i <= 1; ++i) {
+        if (!p->children[i]
+            || (p->children[i]->parent != p && p->children[i]->value > x))
+          p->children[i] = leaf;
+      }
+    }
+  }
+
   static void S_inspect(pointer root, int depth) {
     if (!root) return;
 
@@ -138,7 +149,7 @@ public:
       // add nodes to trie
       // fprintf(stderr, "k: %zu\n", k);
       pointer tmp = std::make_shared<node>();
-      p->children[S_significant_nth_bit(x, k++)] = tmp;
+      cur->children[S_significant_nth_bit(x, k++)] = tmp;
       M_layers[k-1][S_significant_n_bits(x, k)] = tmp;
       tmp->value = S_significant_n_bits(x, k);
       // fprintf(stderr, "<- %ju\n", S_significant_n_bits(x, k));
@@ -147,20 +158,11 @@ public:
     }
     {
       // maintain thread links
-      {
-        cur->children[0] = pre;
-        cur->children[1] = suc;
-        if (pre) pre->children[1] = cur;
-        if (suc) suc->children[0] = cur;
-      }
-      for (pointer p = cur->parent; p; p = p->parent) {
-        if (!p->children[0] || (p->children[0]->parent != p && p->children[0]->value > x)) {
-          p->children[0] = cur;
-        }
-        if (!p->children[1] || (p->children[1]->parent != p && p->children[1]->value < x)) {
-          p->children[1] = cur;
-        }
-      }
+      cur->children[0] = pre;
+      cur->children[1] = suc;
+      if (pre) pre->children[1] = cur;
+      if (suc) suc->children[0] = cur;
+      S_maintain_thread(cur);
     }
     ++M_size;
     return true;
@@ -168,7 +170,50 @@ public:
 
   bool erase(value_type x) {
     size_type k;
-    pointer 
+    pointer cur;
+    std::tie(k, cur) = M_lcp(x);
+    if (k < S_bits) return false;
+
+    pointer pre = cur->children[0];
+    pointer suc = cur->children[1];
+    fprintf(stderr, "cur: %p\n", cur.get());
+    {
+      size_type i = S_bits-1;
+      bool erasing = true;
+      for (pointer p = cur; p->parent;) {
+        for (size_type j = 0; j <= 1; ++j) {
+          if (p->parent->children[j] == cur)
+            p->parent->children[j] = nullptr;
+        }
+        pointer tmp = p->parent;
+        // if (tmp->children[0] || tmp->children[1]) erasing = false;
+        if (tmp->children[0] && tmp->children[0] != p) erasing = false;
+        if (tmp->children[1] && tmp->children[1] != p) erasing = false;
+        if (erasing) {
+          M_layers[i].erase(p->value);
+          if (tmp->children[0] == p) tmp->children[0] = nullptr;
+          if (tmp->children[1] == p) tmp->children[1] = nullptr;
+          fprintf(stderr, "reseting %p\n", p.get());
+          p.reset();
+        }
+        p = tmp;
+        fprintf(stderr, "i: %zu\n", i);
+        fprintf(stderr, "p: %p\n", p.get());
+        i--;
+      }
+    }
+    {
+      if (pre) {
+        pre->children[1] = suc;
+        S_maintain_thread(pre);
+      }
+      if (suc) {
+        suc->children[0] = pre;
+        S_maintain_thread(suc);
+      }
+    }
+    --M_size;
+    return true;
   }
 
   size_type count(value_type x) const { return M_layers.back().count(x); }
