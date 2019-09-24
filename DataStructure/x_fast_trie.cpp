@@ -3,7 +3,7 @@ class x_fast_trie {
 public:
   using size_type = size_t;
   using difference_type = ptrdiff_t;
-  using value_type = uintmax_t;  // assuming transdichotomous machine model
+  using value_type = uintmax_t;
 
 private:
   static constexpr size_type S_bits = Nb;
@@ -128,11 +128,11 @@ public:
 
   bool insert(value_type x) {
     size_type k;
-    pointer p;
-    std::tie(k, p) = M_lcp(x);
+    pointer cur;
+    std::tie(k, cur) = M_lcp(x);
     if (k == S_bits) return false;
     pointer pre, suc;
-    std::tie(pre, suc) = S_neighbor(p);
+    std::tie(pre, suc) = S_neighbor(cur);
 
     while (k < S_bits) {
       // add nodes to trie
@@ -142,14 +142,11 @@ public:
       M_layers[k-1][S_significant_n_bits(x, k)] = tmp;
       tmp->value = S_significant_n_bits(x, k);
       // fprintf(stderr, "<- %ju\n", S_significant_n_bits(x, k));
-      tmp->parent = p;
-      p = tmp;
+      tmp->parent = cur;
+      cur = tmp;
     }
     {
       // maintain thread links
-      pointer cur = p;
-      fprintf(stderr, "pre: %p, suc: %p\n", pre.get(), suc.get());
-
       {
         cur->children[0] = pre;
         cur->children[1] = suc;
@@ -168,7 +165,12 @@ public:
     ++M_size;
     return true;
   }
-  bool erase(value_type x);
+
+  bool erase(value_type x) {
+    size_type k;
+    pointer 
+  }
+
   size_type count(value_type x) const { return M_layers.back().count(x); }
 
   // value_type successor(value_type x) const { return *M_neighbor(x)[1]; }
