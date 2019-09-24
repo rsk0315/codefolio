@@ -165,10 +165,11 @@ public:
         }
       }
     }
+    ++M_size;
     return true;
   }
   bool erase(value_type x);
-  size_type count(value_type x) const;
+  size_type count(value_type x) const { return M_layers.back().count(x); }
 
   // value_type successor(value_type x) const { return *M_neighbor(x)[1]; }
   // value_type predecessor(value_type x) const { return *M_neighbor(x)[0]; }
