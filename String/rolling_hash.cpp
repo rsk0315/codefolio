@@ -41,6 +41,6 @@ public:
 
   void inspect() const {
     for (size_t i = 0; i < hash.size(); ++i)
-      fprintf(stderr, "%jd%c", hash[i], i+1<hash.size()? ' ':'\n');
+      fprintf(stderr, "%jd%c", hash[i], i+1<hash.size()? ' ': '\n');
   }
 };
