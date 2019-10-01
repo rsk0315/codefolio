@@ -20,6 +20,9 @@ public:
 
   size_type select0(size_type s, size_type t) const;
   size_type select1(size_type s, size_type t) const;
+
+  // 愚直ににぶたんして O(log n)-time select なのはよくなさそう．
+  // 定数倍の軽めの O(log log n)-time とかができるとうれしい．
 };
 
 template <size_t Nb, typename Tp = uintmax_t>
@@ -68,10 +71,6 @@ public:
   size_type argmax_less(value_type x, size_type s, size_type t) const;
   size_type argmax_less_equal(value_type x, size_type s, size_type t) const;
 
-  // {
-  //   rank_3way();
-  //   quantile();
-  //   rank();
-  //   select();
-  // }
+  // がちゃがちゃした後，最下層での添字を最上層での添字に直す関数は
+  // 作れるはずなので，それを用意しておくとよさげ．
 };
