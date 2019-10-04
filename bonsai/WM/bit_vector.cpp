@@ -6,14 +6,28 @@ public:
 
 private:
   std::vector<underlying_type> M_c;
+  static const size_type S_ws = CHAR_BIT * sizeof(underlying_type);
 
 public:
   bit_vector() = default;
   bit_vector(bit_vector const&) = default;
   bit_vector(bit_vector&&) = default;
+  template <typename InputIt>
+  bit_vector(InputIt first, InputIt last) { assign(first, last); }
 
   bit_vector& operator =(bit_vector const&) = default;
   bit_vector& operator =(bit_vector&&) = default;
+
+  template <typename InputIt>
+  void assign(InputIt first, InputIt last) {
+    std::vector<bool> tmp(first, last);
+    M_c.resize((tmp+S_ws-1) / S_ws);
+    for (size_type i = 0; i < tmp.size(); ++i) {
+      size_type j0 = i / S_ws;
+      size_type j1 = i % S_ws;
+      M_c[j0] |= 1_ju << j1;
+    }
+  }
 
   size_type rank0(size_type s, size_type t) const;
   size_type rank1(size_type s, size_type t) const;
@@ -49,7 +63,7 @@ public:
   void assign(InputIt first, InputIt last);
 
   size_type rank(value_type x, size_type s, size_type t) const;
-  size_type select(value_type x, size_type s, size_type t) const;
+  size_type select(value_type x, size_type n, size_type s) const;
 
   std::array<size_type, 3> rank_3way(value_type x, size_type s, size_type t) const;
   value_type quantile(size_type k, size_type s, size_type t) const;
@@ -66,11 +80,8 @@ public:
   //   return quantile(k, s, t);
   // }
 
-  size_type argmin_greater(value_type x, size_type s, size_type t) const;
-  size_type argmin_greater_equal(value_type x, size_type s, size_type t) const;
-  size_type argmax_less(value_type x, size_type s, size_type t) const;
-  size_type argmax_less_equal(value_type x, size_type s, size_type t) const;
-
-  // がちゃがちゃした後，最下層での添字を最上層での添字に直す関数は
-  // 作れるはずなので，それを用意しておくとよさげ．
+  size_type select_greater(value_type x, size_type n, size_type s) const;
+  size_type select_greater_equal(value_type x, size_type n, size_type s) const;
+  size_type select_less(value_type x, size_type n, size_type s) const;
+  size_type select_less_equal(value_type x, size_type n, size_type s) const;
 };
