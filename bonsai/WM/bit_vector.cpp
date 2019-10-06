@@ -58,12 +58,14 @@ private:
       if (++z == S_ws) {
         size_type len = i+1 - s.back();
         s.push_back(i+1);
-        ss.emplace_back(0);
+        ss.emplace_back();
         if (len >= S_ws * S_ws) ss.back() = std::move(tmp);
         tmp.clear();
+        z = 0;
       }
     }
     ss.push_back(std::move(tmp));
+    fprintf(stderr, "s.size(): %zu, ss.size(): %zu\n", s.size(), ss.size());
   }
 
   size_type M_rank1(size_type t) const {
@@ -87,6 +89,7 @@ private:
 
     size_type lb = s[j0] / S_ws;
     size_type ub = (j0+1 < s.size())? (s[j0+1]+S_ws-1) / S_ws: M_r.size();
+    fprintf(stderr, "\nn: %zu, lb: %zu, ub: %zu\n", n, lb, ub);
     while (ub-lb > 1) {
       size_type mid = (lb+ub) >> 1;
       ((M_rank_large<Bp>(mid) <= n)? lb: ub) = mid;
