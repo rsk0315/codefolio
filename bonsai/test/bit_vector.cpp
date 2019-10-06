@@ -21,7 +21,7 @@ constexpr size_t    operator ""_zu(unsigned long long n) { return n; }
 std::mt19937 rsk(0315);
 
 void random_test() {
-  size_t n = 1 << 17;
+  size_t n = 1 << 5;
   std::vector<bool> vb(n);
   std::uniform_int_distribution<int> neko(0, 1);
   std::set<size_t> select;
@@ -35,10 +35,10 @@ void random_test() {
   }
 
   bit_vector bv(vb.begin(), vb.end());
-  if (false) {
+  if (true) {
     for (size_t i = 0; i <= n; ++i) {
-      fprintf(stderr, "rank[%zu]: %zu, bv.rank1(0, %zu): %zu\n",
-              i, rank[i], i, bv.rank1(0, i));
+      // fprintf(stderr, "rank[%zu]: %zu, bv.rank1(0, %zu): %zu\n",
+      //         i, rank[i], i, bv.rank1(0, i));
       assert(rank[i] == bv.rank1(0, i));
     }
   }

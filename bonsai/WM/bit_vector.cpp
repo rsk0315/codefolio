@@ -34,11 +34,13 @@ private:
       size_type mid = (lb+ub) >> 1;
       ((S_rank_small<Bp>(x, mid) < n)? lb: ub) = mid;
     }
+    fprintf(stderr, "select_small(%jx, %zu): %zu\n", x, n, ub);
     return ub;
   }
 
   template <int Bp>
   size_type M_rank_large(size_type n) const {
+    if (n-- == 0) return 0;
     size_type res = M_r[n];
     if (Bp == 0) res = n * S_ws - res;
     return res;
@@ -85,16 +87,17 @@ private:
 
     if (j0 >= s.size()) return -1_zu;
     if (j0+1 == s.size() && j1 >= ss[j0].size()) return -1_zu;
-    if (!ss[j0].empty()) return ss[j0][j1];
+#warning "for debug"
+    // if (!ss[j0].empty()) return ss[j0][j1];
 
     size_type lb = s[j0] / S_ws;
     size_type ub = (j0+1 < s.size())? (s[j0+1]+S_ws-1) / S_ws: M_r.size();
     fprintf(stderr, "\nn: %zu, lb: %zu, ub: %zu\n", n, lb, ub);
     while (ub-lb > 1) {
       size_type mid = (lb+ub) >> 1;
-      ((M_rank_large<Bp>(mid) <= n)? lb: ub) = mid;
+      ((M_rank_large<Bp>(mid) < n)? lb: ub) = mid;
     }
-    return lb * S_ws + S_select_small<Bp>(s[lb], n - M_rank_large<Bp>(lb));
+    return ub * S_ws + S_select_small<Bp>(s[lb], n - M_rank_large<Bp>(lb));
   }
 
 public:
