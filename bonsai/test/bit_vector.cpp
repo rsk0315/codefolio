@@ -17,11 +17,12 @@ constexpr size_t    operator ""_zu(unsigned long long n) { return n; }
 #include <cassert>
 #include <set>
 #include <random>
+#include <string>
 
 std::mt19937 rsk(0315);
 
 void random_test() {
-  size_t n = 1 << 5;
+  size_t n = (1 << 18) - 1;
   std::vector<bool> vb(n);
   std::uniform_int_distribution<int> neko(0, 1);
   std::set<size_t> select;
@@ -33,6 +34,9 @@ void random_test() {
     select.insert(i);
     ++rank[i+1];
   }
+
+  // for (size_t i = 0; i < n; ++i)
+  //   fprintf(stderr, "%d%c", !!vb[i], i+1<n? ' ': '\n');
 
   bit_vector bv(vb.begin(), vb.end());
   if (true) {
@@ -47,10 +51,11 @@ void random_test() {
     size_t i = 1;
     for (auto s: select) {
       size_t t = bv.select1(i, 0);
-      fprintf(stderr, "select[%zu]: %zu, bv.select1(%zu, 0): %zu\n",
-              i, s, i, t);
+      fprintf(stderr, "select[%zu]: %zu, bv.select1(%zu): %zu\n",
+              i, s+1, i, t);
       ++i;
-      if (i == 1000) break;
+      // if (i == 1000) break;
+      assert(s+1 == t);
     }
   }
 }

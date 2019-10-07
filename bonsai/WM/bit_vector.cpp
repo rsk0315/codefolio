@@ -1,3 +1,10 @@
+std::string bin(size_t x) {
+  std::string s(64, '0');
+  for (size_t i = 0; i < 64; ++i)
+    if (x >> i & 1) s[63-i] = '1';
+  return s;
+}
+
 class bit_vector {
 public:
   using underlying_type = uintmax_t;
@@ -34,13 +41,13 @@ private:
       size_type mid = (lb+ub) >> 1;
       ((S_rank_small<Bp>(x, mid) < n)? lb: ub) = mid;
     }
-    fprintf(stderr, "select_small(%jx, %zu): %zu\n", x, n, ub);
+    fprintf(stderr, "select_small(%s, %zu): %zu\n", bin(x).c_str(), n, ub);
     return ub;
   }
 
   template <int Bp>
   size_type M_rank_large(size_type n) const {
-    if (n-- == 0) return 0;
+    // if (n == 0) return 0;
     size_type res = M_r[n];
     if (Bp == 0) res = n * S_ws - res;
     return res;
@@ -95,9 +102,9 @@ private:
     fprintf(stderr, "\nn: %zu, lb: %zu, ub: %zu\n", n, lb, ub);
     while (ub-lb > 1) {
       size_type mid = (lb+ub) >> 1;
-      ((M_rank_large<Bp>(mid) < n)? lb: ub) = mid;
+      ((M_rank_large<Bp>(mid) <= n)? lb: ub) = mid;
     }
-    return ub * S_ws + S_select_small<Bp>(s[lb], n - M_rank_large<Bp>(lb));
+    return lb * S_ws + S_select_small<Bp>(M_c[lb], n+1 - M_rank_large<Bp>(lb));
   }
 
 public:
