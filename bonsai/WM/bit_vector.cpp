@@ -1,10 +1,3 @@
-std::string bin(size_t x) {
-  std::string s(64, '0');
-  for (size_t i = 0; i < 64; ++i)
-    if (x >> i & 1) s[63-i] = '1';
-  return s;
-}
-
 class bit_vector {
 public:
   using underlying_type = uintmax_t;
@@ -41,7 +34,6 @@ private:
       size_type mid = (lb+ub) >> 1;
       ((S_rank_small<Bp>(x, mid) < n)? lb: ub) = mid;
     }
-    fprintf(stderr, "select_small(%s, %zu): %zu\n", bin(x).c_str(), n, ub);
     return ub;
   }
 
@@ -94,8 +86,8 @@ private:
 
     if (j0 >= s.size()) return -1_zu;
     if (j0+1 == s.size() && j1 >= ss[j0].size()) return -1_zu;
-#warning "for debug"
-    // if (!ss[j0].empty()) return ss[j0][j1];
+// #warning "for debug"
+    if (!ss[j0].empty()) return ss[j0][j1] + 1;
 
     size_type lb = s[j0] / S_ws;
     size_type ub = (j0+1 < s.size())? (s[j0+1]+S_ws-1) / S_ws: M_r.size();

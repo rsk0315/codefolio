@@ -24,12 +24,17 @@ std::mt19937 rsk(0315);
 void random_test() {
   size_t n = (1 << 18) - 1;
   std::vector<bool> vb(n);
-  std::uniform_int_distribution<int> neko(0, 1);
+  // neko の初期値で 0/1 の割合を決めて，
+  // if (neko(rsk)) を ! するかどうかで
+  // どちらを 1 に割り振るかを決める．
+  std::uniform_int_distribution<int> neko(0, 2);
   std::set<size_t> select;
   std::vector<size_t> rank(n+1);
   for (size_t i = 0; i < n; ++i) {
     rank[i+1] = rank[i];
-    if (!neko(rsk)) continue;
+    if (neko(rsk)) continue;
+    // sparse 部分のチェック
+    if (10000 <= i && i <= 16000) continue;
     vb[i] = true;
     select.insert(i);
     ++rank[i+1];
