@@ -344,28 +344,8 @@ public:
     return quantile(k-1, s, t);
   }
 
-  size_type select_greater(value_type x, size_type n,
-                           size_type s, size_type t) const {
-    value_type y = min_greater(x, s, t);
-    if (y == S_fail) return -1;
-    return select(y, 1, s);
-  }
-  size_type select_greater_equal(value_type x, size_type n,
-                                 size_type s, size_type t) const {
-    value_type y = min_greater_equal(x, s, t);
-    if (y == S_fail) return -1;
-    return select(y, 1, s);
-  }
-  size_type select_less(value_type x, size_type n,
-                        size_type s, size_type t) const {
-    value_type y = max_less(x, s, t);
-    if (y == S_fail) return -1;
-    return select(y, 1, s);
-  }
-  size_type select_less_equal(value_type x, size_type n,
-                              size_type s, size_type t) const {
-    value_type y = max_less_equal(x, s, t);
-    if (y == S_fail) return -1;
-    return select(y, 1, s);
-  }
+  size_type select_greater(value_type x, size_type n, size_type s) const;
+  size_type select_greater_equal(value_type x, size_type n, size_type s) const;
+  size_type select_less(value_type x, size_type n, size_type s) const;
+  size_type select_less_equal(value_type x, size_type n, size_type s) const;
 };
