@@ -66,13 +66,6 @@ private:
       }
     }
     ss.push_back(std::move(tmp));
-    fprintf(stderr, "s.size(): %zu, ss.size(): %zu\n", s.size(), ss.size());
-  }
-
-  size_type M_rank1(size_type t) const {
-    size_type j0 = t / S_ws;
-    size_type j1 = t % S_ws;
-    return M_r[j0] + S_popcount(S_least_n_bits(j1) & M_c[j0]);
   }
 
   template <int Bp>
@@ -86,12 +79,10 @@ private:
 
     if (j0 >= s.size()) return -1_zu;
     if (j0+1 == s.size() && j1 >= ss[j0].size()) return -1_zu;
-// #warning "for debug"
     if (!ss[j0].empty()) return ss[j0][j1] + 1;
 
     size_type lb = s[j0] / S_ws;
     size_type ub = (j0+1 < s.size())? (s[j0+1]+S_ws-1) / S_ws: M_r.size();
-    fprintf(stderr, "\nn: %zu, lb: %zu, ub: %zu\n", n, lb, ub);
     while (ub-lb > 1) {
       size_type mid = (lb+ub) >> 1;
       ((M_rank_large<Bp>(mid) <= n)? lb: ub) = mid;
@@ -130,12 +121,27 @@ public:
     M_prepare_select<1>(tmp, M_s1, M_ss1);
   }
 
+  size_type rank0(size_type t) const {
+    return t - rank1(t);
+  }
+  size_type rank1(size_type t) const {
+    size_type j0 = t / S_ws;
+    size_type j1 = t % S_ws;
+    return M_r[j0] + S_popcount(S_least_n_bits(j1) & M_c[j0]);
+  }
+
   size_type rank0(size_type s, size_type t) const {
     return (t-s) - rank1(s, t);
   }
   size_type rank1(size_type s, size_type t) const {
     if (s == t) return 0;
-    return M_rank1(t) - M_rank1(s);
+    return rank1(t) - rank1(s);
+  }
+  size_type select0(size_type n) const {
+    return M_select<0>(n, M_s0, M_ss0);
+  }
+  size_type select1(size_type n) const {
+    return M_select<1>(n, M_s1, M_ss1);
   }
   size_type select0(size_type n, size_type s) const {
     n += rank0(0, s);
@@ -232,15 +238,24 @@ public:
 
   size_type select(value_type x, size_type n) const {
     if (n == 0) return 0;
-    if (rank(x, 0, M_a.size()) < n) return -1;
+    if (rank(x, 0, M_c.size()) < n) return -1;
     size_type si = M_startpos(x);
-    n += M_a[Nb-1].rank(x & 1, si);
-    n = M_a[Nb-1].select(x & 1, n);
+    if (x & 1) {
+      n += M_a[Nb-1].rank1(si);
+      n = M_a[Nb-1].select1(n);
+    } else {
+      n += M_a[Nb-1].rank0(si);
+      n = M_a[Nb-1].select0(n);
+    }
 
     for (size_type i = 1; i < Nb; ++i) {
       size_type j = Nb-i-1;
-      if (x >> i & 1) n -= M_z[j];
-      n = M_a[j].select(x >> i & 1, n);
+      if (x >> i & 1) {
+        n -= M_z[j];
+        n = M_a[j].select1(n);
+      } else {
+        n = M_a[j].select0(n);
+      }
     }
     return n;
   }
@@ -305,7 +320,7 @@ public:
     value_type res = 0;
     for (size_type i = Nb; i--;) {
       size_type j = Nb-i-1;
-      size_type z = M_a[j].rank0(t) - M_a[j].rank0(s);
+      size_type z = M_a[j].rank0(s, t);
       if (k < z) {
         s = M_a[j].rank0(s);
         t = M_a[j].rank0(t);
@@ -348,4 +363,6 @@ public:
   size_type select_greater_equal(value_type x, size_type n, size_type s) const;
   size_type select_less(value_type x, size_type n, size_type s) const;
   size_type select_less_equal(value_type x, size_type n, size_type s) const;
+
+  value_type operator [](size_type s) const { return M_c[s]; }
 };
