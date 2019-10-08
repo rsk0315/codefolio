@@ -159,22 +159,160 @@ private:
   std::array<size_type, Nb> M_z = {};
   enum S_three_way { S_less = 0, S_equal, S_greater };
 
+  size_type M_startpos(value_type x) const {
+    size_type s = 0;
+    size_type t = 0;
+    for (size_type i = Nb; i-- > 1;) {
+      size_type j = Nb-i-1;
+      if (x >> i & 1) {
+        s = M_z[j] + M_c[j].rank1(s);
+        t = M_z[j] + M_c[j].rank1(t);
+      } else {
+        s = M_c[j].rank0(s);
+        t = M_c[j].rank0(t);
+      }
+    }
+    return s;
+  }
+
 public:
   wavelet_matrix() = default;
   wavelet_matrix(wavelet_matrix const&) = default;
   wavelet_matrix(wavelet_matrix&&) = default;
 
+  template <typename InputIt>
+  wavelet_matrix(InputIt first, InputIt last) {
+    assign(first, last);
+  }
+  wavelet_matrix(std::initializer_list<value_type> il):
+    wavelet_matrix(il.begin(), il.end())
+  {}
+
   wavelet_matrix& operator =(wavelet_matrix const&) = default;
   wavelet_matrix& operator =(wavelet_matrix&&) = default;
 
   template <typename InputIt>
-  void assign(InputIt first, InputIt last);
+  void assign(InputIt first, InputIt last): M_c(first, last), M_z{{}} {
+    size_type n = M_c.size();
+    std::vector<value_type> whole = M_c;
+    for (size_type i = Nb; i--;) {
+      std::vector<value_type> zero, one;
+      std::vector<bool> vb(n);
+      for (size_type j = 0; j < n; ++j) {
+        ((whole[j] >> i & 1)? one: zero).push_back(whole[j]);
+        vb[j] = (whole[j] >> i & 1);
+      }
 
-  size_type rank(value_type x, size_type s, size_type t) const;
-  size_type select(value_type x, size_type n, size_type s) const;
+      zeros[Nb-i-1] = zero.size();
+      M_c[Nb-i-1] = bit_vector(vb.begin(), vb.end());
+      if (i == 0) break;
+      whole = std::move(zero);
+      whole.insert(whole.end(), one.begin(), one.end());
+    }
+  }
 
-  std::array<size_type, 3> rank_3way(value_type x, size_type s, size_type t) const;
-  value_type quantile(size_type k, size_type s, size_type t) const;
+  size_type rank(value_type x, size_type s, size_type t) const {
+    if (s == t) return 0;
+    for (size_type i = Nb; i--;) {
+      size_type j = Nb-i-1;
+      if (x >> i & 1) {
+        s = M_z[j] + M_c[j].rank1(s);
+        t = M_z[j] + M_c[j].rank1(t);
+      } else {
+        s = M_c[j].rank0(s);
+        t = M_c[j].rank0(t);
+      }
+    }
+    return t - s;
+  }
+
+  size_type select(value_type x, size_type n) const {
+    if (n == 0) return 0;
+    size_type si = M_startpos(x);
+    n += M_c[Nb-1].rank(x & 1, si);
+    n = M_c[Nb-1].select(c & 1, n);
+
+    for (size_type i = 1; i < Nb; ++i) {
+      size_type j = Nb-i-1;
+      if (x >> i & 1) n -= M_z[j];
+      n = M_c[j].select(x >> i & 1, n);
+    }
+    return n;
+  }
+  size_type select(value_type x, size_type n, size_type s) const {
+    if (n == 0) return s;
+    n += rank(x, 0, s);
+    return select(x, n);
+  }
+
+  std::array<size_type, 3> rank_3way(value_type x,
+                                     size_type s, size_type t) const {
+
+    if (s == t) return {0, 0, 0};
+
+    size_type lt = 0;
+    size_type eq = t-s;
+    size_type gt = 0;
+    for (size_type i = Nb; i--;) {
+      size_type j = Nb-i-1;
+      size_type tmp = t-s;
+      if (x >> i & 1) {
+        s = M_z[j] + M_c[j].rank1(s);
+        t = M_z[j] + M_c[j].rank1(t);
+      } else {
+        s = M_c[j].rank0(s);
+        t = M_c[j].rank0(t);
+      }
+      size_type d = tmp - (t-s);
+      eq -= d;
+      ((x >> i & 1)? lt: gt) += d;
+    }
+    return {lt, eq, gt};
+  }
+
+  std::array<size_type, 3> xored_rank_3way(value_type x, value_type y,
+                                           size_type s, size_type t) const {
+
+    if (s == t) return {0, 0, 0};
+
+    size_type lt = 0;
+    size_type eq = t-s;
+    size_type gt = 0;
+    for (size_type i = Nb; i--;) {
+      size_type j = Nb-i-1;
+      size_type tmp = t-s;
+      if ((x ^ y) >> i & 1) {
+        s = M_z[j] + M_c[j].rank1(s);
+        t = M_z[j] + M_c[j].rank1(t);
+      } else {
+        s = M_c[j].rank0(s);
+        t = M_c[j].rank0(t);
+      }
+
+      size_type d = tmp - (t-s);
+      eq -= d;
+      ((y >> i & 1)? lt: gt) += d;
+    }
+    return {lt, eq, gt};
+  }
+
+  value_type quantile(size_type k, size_type s, size_type t) const {
+    value_type res = 0;
+    for (size_type i = Nb; i--;) {
+      size_type j = Nb-i-1;
+      size_type z = M_c[j].rank0(t) - M_c[j].rank0(s);
+      if (k < z) {
+        s = M_c[j].rank0(s);
+        t = M_c[j].rank0(t);
+      } else {
+        res |= 1_ju << i;
+        s = M_z[j] + M_c[j].rank1(s);
+        t = M_z[j] + M_c[j].rank1(t);
+        k -= z;
+      }
+    }
+    return res;
+  }
 
   value_type min_greater(value_type x, size_type s, size_type t) const;
   value_type min_greater_equal(value_type x, size_type s, size_type t) const;
