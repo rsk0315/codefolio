@@ -359,10 +359,54 @@ public:
     return quantile(k-1, s, t);
   }
 
-  size_type select_greater(value_type x, size_type n, size_type s) const;
-  size_type select_greater_equal(value_type x, size_type n, size_type s) const;
-  size_type select_less(value_type x, size_type n, size_type s) const;
-  size_type select_less_equal(value_type x, size_type n, size_type s) const;
+  size_type select_greater(value_type x, size_type n, size_type s) const {
+    if (n == 0) return s;
+    size_type lb = s;
+    size_type ub = M_c.size();
+    while (ub-lb > 1) {
+      size_type mid = (lb+ub) >> 1;
+      auto r3 = rank_3way(x, s, mid);
+      size_type k = r3[S_greater];
+      ((k < n)? lb: ub) = mid;
+    }
+    return ub;
+  }
+  size_type select_greater_equal(value_type x, size_type n, size_type s) const {
+    if (n == 0) return s;
+    size_type lb = s;
+    size_type ub = M_c.size();
+    while (ub-lb > 1) {
+      size_type mid = (lb+ub) >> 1;
+      auto r3 = rank_3way(x, s, mid);
+      size_type k = r3[S_equal] + r3[S_greater];
+      ((k < n)? lb: ub) = mid;
+    }
+    return ub;
+  }
+  size_type select_less(value_type x, size_type n, size_type s) const {
+    if (n == 0) return s;
+    size_type lb = s;
+    size_type ub = M_c.size();
+    while (ub-lb > 1) {
+      size_type mid = (lb+ub) >> 1;
+      auto r3 = rank_3way(x, s, mid);
+      size_type k = r3[S_less];
+      ((k < n)? lb: ub) = mid;
+    }
+    return ub;
+  }
+  size_type select_less_equal(value_type x, size_type n, size_type s) const {
+    if (n == 0) return s;
+    size_type lb = s;
+    size_type ub = M_c.size();
+    while (ub-lb > 1) {
+      size_type mid = (lb+ub) >> 1;
+      auto r3 = rank_3way(x, s, mid);
+      size_type k = r3[S_less] + r3[S_equal];
+      ((k < n)? lb: ub) = mid;
+    }
+    return ub;
+  }
 
   value_type operator [](size_type s) const { return M_c[s]; }
 };
