@@ -64,4 +64,4 @@ public:
 };
 
 template <typename Edge, typename Directedness>
-typename Edge::weight_type const inf = adjacency_list<Edge, Directedness>::inf;
+constexpr typename Edge::weight_type inf = adjacency_list<Edge, Directedness>::inf;
