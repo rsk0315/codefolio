@@ -41,7 +41,7 @@ public:
   using size_type = size_t;
   using edge_type = Edge;
   using weight_type = typename Edge::weight_type;
-  static weight_type const inf = std::numeric_limits<weight_type>::max();
+  static constexpr weight_type inf = std::numeric_limits<weight_type>::max();
 
 private:
   std::vector<std::vector<edge_type>> M_g;
@@ -62,3 +62,6 @@ public:
   size_type size() const { return M_g.size(); }
   std::vector<edge_type> const& operator [](size_type i) const { return M_g[i]; }
 };
+
+template <typename Edge, typename Directedness>
+typename Edge::weight_type const inf = adjacency_list<Edge, Directedness>::inf;
