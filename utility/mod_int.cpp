@@ -190,31 +190,31 @@ public:
   }
 };
 
-template <typename T1, typename T2, T2 modulo>
-modint<T2, modulo> operator +(T1 const& lhs, modint<T2, modulo> const& rhs) {
-  if (modulo > 0) return modint<T2, modulo>(lhs) + rhs;
-  return modint<T2, modulo>(lhs, rhs.modulo()) + rhs;
+template <typename T1, typename T2, T2 Modulo>
+modint<T2, Modulo> operator +(T1 const& lhs, modint<T2, Modulo> const& rhs) {
+  if (Modulo > 0) return modint<T2, Modulo>(lhs) + rhs;
+  return modint<T2, Modulo>(lhs, rhs.Modulo()) + rhs;
 }
-template <typename T1, typename T2, T2 modulo>
-modint<T2, modulo> operator -(T1 const& lhs, modint<T2, modulo> const& rhs) {
-  if (modulo > 0) return modint<T2, modulo>(lhs) - rhs;
-  return modint<T2, modulo>(lhs, rhs.modulo()) - rhs;
+template <typename T1, typename T2, T2 Modulo>
+modint<T2, Modulo> operator -(T1 const& lhs, modint<T2, Modulo> const& rhs) {
+  if (Modulo > 0) return modint<T2, Modulo>(lhs) - rhs;
+  return modint<T2, Modulo>(lhs, rhs.Modulo()) - rhs;
 }
-template <typename T1, typename T2, T2 modulo>
-modint<T2, modulo> operator *(T1 const& lhs, modint<T2, modulo> const& rhs) {
-  if (modulo > 0) return modint<T2, modulo>(lhs) * rhs;
-  return modint<T2, modulo>(lhs, rhs.modulo()) * rhs;
+template <typename T1, typename T2, T2 Modulo>
+modint<T2, Modulo> operator *(T1 const& lhs, modint<T2, Modulo> const& rhs) {
+  if (Modulo > 0) return modint<T2, Modulo>(lhs) * rhs;
+  return modint<T2, Modulo>(lhs, rhs.Modulo()) * rhs;
 }
-template <typename T1, typename T2, T2 modulo>
-modint<T2, modulo> operator /(T1 const& lhs, modint<T2, modulo> const& rhs) {
-  if (modulo > 0) return modint<T2, modulo>(lhs) / rhs;
-  return modint<T2, modulo>(lhs, rhs.modulo()) / rhs;
+template <typename T1, typename T2, T2 Modulo>
+modint<T2, Modulo> operator /(T1 const& lhs, modint<T2, Modulo> const& rhs) {
+  if (Modulo > 0) return modint<T2, Modulo>(lhs) / rhs;
+  return modint<T2, Modulo>(lhs, rhs.Modulo()) / rhs;
 }
-template <typename T1, typename T2, T2 modulo>
-bool operator ==(T1 const& lhs, modint<T2, modulo> const& rhs) {
+template <typename T1, typename T2, T2 Modulo>
+bool operator ==(T1 const& lhs, modint<T2, Modulo> const& rhs) {
   return rhs == lhs;
 }
-template <typename T1, typename T2, T2 modulo>
-bool operator !=(T1 const& lhs, modint<T2, modulo> const& rhs) {
+template <typename T1, typename T2, T2 Modulo>
+bool operator !=(T1 const& lhs, modint<T2, Modulo> const& rhs) {
   return !(lhs == rhs);
 }

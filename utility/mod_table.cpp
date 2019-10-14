@@ -37,7 +37,7 @@ public:
   value_type choose(underlying_type n, underlying_type r) const {
     // XXX implicitly assuming n < Modulo
     if (!(0 <= n && 0 <= r && r <= n)) {
-      if (Modulo == 0) return value_type(0, M_f[0].Modulo());
+      if (Modulo == 0) return value_type(0, M_f[0].modulo());
       return value_type(0);
     }
     return M_f[n] * M_fi[r] * M_fi[n-r];
