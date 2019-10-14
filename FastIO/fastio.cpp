@@ -7,7 +7,7 @@
 #include <limits>
 
 namespace fast {
-  // fast I/O by rsk0315 (update: 2019-08-08 07:02:47).
+  // fast I/O by rsk0315 (update: 2019-10-14 16:56:15).
   // This version supports only integer inputs/outputs, single character
   // outputs, and string literal outputs.
   static size_t constexpr buf_size = 1 << 17;
@@ -108,6 +108,23 @@ namespace fast {
     // Use scan_parallel(x) only when x may be too large (about 10^12).
     // Otherwise, even when x <= 10^9, scan_serial(x) may be faster.
     void scan(Integral& x) { scan_serial(x); }
+
+    void scan_serial(std::string& s) {
+      // until first whitespace
+      s = "";
+      do {
+        char* startpos = pos;
+        while (*pos > ' ') ++pos;
+        s += std::string(startpos, pos);
+        if (*pos != 0) {
+          ++pos;  // skip the space
+          break;
+        }
+        M_reread_from_stdin();
+      } while (true);
+    }
+
+    void scan(std::string& s) { scan_serial(s); }
   };
 
   class printer {
@@ -132,6 +149,13 @@ namespace fast {
       if (__builtin_expect(pos + N >= outbuf + buf_size, 0)) M_flush_stdout();
       memcpy(pos, s, N-1);
       pos += N-1;
+    }
+
+    void print(char const* s) {
+      while (*s != 0) {
+        *pos++ = *s++;
+        if (pos == outbuf + buf_size) M_flush_stdout();
+      }
     }
 
     template <typename Integral,
@@ -168,7 +192,7 @@ namespace fast {
     }
 
     template <typename Tp>
-    void println(Tp x) { print(x), print('\n'); }
+    void println(Tp const& x) { print(x), print('\n'); }
   };
 } // fast::
 
