@@ -1,0 +1,56 @@
+\documentclass[dvipdfmx]{jsarticle}
+
+\usepackage{rsk0315}
+\newcommand{\DP}{\mathrm{dp}}
+\newcommand{\floor}[1]{\lfloor #1\rfloor}
+
+\title{Karatsuba法の概略}
+\author{えびちゃん}
+
+\begin{document}
+\maketitle
+
+多項式$A(x)$, $B(x)$が以下のように与えられる．
+\begin{align*}
+  A(x) &= a_0+a_1x+\dots+a_n x^n,\\
+  B(x) &= b_0+b_1x+\dots+b_n x^n.
+\end{align*}
+このとき，その積$A(x)\cdot B(x)$を求めたい．
+\[A(x)\cdot B(x) = a_0 b_0+(a_0 b_1 + a_1 b_0)\,x+\dots+a_n b_n x^{2n}.\]
+%
+ここで，まず$A(x)$を以下のように分解することを考える．
+\begin{align*}
+  A(x) &= a_0 + a_1 x + \dots + a_{\floor{n/2}} x^{\floor{n/2}}
+  + a_{\floor{n/2}+1}\, x^{\floor{n/2}+1} + \dots + a_n x^n\\
+  &= \underset{A_L(x)}{\underbrace{\left(a_0 + a_1 x + \dots + a_{\floor{n/2}} x^{\floor{n/2}}\right)}}
+  + \underset{A_H(x)}{\underbrace{\left(a_{\floor{n/2}+1}\, x + \dots + a_n x^{n-\floor{n/2}}\right)}}\cdot x^{\floor{n/2}}\\
+  &= A_L(x) + A_H(x)\cdot x^{\floor{n/2}}.
+\end{align*}
+$B(x)$についても同様に$B_L(x)$と$B_H(x)$に分解する．
+%
+これを用いると，所望の式は以下のように書き直せる．
+\begin{align*}
+  A(x)\cdot B(x)
+  &= \left(A_L(x) + A_H(x)\cdot x^{\floor{n/2}}\right) \cdot \left(B_L(x) + B_H(x)\cdot x^{\floor{n/2}}\right)\\
+  &= A_L(x)\cdot B_L(x)
+  + \big(A_L(x)\cdot B_H(x)+A_H(x)\cdot B_L(x)\big)\cdot x^{\floor{n/2}}
+  + A_H(x)\cdot B_H(x)\cdot x^{2\floor{n/2}}.
+\end{align*}
+$A\cdot B$を$A_L\cdot B_L$など半分のサイズの問題4つに分解できたことになるが，これでは得をしていない．
+そこで，真ん中の項についてさらに変形をする．
+\begin{align*}
+  A_L(x)\cdot B_H(x) + A_H(x)\cdot B_L(x)
+  &= \begin{aligned}[t]
+    &\phantom{{}-{}}\big(A_L(x)+A_H(x)\big)\cdot\big(B_L(x)+B_H(x)\big)\\
+    &- A_L(x)\cdot B_L(x) - A_H(x)\cdot B_H(x).
+  \end{aligned}
+\end{align*}
+これにより，半分のサイズの解くべき問題が以下の3つになったことがわかる．
+\begin{itemize}
+\item $A_L(x)\cdot B_L(x)$
+\item $A_H(x)\cdot B_H(x)$
+\item $\big(A_L(x)+A_H(x)\big)\cdot\big(B_L(x)+B_H(x)\big)$
+\end{itemize}
+よって，分割統治のえらい定理から，$O(n^{\log_2 3})=O(n^{1.59})$時間で$A(x)\cdot B(x)$を計算できることがわかる．
+
+\end{document}
