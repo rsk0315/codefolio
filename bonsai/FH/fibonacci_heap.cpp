@@ -65,8 +65,8 @@ public:
 
 private:
   size_type M_size = 0;
-  pointer M_top{nullptr};
-  std::list<pointer> M_roots;  // list for O(1) meld
+  std::list<pointer> M_roots;  // list for pop()
+  typename std::list<pointer>::iterator M_top;
   key_compare M_comp = key_compare();
 
   static void S_deep_copy_dfs(pointer& dst, pointer& src) {
@@ -79,11 +79,28 @@ private:
     for (auto const& root: other.M_roots) {
       pointer r;
       S_deep_copy_dfs(root);
-      if (root == other.M_top) M_top = r;
+      M_roots.push_back(r);
+      if (root == *other.M_top) M_top = --M_roots.end();
     }
   }
 
-  void M_coleasce();
+  void M_coleasce() {
+    // ??? use M_damage?
+    size_type size = 0;
+    for (auto r: M_roots) size += 1_zu << r.M_order;
+    std::vector<pointer> roots(bit::log2p1(size));
+    for (auto r: M_roots) {
+      size_type i = r.M_order;
+      while (roots[i]) {
+        r->add_child(roots[i]);
+        roots[i] = nullptr;
+        ++i;
+      }
+      roots[i] = r;
+    }
+    M_roots.clear();
+    for (auto r: roots) if (r) M_roots.push_back(r);
+  }
 
 public:
   fibonacci_heap() = default;
@@ -102,7 +119,21 @@ public:
   [[nodiscard]] bool empty() const noexcept { return M_size == 0; }
 
   const_reference const& top() const { return M_top->M_value; }
-  void pop();
+  void pop() {
+    pointer root = *M_top;
+    M_roots.erase(M_top);
+    if (root->M_child) {
+      pointer cur = root->M_child;
+      do {
+        pointer tmp = cur->right;
+        M_roots.push_back(cur);
+        cur->left = cur->right = nullptr;
+        cur = tmp;
+      } while (cur != root->M_child);
+    }
+    M_coleasce();
+  }
+
   node_handle push(key_type const& key, mapped_type const& mapped) {
     ++M_size;
     pointer newnode = std::make_shared<node>(key, mapped);
