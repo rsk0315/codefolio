@@ -59,7 +59,7 @@ private:
       child->M_left = parent->M_child->M_left;
       child->M_right = parent->M_child;
       parent->M_child->M_left->M_right = child;
-      parent->M_child->M_right->M_left = child;
+      parent->M_child->M_left = child;
     }
   }
 
@@ -115,6 +115,9 @@ private:
     for (auto r: M_roots) {
       size_type i = r->M_order;
       while (roots[i]) {
+        if (M_comp(r->M_value.first, roots[i]->M_value.first))
+          std::swap(r, roots[i]);
+
         S_add_child(r, roots[i]);
         roots[i] = nullptr;
         ++i;
@@ -149,9 +152,7 @@ public:
 
   const_reference const& top() const { return (*M_top)->M_value; }
   void pop() {
-    fprintf(stderr, "before pop(): M_top->use_count(): %ld\n", M_top->use_count());
     pointer root = *M_top;
-    fprintf(stderr, "before pop(): root.use_count(): %ld\n", root.use_count());
     M_roots.erase(M_top);
     if (root->M_child) {
       pointer cur = root->M_child;
@@ -161,12 +162,10 @@ public:
         M_roots.push_back(cur);
         cur->M_left = cur->M_right = cur->M_parent = nullptr;
         cur = tmp;
-      } while (cur != root->M_child);
+      } while (cur && cur != root->M_child);
     }
     --M_size;
-    fprintf(stderr, "before M_coleasce(): root.use_count(): %ld\n", root.use_count());
     M_coleasce();
-    fprintf(stderr, "after M_coleasce(): root.use_count(): %ld\n", root.use_count());
   }
 
   node_handle push(key_type const& key, mapped_type const& mapped) {
