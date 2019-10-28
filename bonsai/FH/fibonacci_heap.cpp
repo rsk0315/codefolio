@@ -129,7 +129,7 @@ private:
     for (auto r: roots) if (r) M_roots.push_back(r);
     M_top = *M_roots.begin();
     for (auto it = ++M_roots.begin(); it != M_roots.end(); ++it)
-      if (M_comp(M_top->M_value.first, it->M_value.first)) M_top = *it;
+      if (M_comp(M_top->M_value.first, (*it)->M_value.first)) M_top = *it;
   }
 
 public:
@@ -153,7 +153,7 @@ public:
     pointer root = M_top;
     for (auto it = M_roots.begin(); it != M_roots.end(); ++it) {
       if (*it == M_top) {
-        M_roots(it);
+        M_roots.erase(it);
         break;
       }
     }
