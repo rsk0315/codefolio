@@ -132,6 +132,23 @@ private:
       if (M_comp(M_top->M_value.first, (*it)->M_value.first)) M_top = *it;
   }
 
+  static bool S_detach_child(pointer parent, pointer child) {
+    // returns true if the resulting heap is valid, false otherwise
+    bool res = !parent->M_damaged;
+    if (parent->M_parent) parent->M_damaged = true;
+    --parent->M_order;
+
+    if (parent->M_child == child) parent->M_child = child->M_right;
+    child->M_parent = nullptr;
+    child->M_damaged = false;
+
+    if (child->M_left) {
+      child->M_left->M_right = child->M_right;
+      child->M_right->M_left = child->M_left;
+    }
+    return res;
+  }
+
 public:
   fibonacci_heap() = default;
   fibonacci_heap(fibonacci_heap const& other) { M_deep_copy(other); }
@@ -188,15 +205,23 @@ public:
       M_top = other.M_top;
   }
 
-  // node_handle prioritize(node_handle& nh, mapped_type const& key) {
-  //   pointer cur = nh->M_node;
-  //   // assert(M_comp(cur->M_value.first, key));
-  //   cur->M_value.first = key;
-  //   if (!cur->M_parent) {
-  //     if (
-  //     return nh;
-  //   }
-  //   if (!M_comp(cur->M_parent->M_value.first, key)) return nh;
-    
-  // }
+  node_handle prioritize(node_handle& nh, mapped_type const& key) {
+    pointer cur(nh.M_node);
+    // assert(M_comp(cur->M_value.first, key));
+    cur->M_value.first = key;
+    if (!cur->M_parent) {
+      if (M_comp(M_top->M_value.first, key)) M_top = cur;
+      return nh;
+    }
+    if (!M_comp(cur->M_parent->M_value.first, key)) return nh;
+
+    bool more_cut = true;
+    while (more_cut) {
+      pointer parent = cur->M_parent;
+      more_cut = S_detach_child(parent, cur);
+      M_roots.push_back(cur);
+      cur = parent;
+    }
+    return nh;
+  }
 };

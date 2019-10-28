@@ -19,7 +19,9 @@ int main() {
   printf("%d %c\n", fh.top().first, fh.top().second);
   fh.push(2, 'a');
   printf("%d %c\n", fh.top().first, fh.top().second);
-  fh.push(1, 'c');
+  auto c = fh.push(1, 'c');
+  printf("%d %c\n", fh.top().first, fh.top().second);
+  fh.prioritize(c, 3);
   printf("%d %c\n", fh.top().first, fh.top().second);
   fh.pop();
   printf("%d %c\n", fh.top().first, fh.top().second);
