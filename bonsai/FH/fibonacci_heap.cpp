@@ -63,6 +63,28 @@ private:
     }
   }
 
+  static bool S_detach_child(pointer parent, pointer child) {
+    // returns true if the resulting heap is valid, false otherwise
+    bool res = !parent->M_damaged;
+    if (parent->M_parent) parent->M_damaged = true;
+    --parent->M_order;
+
+    if (parent->M_child == child) parent->M_child = child->M_right;
+    child->M_parent = nullptr;
+    child->M_damaged = false;
+
+    if (child->M_left) {
+      if (child->M_left == child->M_right) {
+        child->M_left->M_right = child->M_right->M_left = nullptr;
+      } else {
+        child->M_left->M_right = child->M_right;
+        child->M_right->M_left = child->M_left;
+      }
+      child->M_left = child->M_right = nullptr;
+    }
+    return res;
+  }
+
 public:
   class node_handle {
     friend fibonacci_heap;
@@ -81,8 +103,10 @@ public:
     pointer M_node;
 
   public:
+    node_handle() = default;
     node_handle(pointer node): M_node(node) {}
     const_reference operator *() const { return (*M_node)->M_value; }
+    bool expired() const { return M_node.expired(); }
   };
 
 private:
@@ -106,7 +130,24 @@ private:
     }
   }
 
+  static size_type S_num_nodes(pointer cur) {
+    pointer child = cur->M_child;
+    if (!child) return 1;
+    size_type res = 1;
+    do {
+      res += S_num_nodes(child);
+      child = child->M_right;
+    } while (child && child != cur->M_child);
+    return res;
+  }
+
   void M_coleasce() {
+    if (M_size == 0) {
+      M_roots.clear();
+      M_top = nullptr;
+      return;
+    }
+
     size_type size = 0;
     for (auto r: M_roots) size += 1_zu << r->M_order;
     std::vector<pointer> roots(bit::log2p1(size));
@@ -125,28 +166,10 @@ private:
     }
     M_roots.clear();
 
-    if (M_size == 0) return;
     for (auto r: roots) if (r) M_roots.push_back(r);
     M_top = *M_roots.begin();
-    for (auto it = ++M_roots.begin(); it != M_roots.end(); ++it)
-      if (M_comp(M_top->M_value.first, (*it)->M_value.first)) M_top = *it;
-  }
-
-  static bool S_detach_child(pointer parent, pointer child) {
-    // returns true if the resulting heap is valid, false otherwise
-    bool res = !parent->M_damaged;
-    if (parent->M_parent) parent->M_damaged = true;
-    --parent->M_order;
-
-    if (parent->M_child == child) parent->M_child = child->M_right;
-    child->M_parent = nullptr;
-    child->M_damaged = false;
-
-    if (child->M_left) {
-      child->M_left->M_right = child->M_right;
-      child->M_right->M_left = child->M_left;
-    }
-    return res;
+    for (auto p: M_roots)
+      if (M_comp(M_top->M_value.first, p->M_value.first)) M_top = p;
   }
 
 public:
@@ -176,13 +199,14 @@ public:
     }
     if (root->M_child) {
       pointer cur = root->M_child;
-      cur->M_parent = nullptr;
       do {
         pointer tmp = cur->M_right;
-        M_roots.push_back(cur);
         cur->M_left = cur->M_right = cur->M_parent = nullptr;
+        cur->M_damaged = false;
+        M_roots.push_back(cur);
         cur = tmp;
       } while (cur && cur != root->M_child);
+      root->M_child = nullptr;
     }
     --M_size;
     M_coleasce();
@@ -190,6 +214,7 @@ public:
 
   node_handle push(key_type const& key, mapped_type const& mapped) {
     pointer newnode = std::make_shared<node>(key, mapped);
+    newnode->M_left = newnode->M_right = nullptr;
     M_roots.push_back(newnode);
     if (M_size == 0 || M_comp(M_top->M_value.first, key)) M_top = newnode;
     ++M_size;
@@ -205,17 +230,13 @@ public:
       M_top = other.M_top;
   }
 
-  node_handle prioritize(node_handle& nh, mapped_type const& key) {
+  void prioritize(node_handle& nh, mapped_type const& key) {
     pointer cur(nh.M_node);
     // assert(M_comp(cur->M_value.first, key));
     cur->M_value.first = key;
-    if (!cur->M_parent) {
-      if (M_comp(M_top->M_value.first, key)) M_top = cur;
-      return nh;
-    }
-    if (!M_comp(cur->M_parent->M_value.first, key)) return nh;
-
     if (M_comp(M_top->M_value.first, key)) M_top = cur;
+    if (!cur->M_parent || !M_comp(cur->M_parent->M_value.first, key)) return;
+
     bool more_cut = true;
     while (more_cut) {
       pointer parent = cur->M_parent;
@@ -223,6 +244,5 @@ public:
       M_roots.push_back(cur);
       cur = parent;
     }
-    return nh;
   }
 };

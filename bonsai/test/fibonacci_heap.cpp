@@ -20,9 +20,12 @@ int main() {
   fh.push(2, 'a');
   printf("%d %c\n", fh.top().first, fh.top().second);
   auto c = fh.push(1, 'c');
+  printf("expired? %d\n", c.expired());
   printf("%d %c\n", fh.top().first, fh.top().second);
   fh.prioritize(c, 3);
+  printf("expired? %d\n", c.expired());
   printf("%d %c\n", fh.top().first, fh.top().second);
   fh.pop();
+  printf("expired? %d\n", c.expired());
   printf("%d %c\n", fh.top().first, fh.top().second);
 }
