@@ -215,10 +215,11 @@ public:
     }
     if (!M_comp(cur->M_parent->M_value.first, key)) return nh;
 
+    if (M_comp(M_top->M_value.first, key)) M_top = cur;
     bool more_cut = true;
     while (more_cut) {
       pointer parent = cur->M_parent;
-      more_cut = S_detach_child(parent, cur);
+      more_cut = !S_detach_child(parent, cur);
       M_roots.push_back(cur);
       cur = parent;
     }
