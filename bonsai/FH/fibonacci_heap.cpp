@@ -88,7 +88,7 @@ public:
 private:
   size_type M_size = 0;
   std::list<pointer> M_roots;  // list for pop()
-  typename std::list<pointer>::iterator M_top;
+  pointer M_top;  // pointer (not iterator) for prioritize()
   key_compare M_comp = key_compare();
 
   static void S_deep_copy_dfs(pointer& dst, pointer& src) {
@@ -102,12 +102,11 @@ private:
       pointer r;
       S_deep_copy_dfs(root);
       M_roots.push_back(r);
-      if (root == *other.M_top) M_top = --M_roots.end();
+      if (root == other.M_top) M_top = r;
     }
   }
 
   void M_coleasce() {
-    // ??? use M_damage?
     size_type size = 0;
     for (auto r: M_roots) size += 1_zu << r->M_order;
     std::vector<pointer> roots(bit::log2p1(size));
@@ -128,10 +127,9 @@ private:
 
     if (M_size == 0) return;
     for (auto r: roots) if (r) M_roots.push_back(r);
-    M_top = M_roots.begin();
+    M_top = *M_roots.begin();
     for (auto it = ++M_roots.begin(); it != M_roots.end(); ++it)
-      if (M_comp((*M_top)->M_value.first, (*it)->M_value.first))
-        M_top = it;
+      if (M_comp(M_top->M_value.first, it->M_value.first)) M_top = *it;
   }
 
 public:
@@ -150,10 +148,15 @@ public:
   size_type size() const noexcept { return M_size; }
   [[nodiscard]] bool empty() const noexcept { return M_size == 0; }
 
-  const_reference const& top() const { return (*M_top)->M_value; }
+  const_reference const& top() const { return M_top->M_value; }
   void pop() {
-    pointer root = *M_top;
-    M_roots.erase(M_top);
+    pointer root = M_top;
+    for (auto it = M_roots.begin(); it != M_roots.end(); ++it) {
+      if (*it == M_top) {
+        M_roots(it);
+        break;
+      }
+    }
     if (root->M_child) {
       pointer cur = root->M_child;
       cur->M_parent = nullptr;
@@ -171,8 +174,7 @@ public:
   node_handle push(key_type const& key, mapped_type const& mapped) {
     pointer newnode = std::make_shared<node>(key, mapped);
     M_roots.push_back(newnode);
-    if (M_size == 0 || M_comp((*M_top)->M_value.first, key))
-      M_top = --M_roots.end();
+    if (M_size == 0 || M_comp(M_top->M_value.first, key)) M_top = newnode;
     ++M_size;
     return node_handle(newnode);
   }
@@ -186,6 +188,15 @@ public:
       M_top = other.M_top;
   }
 
-  // node_handle&? node_handle const&?
-  node_handle prioritize(node_handle& nh, mapped_type const& key);
+  // node_handle prioritize(node_handle& nh, mapped_type const& key) {
+  //   pointer cur = nh->M_node;
+  //   // assert(M_comp(cur->M_value.first, key));
+  //   cur->M_value.first = key;
+  //   if (!cur->M_parent) {
+  //     if (
+  //     return nh;
+  //   }
+  //   if (!M_comp(cur->M_parent->M_value.first, key)) return nh;
+    
+  // }
 };
