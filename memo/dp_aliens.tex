@@ -1,0 +1,32 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\floor}[1]{\left\lfloor #1\right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1\right\rceil}
+\newcommand{\bitand}{\text{ \& }}
+
+\title{WQS Binary Search}
+
+\begin{document}
+\maketitle
+
+Trick from AliensとかAlien's DPとか\footnote{Aliens' DPだったりする？}．
+
+関数にいい感じの性質を仮定する．
+
+% Convex QI (QI for quadratic inequality) is なに
+
+$k$回ちょうどなんかをしたときの最適値を求めたい．これは一般に難しい．
+
+なんかをする際にペナルティ$\lambda$が発生するとする．
+
+そのとき，いい感じの性質があると（まだちゃんと知らない），ペナルティで三分探索して操作を$k$回にするように調整できて，そこからペナルティぶんを差し引くことで$k$回行うときの最適化をする元問題を解ける．
+
+回数$k$が離散なことに由来してる？ それとも最適化される値による？ ちゃんとわかってないけど，その性質から，ペナルティの候補は離散値に絞ることができて，それはつまり差分の二分探索でいいことになる．
+
+ペナルティつき回数制約なし版の問題を$T(n)$で解けるとする．
+また，その問題で最適解を達成する最小操作回数が$0$にできるようなペナルティの最小値（の上界）を$\lambda_{\mathrm{sup}}$とする．
+このとき，$O(T(n)\log\lambda_{\mathrm{sup}})$で元問題が解ける．
+
+\end{document}
