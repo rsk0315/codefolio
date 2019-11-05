@@ -1,0 +1,42 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\floor}[1]{\lfloor #1\rfloor}
+\newcommand{\ceil}[1]{\lceil #1\rceil}
+
+\title{Mo's Algorithm}
+
+\begin{document}
+\maketitle
+
+静的な配列に対して，区間$[L_i, R_i)$に関するクエリ処理を行う．
+\iffalse
+]\fi
+ある区間$[s, t)$についての結果が求められているときに$[s\pm1, t\pm1)$に関するクエリに$O(T(n))$で求められるとする．
+\iffalse
+]]\fi
+
+配列を個数$b$のバケットで分割する．バケットの個数は$\ceil{n/b}$である．
+クエリの区間$[L_i, R_i)$を$(\floor{L_i/b}, R_i)$をキーとしてソートし，順に処理することを考える．
+\iffalse
+]\fi
+
+まず，区間の左端がどの程度変更されるかを考える．
+
+う
+
+左端の属するバケットが同じとき，左端の移動は at most $b$ per query．右端の移動は at most $n$．
+左端の属するバケットが次のものに変わるとき，左端の移動は at most $2b$．右端の移動は at most $n$．バケットが変わるのは at most $\ceil{n/b}-1$ times．
+
+これより，左端の移動は$bq + 2b(\ceil{n/b}-1) = bq+O(n)$で，右端の移動は$2n(\ceil{n/b}-1) = O(n^2/b)$．
+よって，$bq\cdot T(n)$と$n^2/b\cdot T(n)$をバランスよくするような$b$を定めたい．
+相加・相乗平均の関係から，以下が成り立つ．
+\begin{align*}
+  (bq+n^2/b)\cdot T(n)
+  &\ge \big((bq\cdot T(n))\cdot(n^2/b\cdot T(n))\big)^{1/2}\\
+  &= n\sqrt q\cdot T(n)\\
+\end{align*}
+等号が成り立つのは$bq=n^2/b$のときで，$b=n/\sqrt{q}$程度に選ぶのがよさそう．
+
+\end{document}
