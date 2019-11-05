@@ -1,0 +1,27 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\floor}[1]{\left\lfloor #1\right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1\right\rceil}
+\newcommand{\bitand}{\text{ \& }}
+
+\title{四則演算やビット演算に関する性質}
+
+\begin{document}
+\maketitle
+
+% 本来は，証明とかそういうのを含めて書くはずだった．
+
+\[(a\bmod b) < b/2.\]
+
+\[a \oplus a = 0.\]
+
+\[a+b = (a\oplus b) + ((a\bitand b) \ll 1).\]
+特に，
+\[a+b=a\oplus b\iff a\bitand b=0.
+\]
+
+\[\ceil{a} = -\floor{-a}.\]
+
+\end{document}
