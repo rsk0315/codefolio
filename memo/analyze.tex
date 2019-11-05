@@ -5,9 +5,10 @@
 \newcommand{\floor}[1]{\left\lfloor #1\right\rfloor}
 \newcommand{\ceil}[1]{\left\lceil #1\right\rceil}
 
-\title{計算量解析のテクたち}
+\title{計算量解析に関する自明でない例}
 
 \begin{document}
+\maketitle
 
 \section{調和級数}
 
@@ -47,5 +48,13 @@ $n_\sigma$を文字$\sigma$の出現数としたとき，以下の式を解析�
 \end{align*}
 
 $\min$の引数のうち，片方が$n$に依存していて，他方が束縛変数に依存している場合に，それらが等しいとおいて変形する？ 束縛変数のみの式にして，閉じた形にできるとうれしい．
+
+\section{二乗の木DP}
+
+二分木での木DPを考える．頂点$v_p$と，その子$v_l$, $v_r$があり，それらの部分木のサイズがそれぞれ$n_p$, $n_l$, $n_r$であるときの計算量が以下のようになっているとする．
+\[T(n_p) = T(n_l)+T(n_r)+O(lr).\]
+全体の頂点数が$n$のとき，これは$T(n) = O(n^2)$となる．
+
+多分木なら$O(lr)$の項はどう書くとよい？ あるいは（二分木でも）その項がもっと大きかったら？
 
 \end{document}
