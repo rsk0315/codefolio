@@ -1,0 +1,51 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\floor}[1]{\left\lfloor #1\right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1\right\rceil}
+
+\title{計算量解析のテクたち}
+
+\begin{document}
+
+\section{調和級数}
+
+以下のようなループの回数を解析する．
+\begin{minted}{c++}
+  for (size_type i = 0; i < n; ++i)
+    for (size_type j = 0; j < n; i += j)
+      ...
+\end{minted}
+$i$を固定したとき，内側のループは$\floor{n/i}$回なので，全体は以下のようになる．
+\begin{align*}
+  \floor{\frac{n}{1}}+\floor{\frac{n}{2}}+\dots+\floor{\frac{n}{n}}
+  &\le \sum_{i=1}^n \frac{n}{i}\\
+  &= n\cdot\sum_{i=1}^n \frac{1}{i}\\
+  &= n\cdot(\log_e n+\gamma+\varepsilon_n)\\
+  &\subseteq n\cdot(\log_e n+\gamma+o(1))\\
+  &\subseteq n\log_e n+\Theta(n)\\
+  &\subseteq \Theta(n\log n).
+\end{align*}
+定数倍を細かく見ることはなさそうなので，$\Theta(n\log n)$回と見ることが多そう．
+
+\section{最小値を選ぶやつ}
+
+これはたぶん特殊な例．適宜一般化する．
+
+$\Sigma$上の長さ$n$の文字列を考える．
+$n_\sigma$を文字$\sigma$の出現数としたとき，以下の式を解析する\footnote{二種類のアルゴリズムのうち，効率的な方を選ぶ場合の計算量解析など．}．
+\[
+\sum_{\sigma\in\Sigma} \min(n_\sigma^2, n\log n).
+\]
+これが最大となるのは$n_\sigma^2 = n\log n$のときのはずで，以下のようになる．
+\begin{align*}
+  &\phantom{{}={}}\sum_{\sigma\in\Sigma} \min(n_\sigma^2, n\log n)\\
+  &= \sum_{\sigma\in\Sigma}\sqrt{n_\sigma^2}\cdot\sqrt{n\log n}\\
+  &= \left(\sum_{\sigma\in\Sigma}n_\sigma\right)\cdot\sqrt{n\log n}\\
+  &= n\cdot\sqrt{n\log n}.
+\end{align*}
+
+$\min$の引数のうち，片方が$n$に依存していて，他方が束縛変数に依存している場合に，それらが等しいとおいて変形する？ 束縛変数のみの式にして，閉じた形にできるとうれしい．
+
+\end{document}
