@@ -30,7 +30,7 @@ private:
   }
 
   void M_resolve(size_t i) {
-    size_t h = (sizeof(size_t) * CHAR_BIT) - __builtin_clzll(M_base_size*2);
+    size_t h = (sizeof(long long) * CHAR_BIT) - __builtin_clzll(M_base_size*2);
     for (size_t s = h; s > 0; --s) {
       size_t p = i >> s;
       if (M_d[p] != M_op3.identity) {
