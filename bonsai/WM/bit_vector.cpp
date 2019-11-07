@@ -15,7 +15,7 @@ private:
     return __builtin_popcountll(n);
   }
 
-  static size_type S_least_n_bits(size_type n) {
+  static underlying_type S_least_n_bits(size_type n) {
     return (1_ju << n) - 1;
   }
 
