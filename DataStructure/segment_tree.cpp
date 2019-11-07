@@ -80,6 +80,7 @@ public:
   segment_tree& operator =(segment_tree&&) = default;
 
   void modify(size_t l, size_t r, second_type const& x) {
+    if (l == r) return;  // for [n, n)
     l += M_base_size;
     r += M_base_size;
     size_t l0 = l;
@@ -97,6 +98,8 @@ public:
   first_type accumulate(size_t l, size_t r) {
     first_type resl = M_op1.identity;
     first_type resr = resl;
+    if (l == r) return resl;  // for [n, n)
+
     l += M_base_size;
     r += M_base_size;
     M_resolve(l);
