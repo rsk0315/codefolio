@@ -38,7 +38,9 @@ public:
   }
 
   value_type diff(size_t u, size_t v) const {
-    return connected(u, v)? (cost[u]-cost[v]): inf<value_type>;
+    // calls find(u), find(v) for resolving deferred operations
+    if (!connected(u, v)) throw std::logic_error("uncomparable pair");
+    return cost[u] - cost[v];
   }
 
   size_t size(size_t v) const {
