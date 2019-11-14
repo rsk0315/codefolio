@@ -59,6 +59,13 @@ public:
       M_g[dst].emplace_back(dst, src, args...);
   }
 
+  void sort_by_index() {
+    auto cmp = [](auto const& e1, auto const& e2) {
+      return e1.target() < e2.target();
+    };
+    for (auto v: M_g) std::sort(v.begin(), v.end(), cmp);
+  }
+
   size_type size() const { return M_g.size(); }
   std::vector<edge_type> const& operator [](size_type i) const { return M_g[i]; }
 };
