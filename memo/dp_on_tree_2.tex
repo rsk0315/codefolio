@@ -1,0 +1,170 @@
+\documentclass{jsarticle}
+
+\usepackage{rsk0315}
+
+\newcommand{\DP}{\mathrm{dp}}
+
+\title{全方位木DP}
+
+\begin{document}
+
+\maketitle
+
+\section{問題設定}
+$n$頂点の木$(V, E)$と，単位元$e_\oplus$を持つモノイド$(T, \oplus)$および関数$f:T\times T\to T$に関する問題を考える．
+次のように型$T$の値$\DP_r[v]$を定義する．
+\[\DP_r[v] = f(\DP_r[c_1^r] \oplus \dots \oplus \DP_r[c_k^r]).\]
+ここで，根を$r$としたときの頂点$v$の子を番号の昇順に$(c_1^r, \dots, c_k^r)$とする．
+また，$v$が葉のときは次のように定義する．
+\[\DP_r[v] = f(e_\oplus).\]
+このとき，$r = \{1, \dots, n\}$について$\DP_r[r]$を求めたい．
+
+\section{考察}
+
+まず，以下が成り立つ．
+\begin{align*}
+  \DP_r[v] &= f(\DP_r[c_1^r] \oplus \dots \oplus \DP_r[c_k^r])\\
+  &= f(\DP_v[c_1^r] \oplus \dots \oplus \DP_v[c_k^r]).
+\end{align*}
+すなわち，各$r$について$\DP_r[1], \dots, \DP_r[n]$を求める必要はなく，頂点の対$(u, v)$について$\DP_u[v]$を求める必要があるのは$u$と$v$が隣接する場合のみである．
+そのため，$|V|^2$個の要素を求める必要はなく，$2|E|$個の要素を求めれば十分であることがわかる．
+
+さて，$\DP_r[v]$を求めることを考える．
+根を$r$としたときの$v$の子は$(c_1^r, \dots, c_k^r)$であった．
+このとき，$v$と隣接する頂点を番号の昇順に$(u_1, \dots, u_m)$とすると$m = k+1$となる．
+さらに，根を$r$としたときの$v$の親を$p_r$とすると，ある$1\le m_r\le m$が存在して$u_{m_r} = p_r$となる．
+つまり，$u_1, \dots, u_m$を$m_r$を境に二分でき，以下のように書ける．
+\begin{align*}
+  \DP_v[c_1^r]\oplus\dots\oplus\DP_v[c_k^r]
+  &= (\DP_v[u_1]\oplus\dots\oplus\DP_v[u_{m_r-1}])\oplus(\DP_v[u_{m_r+1}]\oplus\dots\oplus\DP_v[u_m])\\
+  &= \left(\bigoplus_{i=1}^{u_{m_r}-1} \DP_v[c_i]\right)\oplus\left(\bigoplus_{i=u_{m_r}+1}^m\DP_v[c_i]\right)
+  .
+\end{align*}
+これを高速に求めるためには，$\DP_v$の$\oplus$に関する左右からの累積和を持っておけばよい．
+ここで，$m_r$以外は$r$に依存していないことがうれしい．
+
+さて，各$v$について$\DP_v$の$\oplus$に左右からの累積和を求めたい．
+これには二回DFSを行うとよい．
+まず，頂点$1$からDFSを行うことで$1$を根とする向きの値は求められる．
+すなわち，隣接する頂点対$(u, v)$について，$u$の方が$1$に近いならば$\DP_u[v]$はこのDFSで求められる．
+ここで，$\DP_1$の各値は求められているので，$\DP_1$の累積和も計算できる．
+
+その後もう一度DFSを行い，残りの$\DP_v[u]$を求める．
+このとき，$\DP_v[u]$を求めるために必要な$\DP_v[??]$について，$\DP_v[u]$以外は一回目のDFSで求められている．
+一方で，（探索順から）$\DP_v[u]$は$\DP_u$の累積和は求められているので，これを適切に求めることで$\DP_v[u]$も計算できる．
+
+これらにより各$(u, v)$について$\DP_v[u]$を求めることができた．
+また，$\DP_v$について累積和を求めるときに，全体の和を計算することで$\DP_v[v]$を求められ，元の問題を解くことができた．
+
+木の辺に型$U$の重みがついているとき，$f$を$(T\times U)\times T\to T$にするとよいかも．
+
+\vspace{10ex}
+\begin{center}
+  $\langle$図が入る予定．$\rangle$
+\end{center}
+\vspace{10ex}
+
+\clearpage
+\section{実装}
+
+$\DP_0[v]$では$\DP_v$の左からの累積和を，$\DP_1[v]$では$\DP_v$の右からの累積和を保持する．
+$\DP_0[v]$および$\DP_1[v]$は$v$の次数$\delta(v)$要素の配列である．
+
+\subsection{擬似コード}
+% 擬似コードは分割されないので順番が乱れる．float？
+% そのうち上の方に図を入れるはずなので，それをしてから必要に応じて考え直す．
+\begin{alg}
+  \caption{全方位木DP}
+  \newcommand{\PAR}{\mathrm{par}}
+  \Function(\textsc{dfs0}{$(v, p)$})
+  {
+    {$x \gets e_\oplus$}\;
+    \ForEach{neighbor $u_i$ \textbf{of} $v$}
+    {
+      \If{$u_i = p$}
+      {
+        {$\PAR[v] = i$}\Comment*{mark $i$\textsuperscript{th} neighbor as parent.}
+        \Continue
+      }
+      {$x' \gets \text{\textsc{dfs0}}(u, v)$}\;
+      {$x \gets x \oplus x'$}\;
+      {$\DP_0[v][i+1] \gets \DP_1[v][i] \gets x'$}\;
+    }
+    \Return $f(x)$\;
+  }
+  \Function(\textsc{dfs1}{$(v, p, p_v)$})
+  {
+    \If{$v \ne 1$}
+    {
+      {$x \gets f(\DP_0[p][p_i] \oplus \DP_1[p][p_i+1])$}\;
+      {$\DP_0[v][\PAR[v]+1] \gets \DP_1[v][\PAR[v]] \gets x$}\;
+    }
+    \lFor{$i \in (2, \dots, \delta(v))$}
+      {$\DP_0[v][i] \gets \DP_0[v][i-1] \oplus \DP_0[v][i]$}
+    \lFor{$i \in (\delta(v)-1, \dots, 1)$}
+      {$\DP_1[v][i] \gets \DP_1[v][i] \oplus \DP_1[v][i+1]$}
+    {$\DP[v] \gets \DP_1[v][0]$}\;
+    \ForEach{neighbor $u_i$ \textbf{of} $v$}
+    {
+      \lIf{$u_i \ne p$} {$\text{\textsc{dfs1}}(u_i, v, i)$}
+    }
+  }
+  {$\text{\textsc{dfs0}}(1, 0), \text{\textsc{dfs1}}(1, 0, 0)$}\;
+\end{alg}
+
+\subsection{C++}
+\begin{minted}{c++}
+  template <typename Monoid, typename UndirectedTree>
+  auto dp_on_tree(UndirectedTree const& g) {
+    Monoid e{};
+    size_t n = g.size();
+    std::vector<size_t> parent(n, -1_zu);
+  
+    std::vector<std::vector<Monoid>> dp0(n), dp1(n);
+    std::vector<Monoid> dp(n);
+    for (size_t i = 0; i < n; ++i) {
+      dp0[i].resize(g[i].size()+1, e);
+      dp1[i].resize(g[i].size()+1, e);
+    }
+  
+    make_fix_point([&](auto dfs0, size_t v, size_t p) -> Monoid {
+        Monoid res = e;
+        typename UndirectedTree::weight_type weight{};
+        for (size_t i = 0; i < g[v].size(); ++i) {
+          size_t u = g[v][i].target();
+          if (u == p) {
+            parent[v] = i;
+            weight = g[v][i].weight();
+            continue;
+          }
+          Monoid tmp = dfs0(u, v);
+          res.append(tmp);
+          dp0[v][i+1] = dp1[v][i] = tmp;
+        }
+        return res.f(weight);
+    })(0, -1_zu);
+  
+    make_fix_point([&](auto dfs1, size_t v, size_t p, size_t pi) -> void {
+        if (v != 0) {
+          Monoid tmp = (dp0[p][pi] + dp1[p][pi+1]).f(g[p][pi].weight());
+          dp0[v][parent[v]+1] = tmp;
+          dp1[v][parent[v]] = tmp;
+        }
+        {
+          for (size_t i = 1; i < dp0[v].size(); ++i)
+            dp0[v][i].prepend(dp0[v][i-1]);
+          for (size_t i = dp1[v].size()-1; i--;)
+            dp1[v][i].append(dp1[v][i+1]);
+          dp[v] = dp1[v][0];
+        }
+        for (size_t i = 0; i < g[v].size(); ++i) {
+          size_t u = g[v][i].target();
+          if (u != p) dfs1(u, v, i);
+        }
+    })(0, -1_zu, -1_zu);
+  
+    return dp;
+  }
+\end{minted}
+
+\end{document}
