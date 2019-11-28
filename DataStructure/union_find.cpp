@@ -1,28 +1,43 @@
-class union_find {
-  mutable std::vector<intmax_t> c;
+class disjoint_set {
+public:
+  using size_type = size_t;
+
+private:
+  mutable std::vector<intmax_t> M_c;
 
 public:
-  union_find(size_t n): c(n, -1) {}
+  disjoint_set() = default;
+  disjoint_set(disjoint_set const&) = default;
+  disjoint_set(disjoint_set&&) = default;
 
-  size_t find(size_t v) const {
-    if (c[v] < 0) return v;
-    return (c[v] = find(c[v]));
+  disjoint_set(size_t n): M_c(n, -1) {}
+
+  disjoint_set& operator =(disjoint_set const&) = default;
+  disjoint_set& operator =(disjoint_set&&) = default;
+
+  void reset() { M_c.assign(M_c.size(), -1); }
+
+  size_type representative(size_type v) const {
+    if (M_c[v] < 0) return v;
+    return (M_c[v] = representative(M_c[v]));
   }
 
   bool unite(size_t u, size_t v) {
-    u = find(u);
-    v = find(v);
+    u = representative(u);
+    v = representative(v);
     if (u == v) return false;
-    if (-c[u] > -c[v]) std::swap(u, v);
-    c[v] += c[u];
-    c[u] = v;
+    if (-M_c[u] > -M_c[v]) std::swap(u, v);
+    M_c[v] += M_c[u];
+    M_c[u] = v;
     return true;
   }
 
-  bool connected(size_t u, size_t v) const { return (find(u) == find(v)); }
+  bool equivalent(size_t u, size_t v) const {
+    return (representative(u) == representative(v));
+  }
 
-  size_t size() const { return c.size(); }
-  size_t size(size_t v) const {
-    return -c[find(v)];
+  size_type size() const noexcept { return M_c.size(); }
+  size_type size(size_type v) const {
+    return -M_c[representative(v)];
   }
 };
