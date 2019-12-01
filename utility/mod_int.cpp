@@ -193,22 +193,22 @@ public:
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator +(T1 const& lhs, modint<T2, Modulo> const& rhs) {
   if (Modulo > 0) return modint<T2, Modulo>(lhs) + rhs;
-  return modint<T2, Modulo>(lhs, rhs.Modulo()) + rhs;
+  return modint<T2, Modulo>(lhs, rhs.modulo()) + rhs;
 }
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator -(T1 const& lhs, modint<T2, Modulo> const& rhs) {
   if (Modulo > 0) return modint<T2, Modulo>(lhs) - rhs;
-  return modint<T2, Modulo>(lhs, rhs.Modulo()) - rhs;
+  return modint<T2, Modulo>(lhs, rhs.modulo()) - rhs;
 }
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator *(T1 const& lhs, modint<T2, Modulo> const& rhs) {
   if (Modulo > 0) return modint<T2, Modulo>(lhs) * rhs;
-  return modint<T2, Modulo>(lhs, rhs.Modulo()) * rhs;
+  return modint<T2, Modulo>(lhs, rhs.modulo()) * rhs;
 }
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator /(T1 const& lhs, modint<T2, Modulo> const& rhs) {
   if (Modulo > 0) return modint<T2, Modulo>(lhs) / rhs;
-  return modint<T2, Modulo>(lhs, rhs.Modulo()) / rhs;
+  return modint<T2, Modulo>(lhs, rhs.modulo()) / rhs;
 }
 template <typename T1, typename T2, T2 Modulo>
 bool operator ==(T1 const& lhs, modint<T2, Modulo> const& rhs) {
