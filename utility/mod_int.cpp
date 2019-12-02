@@ -102,8 +102,7 @@ public:
   modint operator +() const { return *this; }
   modint operator -() const {
     if (M_value == 0) return *this;
-    M_value = modulo() - M_value;
-    return *this;
+    return modint(*this, modulo()-M_value);
   }
 
   modint pow(intmax_t iexp) const {
@@ -134,6 +133,8 @@ public:
   }
 
   std::vector<modint> sqrt() const {
+    if (*this == 0) return {*this};
+
     intmax_t const p = modulo();
     if (p % 4 == 3) {
       modint r = pow((p+1) / 4);
@@ -156,7 +157,7 @@ public:
     modint r = this->pow((q+1) / 2);
 
     while (true) {
-      if (t == 0) return {0};
+      if (t == 0) return {modint(*this, 0)};
       if (t == 1) return {r, -r};
 
       value_type i = 0;
@@ -174,23 +175,19 @@ public:
 
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator +(T1 const& lhs, modint<T2, Modulo> const& rhs) {
-  if (Modulo > 0) return modint<T2, Modulo>(lhs) + rhs;
-  return modint<T2, Modulo>(lhs, rhs.modulo()) + rhs;
+  return rhs + lhs;
 }
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator -(T1 const& lhs, modint<T2, Modulo> const& rhs) {
-  if (Modulo > 0) return modint<T2, Modulo>(lhs) - rhs;
-  return modint<T2, Modulo>(lhs, rhs.modulo()) - rhs;
+  return -(rhs - lhs);
 }
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator *(T1 const& lhs, modint<T2, Modulo> const& rhs) {
-  if (Modulo > 0) return modint<T2, Modulo>(lhs) * rhs;
-  return modint<T2, Modulo>(lhs, rhs.modulo()) * rhs;
+  return rhs * lhs;
 }
 template <typename T1, typename T2, T2 Modulo>
 modint<T2, Modulo> operator /(T1 const& lhs, modint<T2, Modulo> const& rhs) {
-  if (Modulo > 0) return modint<T2, Modulo>(lhs) / rhs;
-  return modint<T2, Modulo>(lhs, rhs.modulo()) / rhs;
+  return modint<T2, Modulo>(rhs, lhs) / rhs;
 }
 template <typename T1, typename T2, T2 Modulo>
 bool operator ==(T1 const& lhs, modint<T2, Modulo> const& rhs) {
