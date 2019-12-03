@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <utility>
 #include <string>
+#include <stack>
 
 using namespace std::literals;
 
@@ -340,7 +341,6 @@ private:
 
   static std::vector<value_type> S_reciprocal(std::vector<value_type> const& a) {
     // a is of degree k = 2^l - 1
-    fprintf(stderr, "reciprocal, a.size(): %zu\n", a.size());
     size_type k = a.size();
     if (a.size() == 1) return {1/a[0]};
     
@@ -365,48 +365,28 @@ private:
   // http://web.cs.iastate.edu/~cs577/handouts/polydivide.pdf
   static std::vector<value_type> S_quotient(std::vector<value_type> const& u,
                                             std::vector<value_type> const& v) {
-
-    // v.size() >= 2
-
-    // O(n log n)
-    // u(x) / v(x) = ((u(x) >> 2n) (s(x) + t(x)/v(x)))
-    // [u(x)/(x^2n) * (x^2n)/v(x)]
-    // x^2n = s(x)v(x) + t(x)
-    // t(x) = x^2n - s(x)v(x)
     size_type n = v.size();
     std::vector<value_type> res{value_type(0, u[0])};
-    size_type shift = bit::ceil2(n) - n;
+    size_type shift = bit::ceil2(n) - n;  // or more?
     auto u1 = S_shift_left(u, shift);
     auto v1 = S_shift_left(v, shift);
     n += shift-1;
     auto s = S_reciprocal(v1);
     auto t = S_multiply(s, v1);
-    S_inspect(t, "t(x)");
     t.pop_back();
     t = S_normalize(t);
     for (auto& c: t) c = -c;
-    S_inspect(s, "s(x)");
-    S_inspect(t, "t(x)");
-    S_inspect(v1, "v(x)");
-    fprintf(stderr, "n: %zu\n", n);
     while (u1.size() >= v1.size()) {
-      // auto s = S_reciprocal(v1);
-      S_inspect(u1, "u(x)");
-      // S_inspect(s, "s(x)");
-      // auto t = S_multiply(s, v1);
-      // S_inspect(t, "t(x)");
-      // t.pop_back();  // t -= x^2n
-      // t = S_normalize(t);
-      // S_inspect(t, "t(x)");
-      // fprintf(stderr, "n: %zu\n", n);
-      S_inspect(S_shift_right(S_multiply(s, u1), n+n), "(su) >> 2n");
       res = S_add(res, S_shift_right(S_multiply(s, u1), n+n));
-      S_inspect(res, "res(x)");
-      S_inspect(S_multiply(t, u1), "t u");
       u1 = S_shift_right(S_multiply(t, u1), n+n);
     }
-    S_inspect(u1, "u1(x)");
     return res;
+  }
+
+  static std::vector<value_type> S_modulo(std::vector<value_type> const& u,
+                                          std::vector<value_type> const& v) {
+    // fprintf(stderr, "mod of size %zu * %zu\n", u.size(), v.size());
+    return S_subtract(u, S_multiply(S_quotient(u, v), v));
   }
 
   static void S_inspect(std::vector<value_type> const& f, std::string const& s = "f(x)"s) {
@@ -418,11 +398,37 @@ private:
     }
   }
  
-  static std::vector<value_type> S_multipoint_evaluation(std::vector<value_type> const& xs) {
+  std::vector<value_type> S_multipoint_evaluation(std::vector<value_type> const& xs) const {
     // O(n (log n)^2)
 
-    // inline セグ木でがんばる．
-    // 半分半分にする
+    size_type m = xs.size();
+    std::vector<std::vector<value_type>> mul(m+m);
+    for (size_type i = 0; i < m; ++i)
+      mul[m+i] = {-xs[i], 1};
+    for (size_type i = m; i-- > 1;) {
+      mul[i] = S_multiply(mul[i<<1|0], mul[i<<1|1]);
+      // fprintf(stderr, "[%zu] * [%zu], of size %zu\n", (i<<1|0), (i<<1|1), mul[i].size());
+    }
+
+    std::vector<std::vector<value_type>> fm(m+m);
+    size_type l = m;
+    size_type r = l+m;
+    while (l < r) {
+      if (l & 1) { fm[l] = S_modulo(M_c, mul[l]); ++l; }
+      if (r & 1) { --r; fm[r] = S_modulo(M_c, mul[r]); }
+      l >>= 1;
+      r >>= 1;
+    }
+
+    for (size_type i = 0; i < m; ++i) {
+      if (fm[i].empty()) continue;
+      fm[i<<1|0] = S_modulo(fm[i], mul[i<<1|0]);
+      fm[i<<1|1] = S_modulo(fm[i], mul[i<<1|1]);
+    }
+
+    std::vector<value_type> ys(m, value_type(0, xs[0]));
+    for (size_type i = 0; i < m; ++i) ys[i] = fm[m+i][0];
+    return ys;
   }
 
 public:
@@ -590,32 +596,15 @@ public:
 };
 
 int main() {
-  // size_t n, m;
-  // scanf("%zu %zu", &n, &m);
+  size_t n, m;
+  scanf("%zu %zu", &n, &m);
 
-  // std::vector<intmax_t> c(n), p(m);
-  // for (auto& ci: c) scanf("%jd", &ci);
-  // for (auto& pi: p) scanf("%jd", &pi);
+  std::vector<intmax_t> c(n), p(m);
+  for (auto& ci: c) scanf("%jd", &ci);
+  for (auto& pi: p) scanf("%jd", &pi);
+  p.resize(100000);
 
-  mod_polynomial<mi> f{1};
-  f <<= 14;
-  mod_polynomial<mi> g{4, 1, -3, -1, 2, 1, -1, 1};
-
-  // mod_polynomial<mi> f{-4, 0, -2, 1};
-  // mod_polynomial<mi> g{-3, 1};
-
-  f.inspect();
-  g.inspect();
-  auto q = f / g;
-  auto r = f - q * g;
-  for (size_t i = 0; i < q.size(); ++i) {
-    intmax_t x = q[i].get();
-    if (x > mod/2) x -= mod;
-    fprintf(stderr, "%jd%c", x, i+1<q.size()? ' ': '\n');
-  }
-  for (size_t i = 0; i < r.size(); ++i) {
-    intmax_t x = r[i].get();
-    if (x > mod/2) x -= mod;
-    fprintf(stderr, "%jd%c", x, i+1<r.size()? ' ': '\n');
-  }
+  mod_polynomial<mi> f(c.begin(), c.end());
+  auto y = f(std::vector<mi>(p.begin(), p.end()));
+  for (size_t i = 0; i < m; ++i) printf("%jd%c", y[i].get(), i+1<m? ' ': '\n');
 }
