@@ -56,6 +56,9 @@ private:
         i = (i << 1 | 0);
       }
     }
+    value_type xl = M_x[l-M_n];
+    if (a * xl + b < M_f(l, xl))
+      M_l[l] = {a, b};
   }
 
 public:
