@@ -8,15 +8,15 @@ private:
   value_type M_sol = 0;
   using safe_type = __int128;
 
-  static auto S_gcd_bezout(value_type m, value_type n) {
-    value_type x{0}, y{1};
-    for (value_type u{y}, v{x}; m != 0;) {
-      value_type q{n/m};
+  static auto S_gcd_bezout(value_type a, value_type b) {
+    value_type x{1}, y{0};
+    for (value_type u{y}, v{x}; b != 0;) {
+      value_type q{a/b};
       std::swap(x -= q*u, u);
       std::swap(y -= q*v, v);
-      std::swap(n -= q*m, m);
+      std::swap(a -= q*b, b);
     }
-    return std::make_tuple(n, x, y);
+    return std::make_tuple(a, x, y);
   }
 
 public:
