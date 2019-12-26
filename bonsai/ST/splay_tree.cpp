@@ -10,6 +10,8 @@ public:
   using const_reference = Tp const&;
   class itertor;
   class const_iterator;
+  using reverse_iterator = std::reverse_iterator<iterator>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 private:
   class node;
@@ -171,6 +173,7 @@ private:
   }
 
   static pointer S_splay(pointer ptr) {
+    if (!ptr) return nullptr;
     while (true) {
       size_type pd = S_parent_dir(ptr);
       if (pd == -1_zu) return ptr;
@@ -198,7 +201,8 @@ public:
     iterator() = default;
     iterator(iterator const&) = default;
     iterator(iterator&&) = default;
-    iterator(pointer ptr): M_ptr(ptr) {}
+    iterator(pointer ptr, order_statistic_tree* tree):
+      M_ptr(ptr), M_tree(tree) {}
 
     iterator& operator ++() { M_ptr = S_next(M_ptr, M_tree); return *this; }
     iterator& operator --() { M_ptr = S_prev(M_ptr, M_tree); return *this; }
@@ -269,7 +273,8 @@ public:
     const_iterator(const_iterator&&) = default;
     const_iterator(iterator const& other): M_ptr(other.M_ptr) {}
     const_iterator(iterator&& other): M_ptr(other.M_ptr) {}
-    const_iterator(pointer ptr): M_ptr(ptr) {}
+    const_iterator(pointer ptr, order_statistic_tree* tree):
+      M_ptr(ptr), M_tree(tree) {}
 
     const_iterator& operator ++() { M_ptr = S_next(M_ptr, M_tree); return *this; }
     const_iterator& operator --() { M_ptr = S_prev(M_ptr, M_tree); return *this; }
@@ -327,7 +332,16 @@ public:
 private:
   size_type M_size = 0;
   pointer M_root = nullptr;
+  pointer M_leftmost = nullptr;
   pointer M_rightmost = nullptr;
+
+  void M_init_ends() {
+    M_leftmost = M_rightmost = M_root;
+    while (M_leftmost->M_children[0])
+      M_leftmost = M_leftmost->M_children[0];
+    while (M_rightmost->M_children[1])
+      M_rightmost = M_rightmost->M_children[1];
+  }
 
   static void S_deep_copy(pointer& dst, pointer const& src) {
     dst = std::make_shared<node>(src->M_value);
@@ -342,9 +356,7 @@ private:
 
     S_deep_copy(M_root, other.M_root);
     M_size = other.M_size;
-    M_rightmost = M_root;
-    while (M_rightmost->M_children[1])
-      M_rightmost = M_rightmost->M_children[1];
+    M_init_ends();
   }
 
 public:
@@ -356,23 +368,125 @@ public:
 
   template <typename InputIt>
   order_statistic_tree(InputIt first, InputIt last) { assign(first, last); }
+  order_statistic_tree(std::initializer_list<value_type> il) { assign(il); }
 
-  template <typename Up>
-  order_statistic_tree(size_type size, Up const& value) {
+  order_statistic_tree(size_type size, const_reference value) {
     assign(size, value);
   }
 
   template <typename InputIt>
   void assign(InputIt first, InputIt last) {
-    
+    clear();
+    while (first != last) {
+      pointer tmp = M_root;
+      M_root = std::make_shared<node>(*first++);
+      M_root->M_children[0] = tmp;
+      M_root->M_size = ++M_size;
+      tmp->M_parent = M_root;
+    }
+    M_init_ends();
+  }
+  void assign(std::initializer_list<value_type> il) {
+    assign(il.begin(), il.end());
   }
 
-  template <typename Up>
-  void assign(size_type size, Up const& value) {
+  void assign(size_type size, const_reference value) {
+    clear();
+    for (size_type i = 0; i < size; ++i) {
+      pointer tmp = M_rightmost;
+      M_root = std::make_shared<node>(value);
+      M_root->M_children[0] = tmp;
+      M_root->M_size = ++M_size;
+      tmp->M_parent = M_root;
+    }
+    M_init_ends();
   }
 
   void clear() {
     M_size = 0;
     M_root = M_rightmost = nullptr;
+  }
+
+  order_statistic_tree& operator =(order_statistic_tree const& other) {
+    M_deep_copy(other);
+    return *this;
+  }
+  order_statistic_tree& operator =(order_statistic_tree&&) = default;
+
+  reference at(size_type n) {
+    if (n >= size()) throw std::out_of_range("n >= size()");
+    return *(begin() + n);
+  }
+  const_reference at(size_type n) const {
+    if (n >= size()) throw std::out_of_range("n >= size()");
+    return *(begin() + n);
+  }
+
+  reference operator [](size_type n) { return *(begin() + n); }
+  const_reference operator [](size_type n) const { return *(begin() + n); }
+
+  reference front() { return *begin(); }
+  const_reference front() const { *begin(); }
+  reference back() { return *rbegin(); }
+  const_reference back() const { *rbegin(); }
+
+  iterator begin() { return iterator(M_leftmost, this); }
+  const_reference begin() const { return const_reference(M_leftmost, this); }
+  const_reference cbegin() const { return const_reference(M_leftmost, this); }
+
+  iterator end() { return iterator(nullptr, this); }
+  const_reference end() const { return const_reference(nullptr, this); }
+  const_reference cend() const { return const_reference(nullptr, this); }
+
+  reverse_iterator rbegin() { return end(); }
+  const_reverse_iterator rbegin() const { return end(); }
+  const_reverse_iterator crbegin() const { return cend(); }
+
+  reverse_iterator rend() { return begin(); }
+  const_reverse_iterator rend() const { return begin(); }
+  const_reverse_iterator rend() const { return cbegin(); }
+
+  bool empty() const noexcept { return M_size == 0; }
+  size_type size() const { return M_size; }
+
+  iterator insert(const_iterator pos, const_reference value) {
+    S_splay(pos.M_ptr);
+    order_statistic_tree tmp = split(pos);
+    iterator res = push_back(value);
+    merge(std::move(tmp));
+    return res;
+  }
+
+  iterator insert(const_iterator pos, value_type&& value) {
+    S_splay(pos.M_ptr);
+    order_statistic_tree tmp = split(pos);
+    iterator res = push_back(std::move(value));
+    merge(std::move(tmp));
+    return res;
+  }
+
+  iterator insert(const_iterator pos, size_type count, const_reference value) {
+    if (count == 0) return pos;
+    S_splay(pos.M_ptr);
+    order_statistic_tree tmp = split(pos);
+    iterator res = push_back(value);
+    for (size_type i = 1; i < count; ++i) push_back(value);
+    merge(std::move(tmp));
+    return res;
+  }
+
+  template <typename InputIt>
+  iterator insert(const_iterator pos, InputIt first, InputIt last) {
+    if (first == last) return pos;
+    S_splay(pos.M_ptr);
+    order_statistic_tree tmp = split(pos);
+    iterator res = push_back(*first++);
+    while (first != last) push_back(*first++);
+    merge(std::move(tmp));
+    return res;
+  }
+
+  iterator insert(const_iterator pos, std::initializer_list<value_type> il) {
+    return insert(pos, il.begin(), il.end());
   }
 };
