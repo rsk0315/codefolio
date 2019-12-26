@@ -83,6 +83,7 @@ private:
     if (n < 0) return S_prev(ptr, tree, -n);
 
     tree->M_root = S_splay(ptr);
+    fprintf(stderr, "ptr: %p\n", ptr.get());
     ptr = ptr->M_children[1];
     --n;
     while (ptr) {
@@ -217,6 +218,7 @@ public:
     using reference = Tp&;
     using const_reference = Tp const&;
     using pointer = std::shared_ptr<node>;
+    using iterator_category = std::random_access_iterator_tag;
 
   private:
     pointer M_ptr = nullptr;
@@ -293,6 +295,7 @@ public:
     using reference = Tp const&;
     using const_reference = Tp const&;
     using pointer = std::shared_ptr<node>;
+    using iterator_category = std::random_access_iterator_tag;
 
   private:
     pointer M_ptr = nullptr;
@@ -725,33 +728,9 @@ int main() {
       printf("%d\n", *it);
       ost.erase(it);
     }
+
+    fprintf(stderr, "size: %zu\n", ost.size());
+    for (auto it = ost.begin(); it != ost.end(); ++it)
+      fprintf(stderr, "%d%c", *it, (std::next(it) != ost.end())? ' ': '\n');
   }
 }
-
-// int main() {
-//   order_statistic_tree<int> ost;
-//   ost.push_back(1);
-//   ost.push_back(4);
-//   ost.push_back(2);
-//   ost.push_back(7);
-//   ost.push_front(9);
-
-//   fprintf(stderr, "ost.size(): %zu\n", ost.size());
-//   for (auto x: ost) printf("%d\n", x);
-
-//   auto right = ost.split(ost.begin()+3);
-
-//   fprintf(stderr, "ost.size(): %zu\n", ost.size());
-//   for (auto x: ost) printf("%d\n", x);
-
-//   fprintf(stderr, "right.size(): %zu\n", right.size());
-//   for (auto x: right) printf("%d\n", x);
-
-//   right.merge(std::move(ost));
-
-//   fprintf(stderr, "ost.size(): %zu\n", ost.size());
-//   for (auto x: ost) printf("%d\n", x);
-
-//   fprintf(stderr, "right.size(): %zu\n", right.size());
-//   for (auto x: right) printf("%d\n", x);
-// }
