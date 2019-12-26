@@ -1,3 +1,13 @@
+#include <cstdio>
+#include <cstdint>
+#include <cstddef>
+#include <algorithm>
+#include <utility>
+#include <memory>
+#include <array>
+
+#include "../../utility/literals.cpp"
+
 template <typename Tp>
 class order_statistic_tree {
   // based on splay tree
@@ -8,7 +18,7 @@ public:
   using value_type = Tp;
   using reference = Tp&;
   using const_reference = Tp const&;
-  class itertor;
+  class iterator;
   class const_iterator;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -131,7 +141,7 @@ private:
     cur->set_size();
     return cur;
   }
-  static pointer S_zigzig(pointer ptr, size_type dir) {
+  static pointer S_zigzig(pointer cur, size_type dir) {
     pointer par = cur->M_parent;
     pointer gpar = par->M_parent;
     pointer sub1 = cur->M_children[!dir];
@@ -143,18 +153,18 @@ private:
     cur->M_children[!dir] = par;
     par->M_parent = cur;
     par->M_children[dir] = sub1;
-    if (sub1) = sub1->M_parent = par;
+    if (sub1) sub1->M_parent = par;
     par->M_children[!dir] = gpar;
     gpar->M_parent = par;
     gpar->M_children[dir] = sub2;
-    if (sub2) = sub2->M_parent = gpar;
+    if (sub2) sub2->M_parent = gpar;
 
     gpar->set_size();
     par->set_size();
     cur->set_size();
     return cur;
   }
-  static pointer S_zigzag(pointer ptr, size_type dir) {
+  static pointer S_zigzag(pointer cur, size_type dir) {
     pointer par = cur->M_parent;
     pointer gpar = par->M_parent;
     pointer sub1 = cur->M_children[dir];
@@ -255,7 +265,7 @@ public:
     }
 
     reference operator *() const {
-      M_tree->M_root = S_splay(M_ptr); return M_value;
+      M_tree->M_root = S_splay(M_ptr); return *M_ptr;
     }
   };
 
@@ -331,7 +341,7 @@ public:
     }
 
     reference operator *() const {
-      M_tree->M_root = S_splay(M_ptr); return M_value;
+      M_tree->M_root = S_splay(M_ptr); return *M_ptr;
     }
   };
 
@@ -482,7 +492,7 @@ public:
 
   reverse_iterator rend() { return begin(); }
   const_reverse_iterator rend() const { return begin(); }
-  const_reverse_iterator rend() const { return cbegin(); }
+  const_reverse_iterator crend() const { return cbegin(); }
 
   bool empty() const noexcept { return M_size == 0; }
   size_type size() const { return M_size; }
@@ -532,7 +542,7 @@ public:
   iterator emplace(const_iterator pos, Args&&... args) {
     S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
-    iterator res = emplace_back(std::forward<Args...>(args...));
+    iterator res = emplace_back(std::forward<Args>(args)...);
     merge(std::move(tmp));
     return res;    
   }
@@ -560,9 +570,9 @@ public:
   }
 
   template <typename... Args>
-  iterator emplace_back(Args&&... value) {
+  iterator emplace_back(Args&&... args) {
     S_splay(M_rightmost);
-    pointer tmp = std::make_shared<node>(std::forward<Args...>(args...));
+    pointer tmp = std::make_shared<node>(std::forward<Args>(args)...);
     tmp->M_children[0] = M_root;
     tmp->M_size = ++M_size;
     M_root->M_parent = tmp;
@@ -594,9 +604,9 @@ public:
   }
 
   template <typename... Args>
-  iterator emplace_front(Args&&... value) {
+  iterator emplace_front(Args&&... args) {
     S_splay(M_leftmost);
-    pointer tmp = std::make_shared<node>(std::forward<Args...>(args...));
+    pointer tmp = std::make_shared<node>(std::forward<Args>(args)...);
     tmp->M_children[1] = M_root;
     tmp->M_size = ++M_size;
     M_root->M_parent = tmp;
