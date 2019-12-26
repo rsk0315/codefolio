@@ -28,6 +28,10 @@ private:
   using pointer = std::shared_ptr<node>;
 
   class node {
+    friend order_statistic_tree;
+    friend iterator;
+    friend const_iterator;
+
   public:
     using size_type = size_t;
     using difference_type = ptrdiff_t;
@@ -51,8 +55,8 @@ private:
     node(value_type&& value): M_value(std::move(value)) {}
 
     ~node() {
-      if (M_children[0]) delete M_children[0];
-      if (M_children[1]) delete M_children[1];
+      if (M_children[0]) delete M_children[0].get();
+      if (M_children[1]) delete M_children[1].get();
     }
 
     void set_size() const {
@@ -78,10 +82,10 @@ private:
     if (n == 0) return ptr;
     if (n < 0) return S_prev(ptr, tree, -n);
 
-    S_splay(ptr);
+    tree->M_root = S_splay(ptr);
     ptr = ptr->M_children[1];
     --n;
-    while (true) {
+    while (ptr) {
       difference_type ls = ptr->left_size();
       if (n == ls) return ptr;
       if (n < ls) {
@@ -91,6 +95,7 @@ private:
         n -= ls+1;
       }
     }
+    return nullptr;
   }
   static pointer S_prev(pointer ptr, order_statistic_tree* tree,
                         difference_type n = 1) {
@@ -100,10 +105,10 @@ private:
     if (!ptr)
       return S_prev(tree->M_rightmost, tree, n-1);  // past-the-end
 
-    S_splay(ptr);
+    tree->M_root = S_splay(ptr);
     ptr = ptr->M_children[0];
     --n;
-    while (true) {
+    while (ptr) {
       difference_type rs = ptr->right_size();
       if (n == rs) return ptr;
       if (n < rs) {
@@ -113,11 +118,12 @@ private:
         n -= rs+1;
       }
     }
+    return nullptr;
   }
 
   static size_type S_index(pointer ptr, order_statistic_tree* tree) {
     if (!ptr) return tree->size();
-    S_splay(ptr);
+    tree->M_root = S_splay(ptr);
     return ptr->left_size();
   }
 
@@ -201,6 +207,9 @@ private:
 
 public:
   class iterator {
+    friend order_statistic_tree;
+    friend const_iterator;
+
   public:
     using size_type = size_t;
     using difference_type = ptrdiff_t;
@@ -264,13 +273,19 @@ public:
       return !(*this < other);
     }
 
-    reference operator *() const {
-      M_tree->M_root = S_splay(M_ptr); return *M_ptr;
+    reference operator *() {
+      M_tree->M_root = S_splay(M_ptr); return M_ptr->M_value;
+    }
+    const_reference operator *() const {
+      M_tree->M_root = S_splay(M_ptr); return M_ptr->M_value;
     }
   };
 
 public:
   class const_iterator {
+    friend order_statistic_tree;
+    friend iterator;
+
   public:
     using size_type = size_t;
     using difference_type = ptrdiff_t;
@@ -341,7 +356,7 @@ public:
     }
 
     reference operator *() const {
-      M_tree->M_root = S_splay(M_ptr); return *M_ptr;
+      M_tree->M_root = S_splay(M_ptr); return M_ptr->M_value;
     }
   };
 
@@ -387,7 +402,7 @@ private:
   explicit order_statistic_tree(pointer root): M_root(root) {
     if (!root) return;
     M_root->set_size();
-    M_size = M_root;
+    M_size = root->M_size;
     M_init_ends();
   }
 
@@ -498,7 +513,7 @@ public:
   size_type size() const { return M_size; }
 
   iterator insert(const_iterator pos, const_reference value) {
-    S_splay(pos.M_ptr);
+    M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = push_back(value);
     merge(std::move(tmp));
@@ -506,7 +521,7 @@ public:
   }
 
   iterator insert(const_iterator pos, value_type&& value) {
-    S_splay(pos.M_ptr);
+    M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = push_back(std::move(value));
     merge(std::move(tmp));
@@ -515,7 +530,7 @@ public:
 
   iterator insert(const_iterator pos, size_type count, const_reference value) {
     if (count == 0) return pos;
-    S_splay(pos.M_ptr);
+    M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = push_back(value);
     for (size_type i = 1; i < count; ++i) push_back(value);
@@ -526,7 +541,7 @@ public:
   template <typename InputIt>
   iterator insert(const_iterator pos, InputIt first, InputIt last) {
     if (first == last) return pos;
-    S_splay(pos.M_ptr);
+    M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = push_back(*first++);
     while (first != last) push_back(*first++);
@@ -540,7 +555,7 @@ public:
 
   template <typename... Args>
   iterator emplace(const_iterator pos, Args&&... args) {
-    S_splay(pos.M_ptr);
+    M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = emplace_back(std::forward<Args>(args)...);
     merge(std::move(tmp));
@@ -548,75 +563,74 @@ public:
   }
 
   iterator push_back(const_reference value) {
-    S_splay(M_rightmost);
+    M_root = S_splay(M_rightmost);
     pointer tmp = std::make_shared<node>(value);
     tmp->M_children[0] = M_root;
     tmp->M_size = ++M_size;
-    M_root->M_parent = tmp;
+    if (M_root) M_root->M_parent = tmp;
     M_root = M_rightmost = tmp;
-    ++M_size;
     return iterator(tmp, this);
   }
 
   iterator push_back(value_type&& value) {
-    S_splay(M_rightmost);
+    M_root = S_splay(M_rightmost);
     pointer tmp = std::make_shared<node>(std::move(value));
     tmp->M_children[0] = M_root;
     tmp->M_size = ++M_size;
-    M_root->M_parent = tmp;
+    if (M_root) M_root->M_parent = tmp;
+    if (!M_leftmost) M_leftmost = tmp;
     M_root = M_rightmost = tmp;
-    ++M_size;
     return iterator(tmp, this);
   }
 
   template <typename... Args>
   iterator emplace_back(Args&&... args) {
-    S_splay(M_rightmost);
+    M_root = S_splay(M_rightmost);
     pointer tmp = std::make_shared<node>(std::forward<Args>(args)...);
     tmp->M_children[0] = M_root;
     tmp->M_size = ++M_size;
-    M_root->M_parent = tmp;
+    if (M_root) M_root->M_parent = tmp;
+    if (!M_leftmost) M_leftmost = tmp;
     M_root = M_rightmost = tmp;
-    ++M_size;
     return iterator(tmp, this);
   }
 
   iterator push_front(const_reference value) {
-    S_splay(M_leftmost);
+    M_root = S_splay(M_leftmost);
     pointer tmp = std::make_shared<node>(value);
     tmp->M_children[1] = M_root;
     tmp->M_size = ++M_size;
-    M_root->M_parent = tmp;
+    if (M_root) M_root->M_parent = tmp;
+    if (!M_leftmost) M_leftmost = tmp;
     M_root = M_leftmost = tmp;
-    ++M_size;
     return iterator(tmp, this);
   }
 
   iterator push_front(value_type&& value) {
-    S_splay(M_leftmost);
+    M_root = S_splay(M_leftmost);
     pointer tmp = std::make_shared<node>(std::move(value));
     tmp->M_children[1] = M_root;
     tmp->M_size = ++M_size;
-    M_root->M_parent = tmp;
+    if (M_root) M_root->M_parent = tmp;
+    if (!M_rightmost) M_rightmost = tmp;
     M_root = M_leftmost = tmp;
-    ++M_size;
     return iterator(tmp, this);
   }
 
   template <typename... Args>
   iterator emplace_front(Args&&... args) {
-    S_splay(M_leftmost);
+    M_root = S_splay(M_leftmost);
     pointer tmp = std::make_shared<node>(std::forward<Args>(args)...);
     tmp->M_children[1] = M_root;
     tmp->M_size = ++M_size;
-    M_root->M_parent = tmp;
+    if (M_root) M_root->M_parent = tmp;
+    if (!M_rightmost) M_rightmost = tmp;
     M_root = M_leftmost = tmp;
-    ++M_size;
     return iterator(tmp, this);
   }
 
   void pop_back() {
-    S_splay(M_rightmost);
+    M_root = S_splay(M_rightmost);
     M_root = M_rightmost->M_children[0];
     M_root->M_parent = nullptr;
     M_rightmost->M_children[0] = nullptr;
@@ -625,7 +639,7 @@ public:
   }
 
   void pop_front() {
-    S_splay(M_leftmost);
+    M_root = S_splay(M_leftmost);
     M_root = M_leftmost->M_children[1];
     M_root->M_parent = nullptr;
     M_leftmost->M_children[1] = nullptr;
@@ -650,9 +664,9 @@ public:
   }
 
   iterator merge(order_statistic_tree&& other) {
-    S_splay(M_rightmost);
+    M_root = S_splay(M_rightmost);
     M_root->M_children[1] = other.M_root;
-    M_root->M_size += other.M_size;
+    M_size = M_root->M_size += other.M_size;
     M_rightmost = other.M_rightmost;
     iterator res(other.M_leftmost, this);
     other.clear();  // not destruct nodes
@@ -662,12 +676,41 @@ public:
   order_statistic_tree split(const_iterator pos) {
     if (pos == end()) return {};
     if (pos == begin()) return std::move(*this);
-    S_splay(pos.M_ptr);
+    M_root = S_splay(pos.M_ptr);
     pointer res = M_root;
     M_root = res->M_children[0];
     M_root->M_parent = res->M_children[0] = nullptr;
     M_init_ends();
     M_root->set_size();
+    M_size = M_root->M_size;
     return order_statistic_tree(res);
   }
 };
+
+int main() {
+  order_statistic_tree<int> ost;
+  ost.push_back(1);
+  ost.push_back(4);
+  ost.push_back(2);
+  ost.push_back(7);
+  ost.push_front(9);
+
+  fprintf(stderr, "ost.size(): %zu\n", ost.size());
+  for (auto x: ost) printf("%d\n", x);
+
+  auto right = ost.split(ost.begin()+3);
+
+  fprintf(stderr, "ost.size(): %zu\n", ost.size());
+  for (auto x: ost) printf("%d\n", x);
+
+  fprintf(stderr, "right.size(): %zu\n", right.size());
+  for (auto x: right) printf("%d\n", x);
+
+  right.merge(std::move(ost));
+
+  fprintf(stderr, "ost.size(): %zu\n", ost.size());
+  for (auto x: ost) printf("%d\n", x);
+
+  fprintf(stderr, "right.size(): %zu\n", right.size());
+  for (auto x: right) printf("%d\n", x);
+}
