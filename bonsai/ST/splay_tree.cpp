@@ -33,10 +33,15 @@ private:
 
   public:
     node() = default;
-    node(node const&) = default;
+    node(node const&) = delete;  // !
     node(node&&) = default;
     node(const_reference value): M_value(value) {}
     node(value_type&& value): M_value(std::move(value)) {}
+
+    ~node() {
+      if (M_children[0]) delete M_children[0];
+      if (M_children[1]) delete M_children[1];
+    }
 
     void set_size() const {
       // for splaying
@@ -290,27 +295,27 @@ public:
       return const_iterator(*this) -= n;
     }
 
-    difference_type operator -(const_const_iterator const& other) const {
+    difference_type operator -(const_iterator const& other) const {
       return S_index(M_ptr, M_tree) - S_index(other.M_ptr, M_tree);
     }
 
-    bool operator ==(const_const_iterator const& other) const {
+    bool operator ==(const_iterator const& other) const {
       return M_ptr == other.M_ptr;
     }
-    bool operator !=(const_const_iterator const& other) const {
+    bool operator !=(const_iterator const& other) const {
       return !(*this == other);
     }
 
-    bool operator <(const_const_iterator const& other) const {
+    bool operator <(const_iterator const& other) const {
       return S_index(M_ptr, M_tree) < S_index(other.M_ptr, M_tree);
     }
-    bool operator >(const_const_iterator const& other) const {
+    bool operator >(const_iterator const& other) const {
       return other < *this;
     }
-    bool operator <=(const_const_iterator const& other) const {
+    bool operator <=(const_iterator const& other) const {
       return !(other < *this);
     }
-    bool operator >=(const_const_iterator const& other) const {
+    bool operator >=(const_iterator const& other) const {
       return !(*this < other);
     }
 
@@ -320,6 +325,54 @@ public:
   };
 
 private:
+  size_type M_size = 0;
+  pointer M_root = nullptr;
+  pointer M_rightmost = nullptr;
+
+  static void S_deep_copy(pointer& dst, pointer const& src) {
+    dst = std::make_shared<node>(src->M_value);
+    for (size_type i = 0; i <= 1; ++i)
+      if (src->M_children[i])
+        S_deep_copy(dst->M_children[i], src->M_children[i]);
+  }
+
+  void M_deep_copy(order_statistic_tree const& other) {
+    clear();
+    if (!other.M_root) return;
+
+    S_deep_copy(M_root, other.M_root);
+    M_size = other.M_size;
+    M_rightmost = M_root;
+    while (M_rightmost->M_children[1])
+      M_rightmost = M_rightmost->M_children[1];
+  }
 
 public:
+  order_statistic_tree() = default;
+  order_statistic_tree(order_statistic_tree const& other) {
+    M_deep_copy(other);
+  }
+  order_statistic_tree(order_statistic_tree&&) = default;
+
+  template <typename InputIt>
+  order_statistic_tree(InputIt first, InputIt last) { assign(first, last); }
+
+  template <typename Up>
+  order_statistic_tree(size_type size, Up const& value) {
+    assign(size, value);
+  }
+
+  template <typename InputIt>
+  void assign(InputIt first, InputIt last) {
+    
+  }
+
+  template <typename Up>
+  void assign(size_type size, Up const& value) {
+  }
+
+  void clear() {
+    M_size = 0;
+    M_root = M_rightmost = nullptr;
+  }
 };
