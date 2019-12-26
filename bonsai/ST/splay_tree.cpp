@@ -649,7 +649,8 @@ public:
 
   iterator erase(const_iterator pos) {
     order_statistic_tree tmp = split(pos);
-    auto res = tmp.pop_front();
+    tmp.pop_front();
+    auto res = tmp.begin();
     merge(std::move(tmp));
     return res;
   }
@@ -685,32 +686,72 @@ public:
     M_size = M_root->M_size;
     return order_statistic_tree(res);
   }
+
+  template <typename Predicate>
+  iterator partition_point(Predicate pred) {
+    pointer cur = M_root;
+    if (!cur) return end();
+    // ... true false ...
+    //          ^
+    while (true) {
+      pointer tmp = cur->M_children[pred(cur->M_value)];
+      if (!tmp) break;
+      cur = tmp;
+    }
+    if (pred(cur->M_value)) cur = S_next(cur, this);
+    M_root = S_splay(cur);
+    return iterator(M_root, this);
+  }
 };
 
 int main() {
+  size_t q;
+  scanf("%zu", &q);
+
   order_statistic_tree<int> ost;
-  ost.push_back(1);
-  ost.push_back(4);
-  ost.push_back(2);
-  ost.push_back(7);
-  ost.push_front(9);
+  for (size_t i = 0; i < q; ++i) {
+    int t;
+    scanf("%d", &t);
 
-  fprintf(stderr, "ost.size(): %zu\n", ost.size());
-  for (auto x: ost) printf("%d\n", x);
-
-  auto right = ost.split(ost.begin()+3);
-
-  fprintf(stderr, "ost.size(): %zu\n", ost.size());
-  for (auto x: ost) printf("%d\n", x);
-
-  fprintf(stderr, "right.size(): %zu\n", right.size());
-  for (auto x: right) printf("%d\n", x);
-
-  right.merge(std::move(ost));
-
-  fprintf(stderr, "ost.size(): %zu\n", ost.size());
-  for (auto x: ost) printf("%d\n", x);
-
-  fprintf(stderr, "right.size(): %zu\n", right.size());
-  for (auto x: right) printf("%d\n", x);
+    if (t == 1) {
+      int x;
+      scanf("%d", &x);
+      ost.insert(ost.partition_point([x](int y) { return y < x; }), x);
+    } else if (t == 2) {
+      ptrdiff_t x;
+      scanf("%td", &x);
+      --x;
+      auto it = ost.begin() + x;
+      printf("%d\n", *it);
+      ost.erase(it);
+    }
+  }
 }
+
+// int main() {
+//   order_statistic_tree<int> ost;
+//   ost.push_back(1);
+//   ost.push_back(4);
+//   ost.push_back(2);
+//   ost.push_back(7);
+//   ost.push_front(9);
+
+//   fprintf(stderr, "ost.size(): %zu\n", ost.size());
+//   for (auto x: ost) printf("%d\n", x);
+
+//   auto right = ost.split(ost.begin()+3);
+
+//   fprintf(stderr, "ost.size(): %zu\n", ost.size());
+//   for (auto x: ost) printf("%d\n", x);
+
+//   fprintf(stderr, "right.size(): %zu\n", right.size());
+//   for (auto x: right) printf("%d\n", x);
+
+//   right.merge(std::move(ost));
+
+//   fprintf(stderr, "ost.size(): %zu\n", ost.size());
+//   for (auto x: ost) printf("%d\n", x);
+
+//   fprintf(stderr, "right.size(): %zu\n", right.size());
+//   for (auto x: right) printf("%d\n", x);
+// }
