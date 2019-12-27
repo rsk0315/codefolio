@@ -6,7 +6,10 @@
 #include <memory>
 #include <array>
 
-#include "../../utility/literals.cpp"
+constexpr intmax_t  operator ""_jd(unsigned long long n) { return n; }
+constexpr uintmax_t operator ""_ju(unsigned long long n) { return n; }
+constexpr size_t    operator ""_zu(unsigned long long n) { return n; }
+// constexpr ptrdiff_t operator ""_td(unsigned long long n) { return n; }
 
 template <typename Tp>
 class order_statistic_tree {
@@ -55,8 +58,8 @@ private:
     node(value_type&& value): M_value(std::move(value)) {}
 
     ~node() {
-      if (M_children[0]) delete M_children[0].get();
-      if (M_children[1]) delete M_children[1].get();
+      // if (M_children[0]) delete M_children[0].get();
+      // if (M_children[1]) delete M_children[1].get();
     }
 
     void set_size() const {
@@ -83,12 +86,13 @@ private:
     if (n < 0) return S_prev(ptr, tree, -n);
 
     tree->M_root = S_splay(ptr);
-    fprintf(stderr, "ptr: %p\n", ptr.get());
+    // fprintf(stderr, "null? %d\n", !ptr);
+    // if (ptr) fprintf(stderr, "next: %p, size: %zu\n", ptr.get(), ptr->M_size);
     ptr = ptr->M_children[1];
     --n;
     while (ptr) {
       difference_type ls = ptr->left_size();
-      if (n == ls) return ptr;
+      if (n == ls) return S_splay(ptr);
       if (n < ls) {
         ptr = ptr->M_children[0];
       } else {
@@ -101,7 +105,7 @@ private:
   static pointer S_prev(pointer ptr, order_statistic_tree* tree,
                         difference_type n = 1) {
 
-    if (n == 0) return ptr;
+    if (n == 0) return S_splay(ptr);
     if (n < 0) return S_next(ptr, tree, -n);
     if (!ptr)
       return S_prev(tree->M_rightmost, tree, n-1);  // past-the-end
@@ -111,7 +115,7 @@ private:
     --n;
     while (ptr) {
       difference_type rs = ptr->right_size();
-      if (n == rs) return ptr;
+      if (n == rs) return S_splay(ptr);
       if (n < rs) {
         ptr = ptr->M_children[1];
       } else {
@@ -139,6 +143,7 @@ private:
     pointer par = cur->M_parent;
     pointer sub = cur->M_children[!dir];
 
+    cur->M_parent = nullptr;\
     cur->M_children[!dir] = par;
     par->M_parent = cur;
     par->M_children[dir] = sub;
@@ -231,6 +236,9 @@ public:
     iterator(pointer ptr, order_statistic_tree* tree):
       M_ptr(ptr), M_tree(tree) {}
 
+    iterator& operator =(iterator const&) = default;
+    iterator& operator =(iterator&&) = default;
+
     iterator& operator ++() { M_ptr = S_next(M_ptr, M_tree); return *this; }
     iterator& operator --() { M_ptr = S_prev(M_ptr, M_tree); return *this; }
 
@@ -310,6 +318,19 @@ public:
     const_iterator(pointer ptr, order_statistic_tree* tree):
       M_ptr(ptr), M_tree(tree) {}
 
+    const_iterator& operator =(const_iterator const&) = default;
+    const_iterator& operator =(const_iterator&&) = default;
+    const_iterator& operator =(iterator const& other) {
+      M_ptr = other.M_ptr;
+      M_tree = other.M_tree;
+      return *this;
+    }
+    const_iterator& operator =(iterator&& other) {
+      M_ptr = other.M_ptr;
+      M_tree = other.M_tree;
+      return *this;
+    }
+
     const_iterator& operator ++() { M_ptr = S_next(M_ptr, M_tree); return *this; }
     const_iterator& operator --() { M_ptr = S_prev(M_ptr, M_tree); return *this; }
 
@@ -369,12 +390,22 @@ private:
   pointer M_leftmost = nullptr;
   pointer M_rightmost = nullptr;
 
+  static pointer S_leftmost(pointer root) {
+    if (!root) return nullptr;
+    while (root->M_children[0]) root = root->M_children[0];
+    return root;
+  }
+  static pointer S_rightmost(pointer root) {
+    if (!root) return nullptr;
+    while (root->M_children[1]) root = root->M_children[1];
+    return root;
+  }
+
   void M_init_ends() {
     M_leftmost = M_rightmost = M_root;
-    while (M_leftmost->M_children[0])
-      M_leftmost = M_leftmost->M_children[0];
-    while (M_rightmost->M_children[1])
-      M_rightmost = M_rightmost->M_children[1];
+    if (!M_root) return;
+    M_leftmost = S_leftmost(M_root);
+    M_rightmost = S_rightmost(M_root);
   }
 
   static void S_deep_copy(pointer& dst, pointer const& src) {
@@ -399,15 +430,15 @@ private:
     M_leftmost = other.M_leftmost;
     M_rightmost = other.M_rightmost;
     M_size = other.M_size;
-    other.M_root = other.M_leftmost = other.M_rightmost = nullptr;
+    other.clear();
   }
 
-  explicit order_statistic_tree(pointer root): M_root(root) {
-    if (!root) return;
-    M_root->set_size();
-    M_size = root->M_size;
-    M_init_ends();
-  }
+  // explicit order_statistic_tree(pointer root): M_root(root) {
+  //   if (!root) return;
+  //   M_root->set_size();
+  //   M_size = M_root->M_size;
+  //   M_init_ends();
+  // }
 
 public:
   order_statistic_tree() = default;
@@ -435,7 +466,7 @@ public:
       M_root = std::make_shared<node>(*first++);
       M_root->M_children[0] = tmp;
       M_root->M_size = ++M_size;
-      tmp->M_parent = M_root;
+      if (tmp) tmp->M_parent = M_root;
     }
     M_init_ends();
   }
@@ -446,22 +477,22 @@ public:
   void assign(size_type size, const_reference value) {
     clear();
     for (size_type i = 0; i < size; ++i) {
-      pointer tmp = M_rightmost;
+      pointer tmp = M_root;
       M_root = std::make_shared<node>(value);
       M_root->M_children[0] = tmp;
       M_root->M_size = ++M_size;
-      tmp->M_parent = M_root;
+      if (tmp) tmp->M_parent = M_root;
     }
     M_init_ends();
   }
   void assign(size_type size) {
     clear();
     for (size_type i = 0; i < size; ++i) {
-      pointer tmp = M_rightmost;
+      pointer tmp = M_root;
       M_root = std::make_shared<node>();
       M_root->M_children[0] = tmp;
       M_root->M_size = ++M_size;
-      tmp->M_parent = M_root;
+      if (tmp) tmp->M_parent = M_root;
     }
     M_init_ends();
   }
@@ -477,6 +508,7 @@ public:
   }
   order_statistic_tree& operator =(order_statistic_tree&& other) {
     M_move(std::move(other));
+    return *this;
   }
 
   reference at(size_type n) {
@@ -516,14 +548,20 @@ public:
   size_type size() const { return M_size; }
 
   iterator insert(const_iterator pos, const_reference value) {
+    // fprintf(stderr, "pos: %p\n", pos.M_ptr.get());
+    if (pos == end()) return push_back(value);
     M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
+    // fprintf(stderr, "split [%zu]:[%zu]\n", size(), tmp.size());
     iterator res = push_back(value);
+    // fprintf(stderr, "inserted [%zu]:[%zu]\n", size(), tmp.size());
     merge(std::move(tmp));
+    // fprintf(stderr, "begin(): %p\n", begin().M_ptr.get());
     return res;
   }
 
   iterator insert(const_iterator pos, value_type&& value) {
+    if (pos == end()) return push_back(std::move(value));
     M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = push_back(std::move(value));
@@ -533,6 +571,11 @@ public:
 
   iterator insert(const_iterator pos, size_type count, const_reference value) {
     if (count == 0) return pos;
+    if (pos == end()) {
+      auto res = push_back(value);
+      for (size_type i = 1; i < count; ++i) push_back(value);
+      return res;
+    }
     M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = push_back(value);
@@ -544,6 +587,11 @@ public:
   template <typename InputIt>
   iterator insert(const_iterator pos, InputIt first, InputIt last) {
     if (first == last) return pos;
+    if (pos == end()) {
+      auto res = push_back(*first++);
+      while (first != last) push_back(*first++);
+      return res;
+    }
     M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = push_back(*first++);
@@ -558,6 +606,7 @@ public:
 
   template <typename... Args>
   iterator emplace(const_iterator pos, Args&&... args) {
+    if (pos == end()) return emplace_back(std::forward<Args>(args)...);
     M_root = S_splay(pos.M_ptr);
     order_statistic_tree tmp = split(pos);
     iterator res = emplace_back(std::forward<Args>(args)...);
@@ -571,6 +620,7 @@ public:
     tmp->M_children[0] = M_root;
     tmp->M_size = ++M_size;
     if (M_root) M_root->M_parent = tmp;
+    if (!M_leftmost) M_leftmost = tmp;
     M_root = M_rightmost = tmp;
     return iterator(tmp, this);
   }
@@ -604,7 +654,7 @@ public:
     tmp->M_children[1] = M_root;
     tmp->M_size = ++M_size;
     if (M_root) M_root->M_parent = tmp;
-    if (!M_leftmost) M_leftmost = tmp;
+    if (!M_rightmost) M_rightmost = tmp;
     M_root = M_leftmost = tmp;
     return iterator(tmp, this);
   }
@@ -632,25 +682,29 @@ public:
     return iterator(tmp, this);
   }
 
-  void pop_back() {
+  iterator pop_back() {
     M_root = S_splay(M_rightmost);
     M_root = M_rightmost->M_children[0];
-    M_root->M_parent = nullptr;
+    if (M_root) M_root->M_parent = nullptr;
     M_rightmost->M_children[0] = nullptr;
-    M_rightmost = M_root;
-    --M_size;
+    M_rightmost = S_rightmost(M_root);
+    if (--M_size == 0) M_leftmost = nullptr;
+    return end();
   }
 
-  void pop_front() {
+  iterator pop_front() {
     M_root = S_splay(M_leftmost);
     M_root = M_leftmost->M_children[1];
-    M_root->M_parent = nullptr;
+    if (M_root) M_root->M_parent = nullptr;
     M_leftmost->M_children[1] = nullptr;
-    M_leftmost = M_root;
+    M_leftmost = S_leftmost(M_root);
     --M_size;
+    if (--M_size == 0) M_rightmost = nullptr;
+    return begin();
   }
 
   iterator erase(const_iterator pos) {
+    if (pos == begin()) return pop_front();
     order_statistic_tree tmp = split(pos);
     tmp.pop_front();
     auto res = tmp.begin();
@@ -667,10 +721,20 @@ public:
     return res;
   }
 
+  iterator merge(order_statistic_tree& other) {
+    return merge(std::move(other));
+  }
+
   iterator merge(order_statistic_tree&& other) {
+    if (other.empty()) return end();
+    if (empty()) {
+      M_move(std::move(other));
+      return begin();
+    }
     M_root = S_splay(M_rightmost);
     M_root->M_children[1] = other.M_root;
-    M_size = M_root->M_size += other.M_size;
+    other.M_root->M_parent = M_root;
+    M_size = (M_root->M_size += other.M_size);
     M_rightmost = other.M_rightmost;
     iterator res(other.M_leftmost, this);
     other.clear();  // not destruct nodes
@@ -681,13 +745,28 @@ public:
     if (pos == end()) return {};
     if (pos == begin()) return std::move(*this);
     M_root = S_splay(pos.M_ptr);
-    pointer res = M_root;
-    M_root = res->M_children[0];
-    M_root->M_parent = res->M_children[0] = nullptr;
-    M_init_ends();
-    M_root->set_size();
-    M_size = M_root->M_size;
-    return order_statistic_tree(res);
+    // fprintf(stderr, "split: %p %zu\n", M_root.get(), M_root->M_size);
+    pointer resp = M_root;
+    M_root = resp->M_children[0];
+    resp->M_children[0] = nullptr;
+    resp->set_size();
+    if (M_root) {
+      M_root->M_parent = nullptr;
+      M_root->set_size();
+      M_size = M_root->M_size;
+    } else {
+      M_size = 0;
+    }
+
+    order_statistic_tree res;
+    res.M_root = resp;
+    res.M_size = resp->M_size;
+    res.M_leftmost = pos.M_ptr;
+    res.M_rightmost = M_rightmost;
+    res.M_init_ends();
+
+    M_rightmost = S_rightmost(M_root);
+    return res;
   }
 
   template <typename Predicate>
@@ -696,18 +775,26 @@ public:
     if (!cur) return end();
     // ... true false ...
     //          ^
+    // fprintf(stderr, "root: %d\n", cur->M_value);
+    // fprintf(stderr, "left: [%p], right: [%p]\n", cur->M_children[0].get(), cur->M_children[1].get());
     while (true) {
       pointer tmp = cur->M_children[pred(cur->M_value)];
       if (!tmp) break;
+      // fprintf(stderr, "tmp: %d\n", tmp->M_value);
       cur = tmp;
     }
+    // fprintf(stderr, "-> cur: %p\n", cur.get());
     if (pred(cur->M_value)) cur = S_next(cur, this);
-    M_root = S_splay(cur);
-    return iterator(M_root, this);
+    // fprintf(stderr, "--> cur: %p\n", cur.get());
+    // if (cur) {
+    //   fprintf(stderr, "cur: %d (%p)\n", cur->M_value, cur.get());
+    // }
+    M_root = S_splay(cur? cur: M_rightmost);
+    return iterator(cur, this);
   }
 };
 
-int main() {
+int arc033_c() {
   size_t q;
   scanf("%zu", &q);
 
@@ -729,8 +816,90 @@ int main() {
       ost.erase(it);
     }
 
-    fprintf(stderr, "size: %zu\n", ost.size());
-    for (auto it = ost.begin(); it != ost.end(); ++it)
-      fprintf(stderr, "%d%c", *it, (std::next(it) != ost.end())? ' ': '\n');
+    // fprintf(stderr, "size: %zu\n", ost.size());
+    // for (auto it = ost.begin(); it != ost.end(); ++it)
+    //   fprintf(stderr, "%d%c", *it, (std::next(it) != ost.end())? ' ': '\n');
   }
+  return 0;
+}
+
+#include <vector>
+#include <numeric>
+
+int aoj2890() {
+  size_t n, q;
+  scanf("%zu %zu", &n, &q);
+
+  std::vector<int> a(n);
+  for (auto& ai: a) scanf("%d", &ai), --ai;
+  order_statistic_tree<int> ost(a.begin(), a.end());
+
+  std::vector<typename order_statistic_tree<int>::const_iterator> its(n);
+  {
+    for (auto it = ost.begin(); it != ost.end(); ++it)
+      its[*it] = it;
+  }
+
+  for (size_t i = 0; i < q; ++i) {
+    size_t j;
+    scanf("%zu", &j);
+    --j;
+
+    auto center = ost.split(its[j]);
+    auto right = center.split(++center.begin());
+    center.merge(ost);
+    right.merge(center);
+    ost = std::move(right);
+  }
+
+  for (auto it = ost.begin(); it != ost.end(); ++it)
+    printf("%d%c", *it+1, (std::next(it)!=ost.end())? ' ': '\n');
+
+  return 0;
+}
+
+int aoj_itp2_7_c() {
+  size_t q;
+  scanf("%zu", &q);
+
+  order_statistic_tree<int> ost;
+  for (size_t i = 0; i < q; ++i) {
+    int t;
+    scanf("%d", &t);
+
+    if (t == 0) {
+      // insert(x)
+      int x;
+      scanf("%d", &x);
+      auto it = ost.partition_point([x](int y) { return x > y; });
+      if (it == ost.end() || *it != x) ost.insert(it, x);
+      // fprintf(stderr, "inserted %d\n", x);
+      printf("%zu\n", ost.size());
+    } else if (t == 1) {
+      // find(x)
+      int x;
+      scanf("%d", &x);
+      auto it = ost.partition_point([x](int y) { return x > y; });
+      printf("%d\n", (it != ost.end() && *it == x));
+    } else if (t == 2) {
+      // delete(x)
+      int x;
+      scanf("%d", &x);
+      auto it = ost.partition_point([x](int y) { return x > y; });
+      if (it != ost.end() && *it == x) ost.erase(it);
+      // fprintf(stderr, "erased %d\n", x);
+    } else if (t == 3) {
+      // dump(x, y)
+      int x, y;
+      scanf("%d %d", &x, &y);
+      auto it = ost.partition_point([x](int z) { return x > z; });
+      while (it != ost.end() && *it <= y)
+        printf("%d\n", *it++);
+    }
+  }
+  return 0;
+}
+
+int main() {
+  aoj_itp2_7_c();
 }
