@@ -698,7 +698,6 @@ public:
     if (M_root) M_root->M_parent = nullptr;
     M_leftmost->M_children[1] = nullptr;
     M_leftmost = S_leftmost(M_root);
-    --M_size;
     if (--M_size == 0) M_rightmost = nullptr;
     return begin();
   }
@@ -707,6 +706,8 @@ public:
     if (pos == begin()) return pop_front();
     order_statistic_tree tmp = split(pos);
     tmp.pop_front();
+    // fprintf(stderr, "tmp.root: %d\n", tmp.M_root->M_value);
+    // fprintf(stderr, "size: %zu, %zu\n", size(), tmp.size());
     auto res = tmp.begin();
     merge(std::move(tmp));
     return res;
@@ -738,6 +739,7 @@ public:
     M_rightmost = other.M_rightmost;
     iterator res(other.M_leftmost, this);
     other.clear();  // not destruct nodes
+    // fprintf(stderr, "[%p] [%p]\n", M_root->M_children[0].get(), M_root->M_children[1].get());
     return res;
   }
 
@@ -763,9 +765,12 @@ public:
     res.M_size = resp->M_size;
     res.M_leftmost = pos.M_ptr;
     res.M_rightmost = M_rightmost;
-    res.M_init_ends();
 
     M_rightmost = S_rightmost(M_root);
+    // if (M_leftmost) fprintf(stderr, "leftmost: %d\n", M_leftmost->M_value);
+    // if (M_rightmost) fprintf(stderr, "rightmost: %d\n", M_rightmost->M_value);
+    // if (res.M_leftmost) fprintf(stderr, "other.leftmost: %d\n", res.M_leftmost->M_value);
+    // if (res.M_rightmost) fprintf(stderr, "other.rightmost: %d\n", res.M_rightmost->M_value);
     return res;
   }
 
@@ -901,5 +906,5 @@ int aoj_itp2_7_c() {
 }
 
 int main() {
-  aoj_itp2_7_c();
+  arc033_c();
 }
