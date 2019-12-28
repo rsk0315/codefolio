@@ -117,6 +117,7 @@ public:
   }
 
   bool contains(value_type x) const { return (suprange(x).second != x); }
+  value_type mex() const { return suprange(0).second; }
 
   bool empty() const noexcept { return (M_size == 0); }
   size_type size() const { return M_size; }
