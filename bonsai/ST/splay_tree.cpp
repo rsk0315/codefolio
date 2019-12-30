@@ -143,7 +143,7 @@ private:
     pointer par = cur->M_parent;
     pointer sub = cur->M_children[!dir];
 
-    cur->M_parent = nullptr;\
+    cur->M_parent = nullptr;
     cur->M_children[!dir] = par;
     par->M_parent = cur;
     par->M_children[dir] = sub;
