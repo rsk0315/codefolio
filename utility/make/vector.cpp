@@ -20,7 +20,7 @@ auto make_vector(
 }  // detail::
 
 template <typename Tp, size_t N>
-auto make_vector(size_t const(&sizes)[N], Tp const& x) {
+auto make_vector(size_t const(&sizes)[N], Tp const& x = Tp()) {
   std::vector<size_t> s(N);
   for (size_t i = 0; i < N; ++i) s[i] = sizes[N-i-1];
   return detail::make_vector<Tp, N>(s, x);
