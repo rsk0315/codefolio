@@ -29,8 +29,7 @@ private:
     if (n >= m) {
       n %= m;
     } else if (n < 0) {
-      n %= m;
-      n += m;
+      if ((n %= m) < 0) n += m;
     }
     return n;
   }
