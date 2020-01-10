@@ -1,5 +1,5 @@
 template <typename Tp>
-class linear_minima {
+class lower_envelope {
 public:
   using size_type = size_t;
   using value_type = Tp;
@@ -12,14 +12,14 @@ private:
   static value_type const S_min = std::numeric_limits<value_type>::min();
   static value_type const S_max = std::numeric_limits<value_type>::max();
 
-  static value_type S_floor(value_type x, value_type y) {
+  static value_type S_divfloor(value_type x, value_type y) {
     value_type q = x / y;
     value_type r = x % y;
     if (r < 0) --q;
     return q;
   }
 
-  static value_type S_ceil(value_type x, value_type y) {
+  static value_type S_divceil(value_type x, value_type y) {
     value_type q = x / y;
     value_type r = x % y;
     if (r > 0) ++q;
@@ -27,12 +27,6 @@ private:
   }
 
 public:
-  linear_minima() = default;
-  linear_minima(linear_minima const&) = default;
-  linear_minima(linear_minima&&) = default;
-  linear_minima& operator =(linear_minima const&) = default;
-  linear_minima& operator =(linear_minima&&) = default;
-
   bool push(value_type const& a, value_type const& b) {
     // try to push y = ax+b; return true if it is actually pushed
     if (M_lines.empty()) {
@@ -58,12 +52,12 @@ public:
     if (it0 != M_intervals.end()) {
       value_type a0, b0;
       std::tie(a0, b0) = it0->first;
-      lb = S_ceil(b-b0, -(a-a0));  // XXX this may cause overflow
+      lb = S_divceil(b-b0, -(a-a0));  // XXX this may cause overflow
     }
     if (it1 != M_intervals.end()) {
       value_type a1, b1;
       std::tie(a1, b1) = it1->first;
-      ub = S_floor(b1-b, -(a1-a));  // XXX this may cause overflow
+      ub = S_divfloor(b1-b, -(a1-a));  // XXX this may cause overflow
     }
     if (ub < lb) return false;
 
@@ -78,7 +72,7 @@ public:
         --it0;
         value_type a0, b0;
         std::tie(a0, b0) = it0->first;
-        lb = S_ceil(b-b0, -(a-a0));
+        lb = S_divceil(b-b0, -(a-a0));
       }
     }
 
@@ -87,7 +81,7 @@ public:
       it1 = M_intervals.erase(it1);
       value_type a1, b1;
       std::tie(a1, b1) = it1->first;
-      ub = S_floor(b1-b, -(a1-a));
+      ub = S_divfloor(b1-b, -(a1-a));
     }
 
     if (it0 != M_intervals.end()) {
@@ -113,7 +107,7 @@ public:
     return true;
   }
 
-  value_type at(value_type const& x) {
+  value_type get(value_type const& x) {
     // return the minimum value at x
     value_type a, b;
     std::tie(a, b) = (--M_lines.upper_bound(interval_type(x, S_max)))->second;
@@ -121,5 +115,5 @@ public:
   }
 };
 
-template <typename Tp> Tp const linear_minima<Tp>::S_min;
-template <typename Tp> Tp const linear_minima<Tp>::S_max;
+template <typename Tp> Tp const lower_envelope<Tp>::S_min;
+template <typename Tp> Tp const lower_envelope<Tp>::S_max;
